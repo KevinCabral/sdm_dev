@@ -1,0 +1,173 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+  <!-- [ Main Content ] start -->
+  <div class="row">
+    <div class="col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>Dados de Militantes</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div>
+                <label>Nome Completo:</label>
+                <p>{{ militante.nome_completo }}</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <div>
+                  <label>Alcunha</label>
+                  {{ militante.alcunha }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Tipo Associado</label>
+                {{ militante.tp_associado }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Estado Civil</label>
+                {{ militante.estado_civil }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Agreagado Familiar</label>
+                {{ militante.agregado_familiar }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Local Trabalho</label>
+                {{ militante.local_trabalho }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Profissão Atual</label>
+                {{ militante.profissao_atual }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Empresa</label>
+                {{ militante.empresa }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Sector</label>
+                {{ militante.sector }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Função</label>
+                {{ militante.funcao }}
+                ...
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Area Atuação</label>
+                {{ militante.area_atuacao }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Grau Academica</label>
+                {{ militante.grau_academica }}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Curso</label>
+                {{ militante.curso }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h5>Dados de Identificação</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Nome Pai</label>
+                {{ militante.nm_pai }}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Nome Mãe</label>
+                {{ militante.nm_mae }}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Data de Nascimento</label>
+                {{ militante.dt_nascimento }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Genero</label>
+                {{ militante.genero }}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Estado Civil</label>
+                {{ militante.estado_civil }}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Tipo de Documento</label>
+                {{ militante.tp_documento }}
+              </div>
+            </div>
+            <div class="col-md-6 tipo_bi">
+              <div class="form-group">
+                <label>Numero de Identificação</label>
+                {{ militante.nr_documento }}
+              </div>
+            </div>
+            <div class="col-md-6 tipo_bi">
+              <div class="form-group">
+                <label>Data emissão</label>
+                {{ militante.dt_emissao_doc }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <button type="submit" class="btn btn-primary">Criar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- [ Main Content ] end -->
+  <script>
+    $(document).ready(function () {
+      $.get("{% url 'militantes.get' 1 %}",function(data){
+        console.log("data",data)
+      })
+    })
+  </script>
+{% endblock %}

@@ -1,0 +1,24 @@
+# True for development, False for production
+DEBUG=True
+SECRET_KEY='AXCeS_bfr1zPhMEezU8X'
+DATABASE_URL='db-postgresql-sfo3-05978-do-user-15530859-0.c.db.ondigitalocean.com'
+DATABASE_NAME='db_sdm'
+DATABASE_USR='user_sdm'
+DATABASE_PORT='25060'
+
+
+URL_API = http://161.35.225.175:8080/appgwt/
+
+# SECRET_KEY='AXCeS_bfr1zPhMEezU8X'
+# DATABASE_URL='db-postgresql-sfo3-05978-do-user-15530859-0.c.db.ondigitalocean.com'
+# DATABASE_NAME='db_sdm'
+# DATABASE_USR='user_sdm'
+# DATABASE_PORT='25060'
+
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=True

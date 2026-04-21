@@ -1,0 +1,402 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card-header">
+        {% comment %} <h5>Utilizadores</h5> {% endcomment %}
+      </div>
+      <div class="col-md-12">
+        <label for="">Estado</label>
+        <select name="" id="filter-estado">
+          <option value="">Todos</option>
+          <option value="1">Ativo</option>
+          <option value="0">Bloqueado</option>
+        </select>
+      </div>
+      <div class="card-block px-0 py-3" id="table-data">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Username</th>
+                <th>Nome</th>
+                <th>Staf</th>
+                <th>Ultimo Login</th>
+                <th>Criado em</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+                <tr class="">
+                  <td>
+                    <img class="rounded-circle"
+                      style="width:40px;"
+                      src="{% if user.profile and user.profile.image %}
+                        {{ user.profile.image }}
+                      {% else %}
+                        {% static 'assets/images/user/avatar-1.jpg' %}
+                      {% endif %}"
+                      alt="activity-user" />
+                  </td>
+                  <td>
+                    <a href="#">
+                      <h6 class="mb-1">{{ user.username }}</h6>
+                      <p class="m-0">{{ user.email }}</p>
+                    </a>
+                  </td>
+                  <td>
+                    <a href="javascript:void(0)">
+                      <h6 class="mb-1">{{ user.first_name }}</h6>
+                      <p class="m-0">{{ user.last_name }}</p>
+                    </a>
+                  </td>
+                  <td>
+                    {% if user.is_staff %}
+                      Sim
+                    {% else %}
+                      Não
+                    {% endif %}
+                  </td>
+                  <td>{{ user.last_login }}</td>
+                  <td>{{ user.date_joined }}</td>
+                  <td>
+                    {% if user.is_active %}
+                      <button class="btn btn-danger bloquear" id-user="{{ user.id }}">Bloquear</button>
+                    {% else %}
+                      <button class="btn btn-green ativar" id-user="{{ user.id }}" email-user="{{ user.email }}">Activar</button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal -->
+  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel"></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="card">
+            <div class="card-header">
+              <h5>Dados de Militantes</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div>
+                    <label>Nome Completo:</label>
+                    <p class="nome_completo"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <div>
+                      <label>Alcunha</label>
+                      <p class="alcunha"></p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Tipo Associado</label>
+                    <p class="tp_associado"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Agreagado Familiar</label>
+                    <p class="agregado_familiar"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Local Trabalho</label>
+                    <p class="local_trabalho"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Profissão Atual</label>
+                    <p class="profissao_atual"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Empresa</label>
+                    <p class="empresa"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Sector</label>
+                    <p class="sector"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Função</label>
+                    <p class="funcao"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Area Atuação</label>
+                    <p class="area_atuacao"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Grau Academica</label>
+                    <p class="grau_academica"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Curso</label>
+                    <p class="curso"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h5>Dados de Identificação</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Nome Pai</label>
+                    <p class="nm_pai"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Nome Mãe</label>
+                    <p class="nm_mae"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <p class="dt_nascimento"></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Genero</label>
+                    <p class="genero"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Estado Civil</label>
+                    <p class="estado_civil"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Tipo de Documento</label>
+                    <p class="tp_documento"></p>
+                  </div>
+                </div>
+                <div class="col-md-4 tipo_bi">
+                  <div class="form-group">
+                    <label>Numero de Identificação</label>
+                    <p class="nr_documento"></p>
+                  </div>
+                </div>
+                <div class="col-md-4 tipo_bi">
+                  <div class="form-group">
+                    <label>Data emissão</label>
+                    <p class="dt_emissao_doc"></p>
+                  </div>
+                </div>
+                <div class="col-md-4 tipo_bi">
+                  <div class="form-group">
+                    <label>Data Validade</label>
+                    <p class="dt_validade_doc"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h5>Dados de Contactos</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Telefone 1</label>
+                    <p class="nr_telemovel1"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Telefone 2</label>
+                    <p class="nr_telemovel2"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Telefone Casa</label>
+                    <p class="nr_telefone_casa"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Email</label>
+                    <p class="email_pessoal"></p>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Email Trabalho</label>
+                    <p class="email_trabalho"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>País</label>
+                    <p class="pais"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Região</label>
+                    <p class="regiao"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Concelho</label>
+                    <p class="concelho"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Localidade</label>
+                    <p class="localidade"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Zona</label>
+                    <p class="zona"></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Morada Atual</label>
+                    <p class="morada_atual"></p>
+                  </div>
+                </div>
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label>Perto</label>
+                    <p class="perto_de"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary aprovar" id-militante="">Aprovar</button>
+          <button type="button" class="btn btn-danger rejectar" id-militante="">Rejectar</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalRejectar" tabindex="-1" role="dialog" aria-labelledby="modalRejectarLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalRejectarLabel">Rejectar</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12">
+              <textarea id="motivoRejeicao" style="width: 100%;height: 100%;" rows="10"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="rejectarButton" id-militante="">Rejectar</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    function getCookie(name) {
+      let cookieValue = null
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';')
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim()
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === name + '=') {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+            break
+          }
+        }
+      }
+      return cookieValue
+    }
+
+    function update(val){
+      $.get('' + '?is_active=' + val, function (data) {
+        $('#table-data').html($(data).find("#table-data"))    
+      })
+    }
+    $(document).on('change', '#filter-estado', function () {
+      update($(this).val())
+    })
+
+    $(document).on("click",".bloquear",function(){
+      id = $(this).attr("id-user")
+      const csrftoken = getCookie('csrftoken')
+      if(confirm("Desejar bloquear este utilizador")){
+        $.post("{% url 'users.bloquear' %}",{"user-id":id, csrfmiddlewaretoken: csrftoken},function(){
+          update("")
+        })
+      }
+    })
+    $(document).on("click",".ativar",function(){
+      id = $(this).attr("id-user")
+      email = $(this).attr("email-user")
+      const csrftoken = getCookie('csrftoken')
+      if(confirm("Desejar ativar este utilizador")){
+        $.post("{% url 'users.ativar' %}",{"id":id, csrfmiddlewaretoken: csrftoken,"email":email},function(){
+          update("")
+        })
+      }
+    })
+  </script>
+{% endblock %}

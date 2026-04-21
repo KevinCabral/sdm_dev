@@ -1,0 +1,437 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="" style="padding-left: 0;display: flex;justify-content: end;">
+          {% comment %} <h5>Carta de Convite</h5> {% endcomment %}
+          <div class="col-md-2" style="padding-top: 27px;transform: translateY(-30px);display: flex;justify-content: end;">
+            <button class="btn btn-primary" id="add" style="background-color:#1a9123;border:none;"><i class="fa fa-plus" style='font-size: 15px;'></i>Criar </button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  
+     
+    </div>
+    <div class="card row content-data">
+      <div class="col-md-12">
+        <div class="card-block px-0 py-3">
+          <div class="table-responsive">
+            <table class="table table-hover" id="table-data">
+              <thead>
+                <tr style="font-weight: 800;color: #0e7716;border-bottom: 3px solid #dbd1d1;">
+                  <th>Tipo</th>
+                  <th>Conteudo</th>
+                  <th>Estado</th>
+                  <th style="display: flex;justify-content: center;">Acção</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for carta in cartas %}
+                  <tr class=""  data-id = "{{carta.documentId}}" data-tipo = "{{carta.tipo}}"  data-conteudo = "{{carta.conteudo}}" data-imagem="{% if carta.imagem %}{{urlImage}}{{carta.imagem}}{% endif %}">
+                    <td>
+                      {{carta.tipo}}
+                    </td>
+                    <td>
+                      <p>{{ carta.conteudo|slice:":150" }} {% if carta.conteudo|length > 150 %} ... {% endif%}</p>
+                    </td>
+                    <td >{% if carta.active == True %} <span style="color: #1a9123;">Publicado</span>{% else %} <span style="color: #d70101;">Despublicado</span> {% endif %}</td>
+                    <td class="table-actions" style="display: flex;justify-content: center;">
+                      <a href="javascript:void(0)" class="label f-12 view" id-carta="{{ carta.documentId }}">
+                        <i class="fa fa-solid fa-eye" style="font-size: 24px;color:#1a9123;"></i>
+                      </a>
+                      <a href="javascript:void(0)" class="label f-12 edit">
+                        <i class="fa fa-solid fa-edit" style="font-size: 24px;color:#1a9123;"></i>
+                      </a>
+                      <!--
+                      <a href="javascript:void(0)" class="label text-danger f-12 apagar" id-carta="{{ carta.documentId }}">
+                        <i class="fa fa-solid fa-trash" style="font-size: 24px;"></i>
+                      </a>
+                      -->
+                      {% if carta.active == True %}
+                        <a href="javascript:void(0)" style="border-radius: 5px;padding-top: 7px;text-align: center;" class="label btn-danger text-white f-12 despublicar" id-carta="{{ carta.documentId }}">Despublicar</a>
+                        {% else %}
+                        <a href="javascript:void(0)"  class="label theme-bg f-12 publicar" style="background:#1a9123;color: white;border-radius: 5px;padding-top: 7px;width: 83px;text-align: center;" id-carta="{{ carta.documentId }}">Publicar</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="add-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <form action="" method="post" id="add-form">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Adicionar Carta de Convite</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="tipo">Tipo</label>
+                <select name="tipo" id="tipo" class="form-control"  required="">
+                  <option value="">Seleciona o tipo</option>
+                  <option value="Aniversário">Aniversário</option>
+                  <option value="Jantar">Jantar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <input type="file" name="imagem" id="imagem" class="form-control" accept="image/*">
+                <span class="errors"></span>
+              </div>
+
+              <img id="add-image" src="" alt="" style="width: 100%;height: 250px;margin-bottom: 10px;display: none;">
+              
+              <input type="hidden" name="isPublish" value="" id="isPublish">
+              <div class="form-group"><label for="conteudo">Conteudo:</label>
+                <textarea name="conteudo" id="conteudo" cols="30" rows="10"  class="form-control"  required="" ></textarea>
+                <span class="errors"></span>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" isPublish="true" id="saveAndPublish">Gaurdar e Publicar</button>
+              <button type="button" class="btn btn-secondary" id="save">Guardar</button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </form>
+      </div>
+  </div>
+
+  <div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label >Tipo: </label>
+              <p id="tipo-view"></p>
+            </div>
+            <div class="form-group">
+              <label for="conteudo">Conteudo:</label>
+              <p id="conteudo-view"></p>
+            </div>
+            <div>
+              <label for="">Imagem</label>
+              <img src="" alt="" id="imagem-view" style="width: 100%;">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <div class="modal fade" id="edit-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelEdit" aria-hidden="true">
+    <form action="" method="post" id="edit-form">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabelEdit">Atualizar Carta de Convite</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="edit-tipo">Tipo</label>
+              <select name="tipo" id="edit-tipo" class="form-control"  required="">
+                <option value="">Seleciona o tipo</option>
+                <option value="Aniversário">Aniversário</option>
+                <option value="Jantar">Jantar</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <input type="file" name="imagem" id="edit-imagem" class="form-control" accept="image/*">
+              <span class="errors"></span>
+            </div>
+            <img src="" alt="" id="imagem-edit" style="width: 100%;margin-bottom: 10px;height: 250px;">
+            <input type="hidden" name="id" id="edit-id">
+            <div class="form-group"><label for="edit-conteudo">Conteudo:</label>
+              <textarea name="conteudo" id="edit-conteudo" cols="30" rows="10"  class="form-control"  required="" ></textarea>
+              <span class="errors"></span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="edit" data-id="">Atualizar</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    input.invalid, textarea.invalid{
+      border: 1px solid #ffdddd;
+    }
+
+    .errors{
+      color: rgb(223, 73, 73);
+    }
+  </style>
+
+
+  <script>
+    
+    function getCookie(name) {
+      let cookieValue = null
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';')
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim()
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === name + '=') {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+            break
+          }
+        }
+      }
+      return cookieValue
+    }
+
+    var loadFileAdd = function (event) {
+      var image = document.getElementById('add-image')
+      image.style.display ="block"
+      image.src = URL.createObjectURL(event.target.files[0])
+    }
+
+    var loadFileEdit = function (event) {
+      var image = document.getElementById('imagem-edit')
+      image.src = URL.createObjectURL(event.target.files[0])
+    }
+
+    document.getElementById('imagem').addEventListener('change', loadFileAdd)
+    document.getElementById('edit-imagem').addEventListener('change', loadFileEdit)
+
+    function updateContent(data){
+      $(".content-data").html($(data).find(".content-data").children())
+      $("#message-div").html($(data).find("#message-div").children())
+      setTimeout(function(){
+          $(".alert").fadeOut()
+      },6000)
+    }
+
+    $(document).on("click","#add",function(){
+      $("#add-modal").modal("show")
+    })
+
+    function submitForm(isPublish, callback){
+      let tipo = $("#tipo").val()
+      let conteudo = $("#conteudo").val()
+      csrftoken = getCookie('csrftoken')
+      let isError = false
+
+      if(tipo == ""){
+        $("#tipo").addClass("invalid")
+        $("#tipo").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+        isError = true
+      }
+      
+      if(conteudo == ""){
+        $("#conteudo").addClass("invalid")
+        $("#conteudo").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+        isError = true
+      }
+
+      if(isError){
+        callback()
+        return
+      }
+
+      $("#isPublish").val(isPublish)
+      $('#add-form').submit()
+    }
+
+    function submitFormEdit(isPublish, callback){
+      let tipo = $("#edit-tipo").val()
+      let conteudo = $("#edit-conteudo").val()
+      csrftoken = getCookie('csrftoken')
+      let isError = false
+
+      if(tipo == ""){
+        $("#edit-tipo").addClass("invalid")
+        $("#edit-tipo").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+        isError = true
+      }
+      
+      if(conteudo == ""){
+        $("#edit-conteudo").addClass("invalid")
+        $("#edit-conteudo").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+        isError = true
+      }
+
+      if(isError){
+        callback()
+        return
+      }
+      $("#edit-id").val($("#edit").attr("data-id"))
+      $('#edit-form').submit()
+
+    }
+
+    
+    $(document).on("click","#save",function(event){
+      let self = this
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      submitForm(false,function(){
+        $(self).find("i").remove()
+        $(self).prop("disabled",false)
+      })
+    })
+
+    $(document).on("click","#edit",function(event){
+      let self = this
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      submitFormEdit(false,function(){
+        $(self).find("i").remove()
+        $(self).prop("disabled",false)
+      })
+    })
+
+    $(document).on("click","#saveAndPublish",function(){
+      let self = this
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      submitForm(true,function(){
+        $(self).find("i").remove()
+        $(self).prop("disabled",false)
+      })
+    })
+
+    $(document).on("change",".invalid",function(){
+      $(this).removeClass("invalid")
+      $(this).parent(".form-group").find(".errors").text("")
+    })
+
+    $(document).on("click",".publicar",function(){
+      let self = this
+      let id = $(this).attr("id-carta")
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      csrftoken = getCookie('csrftoken')
+      
+      if(confirm("Deseja publicar esta carta?")){
+        $.post("{% url 'carta_convite.publications' %}",{csrfmiddlewaretoken: csrftoken,id},function(data){
+          updateContent(data)
+          $(self).find("i").remove()
+          $(self).prop("disabled",false)
+        })
+      }
+    })
+
+    $(document).on("click",".despublicar",function(){
+      let self = this
+      let id = $(this).attr("id-carta")
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      csrftoken = getCookie('csrftoken')
+      
+      if(confirm("Deseja despublicar esta carta?")){
+        $.post("{% url 'carta_convite.notPublications' %}",{csrfmiddlewaretoken: csrftoken,id},function(data){
+          updateContent(data)
+          $(self).find("i").remove()
+          $(self).prop("disabled",false)
+        })
+      }
+    })
+
+    $(document).on("click",".view",function(){
+      let parent = $(this).parents("tr")[0]
+      $("#view-modal").find("#tipo-view").text($(parent).attr("data-tipo"))
+      $("#view-modal").find("#conteudo-view").text($(parent).attr("data-conteudo"))
+      let link = $(parent).attr("data-imagem")
+      link = link.replace("/uploads/","")
+      $("#view-modal").find("#imagem-view").attr("src",link)
+      $("#view-modal").modal("show")
+    })
+
+    $(document).on("click",".edit",function(){
+      let parent = $(this).parents("tr")[0]
+      $("#edit-modal").find("#edit-tipo").val($(parent).attr("data-tipo"))
+      $("#edit-modal").find("#edit-tipo").trigger("change")
+      $("#edit-modal").find("#edit").attr("data-id",$(parent).attr("data-id"))
+      $("#edit-modal").find("#edit-conteudo").val($(parent).attr("data-conteudo"))
+      
+      let link = $(parent).attr("data-imagem")
+      link = link.replace("/uploads/","")
+      if(link == "{{urlImage}}"){
+        $("#edit-modal").find("#imagem-edit").hide()  
+      }else{
+        $("#edit-modal").find("#imagem-edit").show()
+      }
+      $("#edit-modal").find("#imagem-edit").attr("src",link)
+
+      $("#edit-modal").modal("show")
+    })
+
+    $(document).ready(function() {
+      $('#add-form').submit(function(event) {
+          event.preventDefault();
+          var formData = new FormData(this);
+          formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+          
+          $.ajax({
+              url: 'carta-convite/create',
+              type: 'POST',
+              data: formData,
+              processData: false,
+              contentType: false,
+              success: function(data) {
+                $("#add-modal").modal("hide")
+                updateContent(data)
+                $("#add-modal").find("#tipo").val("")
+                $("#add-modal").find("#tipo").trigger("change")
+                $("#add-modal").find("#conteudo").val("")
+                $("#save").find("i").remove()
+                $("#save").prop("disabled",false)
+                $("#add-image").hide()
+              },
+              error: function(xhr, status, error) {
+                  console.error("Erro no envio da imagem:", error);
+              }
+          });
+      });
+    });
+
+    $(document).ready(function() {
+      $('#edit-form').submit(function(event) {
+          event.preventDefault();
+          var formData = new FormData(this);
+          formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+          
+          $.ajax({
+              url: 'carta-convite/update',
+              type: 'POST',
+              data: formData,
+              processData: false,
+              contentType: false,
+              success: function(data) {
+                $("#edit-modal").modal("hide")
+                updateContent(data)
+                $("#edit").find("i").remove()
+                $("#edit").prop("disabled",false)
+              },
+              error: function(xhr, status, error) {
+                  console.error("Erro no envio da imagem:", error);
+              }
+          });
+      });
+    });
+  
+  </script>
+{% endblock %}

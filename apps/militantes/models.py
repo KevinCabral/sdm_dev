@@ -1,0 +1,74 @@
+from django.db import models
+import os
+import uuid
+
+# Create your models here.
+
+def get_file_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = "%s.%s" % (uuid.uuid4(), ext)
+    return os.path.join('militantes/', filename)
+
+class Militantes(models.Model):
+    nome_completo = models.CharField(max_length=200, blank=True, null=True)
+    estado_ficha = models.CharField(max_length=20, blank=True, null=True)
+    tp_associado = models.CharField(max_length=20, blank=True, null=True)
+    estado_militante = models.CharField(max_length=20, blank=True, null=True, default="P")
+    alcunha = models.CharField(max_length=20, blank=True, null=True)
+    nm_pai = models.CharField(max_length=100, blank=True, null=True)
+    nm_mae = models.CharField(max_length=100, blank=True, null=True)
+    genero = models.CharField(max_length=20, blank=True, null=True)
+    estado_civil = models.CharField(max_length=20, blank=True, null=True)
+    agregado_familiar = models.SmallIntegerField(blank=True, null=True)
+    profissao_atual = models.CharField(max_length=50, blank=True, null=True)
+    local_trabalho = models.CharField(max_length=50, blank=True, null=True)
+    sector = models.CharField(max_length=50, blank=True, null=True)
+    empresa = models.CharField(max_length=50, blank=True, null=True)
+    funcao = models.CharField(max_length=50, blank=True, null=True)
+    grau_academica = models.CharField(max_length=50, blank=True, null=True)
+    area_atuacao = models.CharField(max_length=255, blank=True, null=True)
+    curso = models.CharField(max_length=50, blank=True, null=True)
+    status = models.CharField(max_length=20, blank=True, null=True)
+    dt_emissao_doc = models.DateField(blank=True, null=True)
+    dt_validade_doc = models.DateField(blank=True, null=True)
+    email_pessoal = models.CharField(max_length=100, blank=True, null=True)
+    email_trabalho = models.CharField(max_length=100, blank=True, null=True)
+    nr_documento = models.CharField(max_length=20, blank=True, null=True)
+    nr_telefone_casa = models.IntegerField(blank=True, null=True)
+    nr_telemovel1 = models.IntegerField(blank=True, null=True)
+    nr_telemovel2 = models.IntegerField(blank=True, null=True)
+    tp_documento = models.CharField(max_length=20, blank=True, null=True)
+    dt_nascimento = models.DateField(blank=True, null=True)
+    is_mobile = models.BooleanField(blank=True, null=True)
+    motivo_rejeicao = models.CharField(max_length=1000, null=True,blank=True)
+    image = models.ImageField(upload_to=get_file_path)
+
+    class Meta:
+        db_table = 'militantes'
+
+class Geografia(models.Model):
+    id = models.CharField(primary_key=True, max_length=50)
+    concelho = models.CharField(max_length=50, blank=True, null=True)
+    freguesia = models.CharField(max_length=50, blank=True, null=True)
+    ilha = models.CharField(max_length=50, blank=True, null=True)
+    nivel_detalhe = models.CharField(max_length=2, blank=True, null=True)
+    nome = models.CharField(max_length=300, blank=True, null=True)
+    nome_norm = models.CharField(max_length=300, blank=True, null=True)
+    pais = models.CharField(max_length=50, blank=True, null=True)
+    zona = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        db_table = 'geografia'
+
+class Morada(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    morada_atual = models.CharField(max_length=250, blank=True, null=True)
+    perto_de = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=1, blank=True, null=True)
+    geografia = models.ForeignKey(Geografia, models.DO_NOTHING, blank=True, null=True)
+    militante = models.ForeignKey(Militantes, models.DO_NOTHING, blank=True, null=True)
+
+    class Meta:
+        db_table = 'morada'
+
+

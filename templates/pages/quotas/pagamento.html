@@ -1,0 +1,452 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  input.invalid, textarea.invalid{
+    border: 1px solid #ffdddd;
+  }
+
+  .errors{
+    color: rgb(223, 73, 73);
+  }
+</style>
+
+  <div class="">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="" style="padding-left: 0;display: flex;justify-content: end;">
+          {% comment %} <h5>Pagamento de Quota</h5> {% endcomment %}
+          <div class="col-md-2" style="padding-top: 27px;transform: translateY(-30px);display: flex;justify-content: end;">
+            <button class="btn btn-primary" id="pagar" style="background-color:#1a9123;border:none;"><i class="fa fa-plus" style='font-size: 15px;'></i>Fazer Pagamento </button>
+            <button class="btn btn-primary" id="export" style="background-color:#1a9123;border:none;"><i class="fa fa-download" style='font-size: 15px;'></i>Exportar </button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  
+    <div class="card card-body">
+      <div class="row">
+        <div class="col-md-2">
+          <div class="form-group">
+            <label for="nome">Nome</label>
+            <input type="text" name="nome" maxlength="200" class="form-control" required="" id="nome" />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label for="data_inicio">Data</label>
+            <div style="display: flex;align-items: start;">
+              <label for="" style="margin: 15px 10px;">De</label>
+              <input type="date" name="data_inicio" maxlength="200" class="form-control" required="" id="data_inicio" />
+              <label  style="margin: 15px 10px;">Ate</label>
+              <input type="date" name="data_fim" maxlength="200" class="form-control" required="" id="data_fim" />
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <button id="btn-search" type="button" class="btn btn-primary" style="margin-top: 27px;"><i class="fa fa-solid fa-search"></i>Pesquisar</button>
+        </div>
+      </div>
+      
+      <div id="table-data" class="content-data">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card-block px-0 py-3">
+              <div class="table-responsive">
+                <table class="table table-hover" id="table-data">
+                  <thead>
+                    <tr style="font-weight: 800;color: #0e7716;border-bottom: 3px solid #dbd1d1;">
+                      <th>Nome</th>
+                      <th>Data Pagamento</th>
+                      <th>VAlor</th>
+                      <th style="text-align: center;">Acção</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for pagamento in page_obj %}
+                      <tr class=""  data-id = "{{pagamento.id}}">
+                        <td>
+                          {{pagamento.militante.nome_completo}}
+                        </td>
+                        <td>
+                          {{pagamento.data_pagamento}}
+                        </td>
+                        <td>
+                          {{pagamento.valor.valor}}
+                        </td>
+                        <td style="display: flex;justify-content: center;">
+                          <a href="javascript:void(0)" class="label f-12 view" id-pagamento="{{ pagamento.id }}">
+                            <i class="fa fa-solid fa-eye" style="font-size: 24px;color:#1a9123;"></i>
+                          </a>
+                          <a href="javascript:void(0)" class="label f-12 edit" id-pagamento="{{ pagamento.id }}">
+                            <i class="fa fa-solid fa-edit" style="font-size: 24px;color:#1a9123;"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <div class="pagination" style="display: flex;justify-content: center;">
+            {% if page_obj.has_previous %}
+                <a href="javascript:void(0)" class="page-item page-link" data-href="1">Primeira</a>
+                <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.previous_page_number }}">Anterior</a>
+            {% endif %}
+      
+            <span style="margin: 10px;">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      
+            {% if page_obj.has_next %}
+                <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.next_page_number }}">Próxima</a>
+                <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.paginator.num_pages }}">Última</a>
+            {% endif %}
+          </div>
+          </div>
+        </div>
+      
+      </div>
+    </div>
+  </div>
+  
+
+
+  <div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5>Detalhes de Pagamento</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <div class="card" style="margin-bottom: 0;">
+              <div class="card-header">
+                <h5>Pagamento</h5>
+              </div>
+              <div class="card-body" style="padding-bottom: 10px;">
+                <div class="row">
+                  <div class="col-md-6">
+                      <label for="" style="font-weight: 700;color: black;">Valor:</label>
+                      <span id="valor"></span>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="" style="font-weight: 700;color: black;">Data de Pagamento:</label>
+                    <span id="data_pagamento"></span>
+                </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card"  style="margin-bottom: 0;">
+              <div class="card-header">
+                <h5>Dados de Militante</h5>
+              </div>
+              <div class="card-body" style="padding-bottom: 10px;">
+                <div class="row">
+                  <div class="col-md-4">
+                      <label for="" style="font-weight: 700;color: black;">Nome:</label>
+                      <span id="nome_militante"></span>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="" style="font-weight: 700;color: black;">Alcunha:</label>
+                    <span id="alcunha"></span>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="" style="font-weight: 700;color: black;">Tipo de Associado: </label>
+                    <span id="tp_associado"></span>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="" style="font-weight: 700;color: black;">Profissão Atual:</label>
+                    <span id="profissao_atual"></span>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="" style="font-weight: 700;color: black;">Telemovel:</label>
+                    <span id="nr_telemovel1"></span>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="" style="font-weight: 700;color: black;">Email:</label>
+                    <span id="email_pessoal"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card"  style="margin-bottom: 0;">
+              <div class="card-header">
+                <h5>Anexos</h5>
+              </div>
+              <div class="card-body" style="padding-bottom: 10px;">
+                <div class="row">
+                  <div class="col-md-6">
+                      <a id="anexo"><i class="fa fa-solid fa-download"></i>Baixar</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <div class="modal fade" id="create-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <form action="{% url 'quotas.fazer_pagamento' %}" method="post" id="add-form" enctype="multipart/form-data">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="hearder">Fazer Pagamento</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <div class="card">
+              <div class="card-body">
+                <div class="form-group">
+                  {{ form.valor.label_tag }}
+                  {{ form.valor }}
+                  {{ form.valor.errors }}
+                  <span class="errors"></span>
+                </div>
+                <div class="form-group">
+                  {{ form.militante.label_tag }}
+                  {{ form.militante }}
+                  {{ form.militante.errors }}
+                  <span class="errors"></span>
+                </div>
+                <div class="form-group">
+                  {{ form.data_pagamento.label_tag }}
+                  {{ form.data_pagamento }}
+                  {{ form.data_pagamento.errors }}
+                  <span class="errors"></span>
+                </div>
+                <div class="form-group">
+                  {{ form.anexo_id.label_tag }}
+                  {{ form.anexo_id }}
+                  {{ form.anexo_id.errors }}
+                  <span class="errors"></span>
+                </div>
+                <input type="hidden" id="id" name="id">
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="save"> Fazer Pagamento</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <script>
+
+    function getCookie(name) {
+      let cookieValue = null
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';')
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim()
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === name + '=') {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+            break
+          }
+        }
+      }
+      return cookieValue
+    }
+
+    function updateContent(data){
+      $(".content-data").html($(data).find(".content-data").children())
+      $("#message-div").html($(data).find("#message-div").children())
+      setTimeout(function(){
+          $(".alert").fadeOut()
+      },6000)
+    }
+
+    $(document).on("click","#save",function(){
+      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
+      $(this).prop("disabled",true)
+      $("#add-form").submit()
+    })
+    $(document).on('click','#pagar',function(){
+      $("#create-modal").find("#hearder").text("Fazer Pagamento")
+      $("#create-modal").find("#id").val("")
+      $("#create-modal").find("input,select,file").val("")
+      $("#create-modal").find("input,select,file").trigger("change")
+      $("#create-modal").find("#id_anexo_id").prop("required",false)
+      $('#create-modal').modal('show')
+    })
+
+    $(document).on("click",".view",function(){
+      let id = $(this).attr("id-pagamento")
+
+      $.get("pagamento/view",{id:id},function(data){
+        $("#view-modal").find("#valor").text(data.valor.valor)
+        $("#view-modal").find("#data_pagamento").text(data.data_pagamento)
+        $("#view-modal").find("#nome_militante").text(data.militante.nome_completo)
+        $("#view-modal").find("#alcunha").text(data.militante.alcunha)
+        $("#view-modal").find("#tp_associado").text(data.militante.tp_associado)
+        $("#view-modal").find("#profissao_atual").text(data.militante.profissao_atual)
+        $("#view-modal").find("#nr_telemovel1").text(data.militante.nr_telemovel1)
+        $("#view-modal").find("#email_pessoal").text(data.militante.email_pessoal)
+        $("#view-modal").find("#anexo").attr("href",data.anexo)
+
+        if(data.anexo){
+          $("#view-modal").find("#anexo").show()
+        }else{
+          $("#view-modal").find("#anexo").hide()
+        }
+        
+        $("#view-modal").modal("show")
+      })
+      
+    })
+
+    $(document).on("click",".edit",function(){
+      let id = $(this).attr("id-pagamento")
+
+      $.get("pagamento/view",{id:id},function(data){
+        $("#create-modal").find("#hearder").text("Atualizar Pagamento")
+        $("#create-modal").find("#id_valor").val(data.valor.id).trigger("change")
+        $("#create-modal").find("#id_militante").val(data.militante.id).trigger("change")
+        $("#create-modal").find("#id_data_pagamento").val(data.data_pagamento)
+        $("#create-modal").find("#id").val(id)
+        $("#create-modal").find("#id_anexo_id").prop("required",false)
+        $("#create-modal").modal("show")
+      })
+      
+    })
+
+    $(document).ready(function(){
+      $('#add-form').submit(function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+        let isError = false
+
+        if($("#id_valor").val() == ""){
+          $("#id_valor").addClass("invalid")
+          $("#id_valor").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+          isError = true
+        }
+        
+        if($("#id_militante").val() == ""){
+          $("#id_militante").addClass("invalid")
+          $("#id_militante").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+          isError = true
+        }
+
+        if($("#id_data_pagamento").val() == ""){
+          $("#id_data_pagamento").addClass("invalid")
+          $("#id_data_pagamento").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+          isError = true
+        }
+
+        if( $("#id").val() == "" && $("#id_anexo_id").val() == ""){
+          $("#id_anexo_id").addClass("invalid")
+          $("#id_anexo_id").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
+          isError = true
+
+        }
+
+        if(isError){
+          $("#save").find("i").remove()
+          $("#save").prop("disabled",false)
+          return
+        }
+        
+        $.ajax({
+            url: $(this).attr("action"),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(data) {
+              $("#create-modal").modal("hide")
+              updateContent(data)
+              $("#create-modal").find("input,select").val("")
+              $("#create-modal").find("input,select").trigger("change")
+              $("#save").find("i").remove()
+              $("#save").prop("disabled",false)
+            },
+            error: function(xhr, status, error) {
+                alert("Erro em fazer pagamento")
+            }
+        });
+    });
+    })
+
+
+    function search(page = null){
+
+      $('#table-data').html("<div style='display: flex;justify-content: center;'><i class='fa fa-solid fa-spinner' style='font-size: 48px;'></i></div>")
+      let nome = $("#nome").val()
+      let data_inicio = $("#data_inicio").val()
+      let data_fim = $("#data_fim").val()
+
+      let data = {nome,data_inicio,data_fim}
+
+      if(page){
+        data["page"] = page 
+      }
+
+      $.get('',data , function (data) {
+        updateContent(data)
+      })
+    }
+
+    $(document).on("click","#exportar",function(){
+      $(this).append("<i class='fa fa-solid fa-spinner' style='font-size: 15px;'></i>")
+      $(this).prop("disabled",true)
+      let nome = $("#nome").val()
+      let data_inicio = $("#data_inicio").val()
+      let data_fim = $("#data_fim").val()
+
+      let button = $(this)
+      $.get("{% url 'quotas.exportExcel' %}",{nome,data_inicio,data_fim},function(data){
+        downloadBlob(data, 'pagamento_quotas.csv', 'text/csv;charset=utf-8;')
+        $(button).find("i").remove()
+        $(button).prop("disabled",false)
+      })
+    })
+
+    function downloadBlob(content, filename, contentType) {
+      // Create a blob
+      var blob = new Blob([content], { type: contentType });
+      var url = URL.createObjectURL(blob);
+    
+      // Create a link to download it
+      var pom = document.createElement('a');
+      pom.href = url;
+      pom.setAttribute('download', filename);
+      pom.click();
+    }
+
+    $(document).on("click",".page-item",function(event){
+      let page = $(this).attr("data-href")
+      search(page)
+    })
+
+    $(document).on("change",".invalid",function(){
+      $(this).removeClass("invalid")
+      $(this).parent(".form-group").find(".errors").text("")
+    })
+
+    $(document).on("click","#btn-search",function(){
+      search()
+    })
+
+    $(document).on("change","#nome,#data_inicio,#data_fim",function(){
+      search()
+    })
+  
+  </script>
+{% endblock %}

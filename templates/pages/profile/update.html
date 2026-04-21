@@ -1,0 +1,177 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}
+
+{% endblock %}
+
+{% block content %}
+  <!-- [ Main Content ] start -->
+  <form method="post" action="{% url 'users.profile' %}" enctype="multipart/form-data">
+    <div class="row">
+      <div class="col-sm-8">
+        <div class="card">
+          <div class="card-header" style="display: flex;">
+            {% comment %} <h5>Dados</h5> {% endcomment %}
+            <div id="menu-action" style="width: 100%;display: flex;justify-content: end;">
+              <a href="javascript:void(0)" id="edit" style="margin-right: 10px;color: #1a9123;">
+                <i class="fa fa-solid fa-edit" style="font-size: 24px;"></i>
+                Editar
+              </a>
+              <a href="{% url 'admin:password_change' %}" style="color: #1a9123;">
+                <i class="fa fa-solid fa-lock" style="font-size: 24px"></i>
+                  Mudar Palavra-Passe
+              </a>
+            </div>
+          </div>
+          <div class="card-block">
+            <div class="row">
+              <div class="col-sm-12 mb-4">
+                <div class="form-group">
+                  <div class="form-group">{{ userForm.email.label_tag }}
+                    {{ userForm.email }}
+                    {{ userForm.email.errors }}</div>
+                </div>
+              </div>
+              <div class="col-sm-6 mb-4">
+                <div class="form-group">{{ userForm.first_name.label_tag }}
+                  {{ userForm.first_name }}
+                  {{ userForm.first_name.errors }}</div>
+              </div>
+              <div class="col-sm-6 mb-4">
+                <div class="form-group">{{ userForm.last_name.label_tag }}
+                  {{ userForm.last_name }}
+                  {{ userForm.last_name.errors }}</div>
+              </div>
+              <div class="col-sm-12 mb-4">
+                <div class="form-group">{{ profileUpdateForm.address.label_tag }}
+                  {{ profileUpdateForm.address }}
+                  {{ profileUpdateForm.address.errors }}</div>
+              </div>
+              <div class="col-sm-12 mb-4">
+                <div class="form-group">{{ profileUpdateForm.about.label_tag }}
+                  {{ profileUpdateForm.about }}
+                  {{ profileUpdateForm.about.errors }}</div>
+                {% csrf_token %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-sm-12">
+                <button type="submit" class="btn btn-primary" id="submit">Guardar</button>
+                <a class="btn btn-secondary" href="{% url 'users.profile' %}" id="cancel">Cancelar</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card">
+          <div class="card-block">
+            <div class="d-flex align-items-center justify-content-center flex-column">
+              <div class="w-50 p-3" id="img-contrainer">
+                <div class="img-fluid rounded-circle" id="masc-img">
+                  <i class="fa fa-solid fa-edit" style="font-size: 24px;"></i>
+                </div>
+                <img src="{% if user.profile and user.profile.image %}
+                  /media/{{ user.profile.image }}
+                  {% else %}
+                    {% static 'assets/images/user/avatar-1.jpg' %}
+                  {% endif %}"
+                  alt="profile image"
+                  class="img-fluid rounded-circle"
+                  id="profile_image"
+                  style="width: 150px;height: 137px;transform: translateX(20px);" />
+              </div>
+              <div class="" style="margin-bottom: 10px;">{{ profileUpdateForm.image }}
+                {{ profileUpdateForm.image.errors }}
+              </div>
+              <div class="text-center">
+                <h4 class="font-weight-bold h6">{{ user.username }}</h4>
+              </div>
+              
+            </div>
+
+            <div class="small font-weight-light mt-4 text-center text-muted">
+              <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dignissimos esse excepturi fugiat id numquam? Enim illo, perferendis. Eum, ratione, voluptas?</p>
+            </div>
+            <div class="d-flex justify-content-center align-items-center">
+              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-facebook"></i></a>
+              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-twitter"></i></a>
+              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-instagram"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- [ Main Content ] end -->
+
+  <style>
+    #masc-img {
+      width: 150px;
+      height: 137px;
+      transform: translateX(20px);
+      background: rgba(0, 0, 0, 0.5);
+      background-color: rgba(0, 0, 0, 0.5);
+      background-image: none;
+      position: absolute;
+      z-index: 1;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    #masc-img i {
+      color: black;
+    }
+  </style>
+
+  <script>
+    let isEdit = false
+    var loadFile = function (event) {
+      var image = document.getElementById('profile_image')
+      image.src = URL.createObjectURL(event.target.files[0])
+    }
+    
+    
+    document.getElementById('masc-img').addEventListener('click', function () {
+      document.getElementById('id_image').click()
+    })
+    
+    document.getElementById('id_image').addEventListener('change', loadFile)
+    
+    document.getElementById('profile_image').addEventListener('mouseover', function () {
+      if(isEdit)
+        document.getElementById('masc-img').style.display = 'flex'
+    })
+    
+    document.getElementById('masc-img').addEventListener('mouseout', function () {
+      document.getElementById('masc-img').style.display = 'none'
+    })
+    
+    function disableEnbleInput(value) {
+      $('input').prop('disabled', value)
+      $('textarea').prop('disabled', value)
+    
+      if (value) {
+        $('#submit').hide()
+        $('#cancel').hide()
+        $("#id_image").hide()
+      } else {
+        $('#submit').show()
+        $('#cancel').show()
+        $("#id_image").show()
+      }
+    }
+    
+    $(document).ready(function () {
+      disableEnbleInput(true)
+    })
+    
+    $(document).on('click', '#edit', function () {
+      disableEnbleInput(false)
+      isEdit = true
+    })
+  </script>
+{% endblock %}

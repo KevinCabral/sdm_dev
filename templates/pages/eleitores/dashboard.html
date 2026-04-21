@@ -1,0 +1,487 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+
+  <!-- [ Main Content ] start -->
+  
+    <!-- [ daily sales section ] start -->
+<div class="row">
+  <div class="col-md-6 col-xl-4">
+    <div class="card daily-sales">
+      <div class="card-block">
+        <h6 class="mb-4">Total de Eleitores</h6>
+        <div class="row d-flex align-items-center">
+          <div class="col-9">
+            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalEleitores }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-4">
+    <div class="card daily-sales">
+      <div class="card-block">
+        <h6 class="mb-4">Total de Eleitores Votaram</h6>
+        <div class="row d-flex align-items-center">
+          <div class="col-9">
+            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalVotaram }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-4">
+    <div class="card daily-sales">
+      <div class="card-block">
+        <h6 class="mb-4">Total de Eleitores não Votaram</h6>
+        <div class="row d-flex align-items-center">
+          <div class="col-9">
+            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalNaoVotaram }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row">
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Eleitores por genero</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-genero"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Eleitores por Faixa Etaria</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-idade"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Eleitores por Mesa</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-mesa"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Votoção por Mesa</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-mesa-votacao"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Votoção por Região</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-regiao-votacao"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    
+
+    function getDistribuicaoGenero(){
+      $.get("{% url 'eleitores.distribuicaoGenero' %}",function(generos){
+        generos = generos.data
+        let data = []
+        for(index = 0; index < generos.length;index ++){
+          const element = generos[index]
+          data.push({
+            name: element.genero,
+            y:element.porcentagem
+          })
+        }
+        Highcharts.chart('chart-genero', {
+          chart: {
+            type: 'pie'
+          },
+          title: {
+            text: 'Por Genero'
+          },
+          tooltip: {
+            valueSuffix: ''
+          },
+          subtitle: {
+            text: ''
+          },
+          plotOptions: {
+            series: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: [
+                {
+                  enabled: true,
+                  distance: 20
+                },
+                {
+                  enabled: true,
+                  distance: -40,
+                  format: '{point.percentage:.1f}%',
+                  style: {
+                    fontSize: '1.2em',
+                    textOutline: 'none',
+                    opacity: 0.7
+                  },
+                  filter: {
+                    operator: '>',
+                    property: 'percentage',
+                    value: 10
+                  }
+                }
+              ]
+            }
+          },
+          series: [
+            {
+              name: 'Percentagem',
+              colorByPoint: true,
+              data: data
+            }
+          ]
+        })
+      })
+    }
+
+    function getDistribuicaoIdade(){
+      $.get("{% url 'eleitores.distribuicaoIdade' %}",function(idades){
+        idades = idades.data
+        let data = []
+        let categoria = []
+        for(index = 0; index < idades.length;index ++){
+          const element = idades[index]
+          categoria.push(element.idade)
+          data.push(element.values)
+        }
+
+        Highcharts.chart('chart-idade', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Faixa Etaria',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '50%',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Idade',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+
+    function getDistribuicaoMesa(){
+      $.get("{% url 'eleitores.distribuicaoNrMesa' %}",function(mesas){
+        let data = []
+        let categoria = []
+        for(index = 0; index < mesas.length;index ++){
+          const element = mesas[index]
+          categoria.push(element.nr_mesa)
+          data.push(element.total_eleitores)
+        }
+
+        Highcharts.chart('chart-mesa', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Mesa',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Mesas',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+    function getDistribuicaoMesaVotacao(){
+      $.get("{% url 'eleitores.distribuicaoNrMesaVotacao' %}",function(mesas){
+        let data = []
+        let categoria = []
+        for(index = 0; index < mesas.length;index ++){
+          const element = mesas[index]
+          categoria.push(element.nr_mesa)
+          data.push(element.total_votacao)
+        }
+
+        Highcharts.chart('chart-mesa-votacao', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Mesa',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Mesas',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+
+    function getDistribuicaoRegiaoVotacao(){
+      $.get("{% url 'eleitores.distribuicaoNrMesaVotacaoRegiao' %}",function(mesas){
+        let data = []
+        let categoria = []
+        for(index = 0; index < mesas.length;index ++){
+          const element = mesas[index]
+          categoria.push(element.nr_mesa)
+          data.push(element.total_votacao)
+        }
+
+        Highcharts.chart('chart-regiao-votacao', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Região',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Região',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+
+    
+
+    $(document).ready(function(){
+      getDistribuicaoGenero()
+      getDistribuicaoIdade()
+      getDistribuicaoMesa()
+      getDistribuicaoMesaVotacao()
+      getDistribuicaoRegiaoVotacao()
+    })
+  </script>
+  <!-- [ Main Content ] end -->
+{% endblock %}

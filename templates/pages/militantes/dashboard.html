@@ -1,0 +1,338 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+
+  <!-- [ Main Content ] start -->
+  <div class="row">
+    <!-- [ daily sales section ] start -->
+    <div class="col-md-6 col-xl-4">
+      <div class="card daily-sales">
+        <div class="card-block">
+          <h6 class="mb-4">Total de Militantes</h6>
+          <div class="row d-flex align-items-center">
+            <div class="col-9">
+              <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalMilitantes }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ daily sales section ] end -->
+    <!-- [ Monthly sales section ] starts -->
+    <div class="col-md-6 col-xl-4">
+      <div class="card Monthly-sales">
+        <div class="card-block">
+          <h6 class="mb-4">Militantes Aprovados</h6>
+          <div class="row d-flex align-items-center">
+            <div class="col-9">
+              <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ militantesAprovado }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Monthly sales section ] end -->
+    <!-- [ year sales section ] starts -->
+    <div class="col-md-12 col-xl-4">
+      <div class="card yearly-sales">
+        <div class="card-block">
+          <h6 class="mb-4">Militantes Rejeitados</h6>
+          <div class="row d-flex align-items-center">
+            <div class="col-9">
+              <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ militantesRejeitado }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Distribuição de militantes por genero</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-genero"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Distribuição de militantes por Faixa Etaria</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-idade"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Distribuição de militantes por Zona</h5>
+        </div>
+        <div class="card-block">
+          <div id="chart-zona"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Top 10 Pagamento de Quotas</h5>
+        </div>
+        <div class="card-block">
+          <div id="top-guotas"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    
+
+    function getDistribuicaoGenero(){
+      $.get("{% url 'militantes.distribuicaoGenero' %}",function(generos){
+        generos = generos.data
+        let data = []
+        for(index = 0; index < generos.length;index ++){
+          const element = generos[index]
+          data.push({
+            name: element.genero,
+            y:element.porcentagem
+          })
+        }
+        Highcharts.chart('chart-genero', {
+          chart: {
+            type: 'pie'
+          },
+          title: {
+            text: 'Por Genero'
+          },
+          tooltip: {
+            valueSuffix: ''
+          },
+          subtitle: {
+            text: ''
+          },
+          plotOptions: {
+            series: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: [
+                {
+                  enabled: true,
+                  distance: 20
+                },
+                {
+                  enabled: true,
+                  distance: -40,
+                  format: '{point.percentage:.1f}%',
+                  style: {
+                    fontSize: '1.2em',
+                    textOutline: 'none',
+                    opacity: 0.7
+                  },
+                  filter: {
+                    operator: '>',
+                    property: 'percentage',
+                    value: 10
+                  }
+                }
+              ]
+            }
+          },
+          series: [
+            {
+              name: 'Percentagem',
+              colorByPoint: true,
+              data: data
+            }
+          ]
+        })
+      })
+    }
+
+    function getDistribuicaoIdade(){
+      $.get("{% url 'militantes.distribuicaoIdade' %}",function(idades){
+        idades = idades.data
+        let data = []
+        let categoria = []
+        for(index = 0; index < idades.length;index ++){
+          const element = idades[index]
+          categoria.push(element.idade)
+          data.push(element.values)
+        }
+
+        Highcharts.chart('chart-idade', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Faixa Etaria',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '50%',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Idade',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+
+    function getDistribuicaoConcelho(){
+      $.get("{% url 'militantes.distribuicaoZona' %}",function(zonas){
+        zonas = zonas.data
+        let data = []
+        let categoria = []
+        for(index = 0; index < zonas.length;index ++){
+          const element = zonas[index]
+          categoria.push(element.nome_norm)
+          data.push(element.values)
+        }
+
+        Highcharts.chart('chart-zona', {
+          chart: {
+              type: 'column'
+          },
+          title: {
+              text: 'Por Zona',
+              align: 'center'
+          },
+          subtitle: {
+              text: '',
+              align: 'center'
+          },
+          xAxis: {
+              categories: categoria,
+              title: {
+                  text: null
+              }
+          },
+          yAxis: {
+              min: 0,
+              title: {
+                  text: 'Total',
+                  align: 'high'
+              },
+              labels: {
+                  overflow: 'justify'
+              },
+              gridLineWidth: 0
+          },
+          tooltip: {
+              valueSuffix: ''
+          },
+          plotOptions: {
+              bar: {
+                  borderRadius: '50%',
+                  dataLabels: {
+                      enabled: true
+                  },
+                  groupPadding: 0.1
+              }
+          },
+          legend: {
+              layout: 'vertical',
+              align: 'right',
+              verticalAlign: 'top',
+              x: -40,
+              y: 80,
+              floating: true,
+              borderWidth: 1,
+              backgroundColor:
+                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+              shadow: true
+          },
+          credits: {
+              enabled: false
+          },
+          series: [{
+              name: 'Concelhos',
+              data: data
+          }]
+      });
+      
+        
+      })
+    }
+
+    function getDistribuicaoQuotas(){
+      $.get("{% url 'militantes.distribuicaoQuotas' %}",function(pagamentos){
+        for(index = 0; index < pagamentos.length;index ++){
+          const element = pagamentos[index]
+          militante = '<div \
+          style="display: flex; justify-content: space-between; padding: 10px 0px; border-bottom: 1px solid rgb(164, 162, 162);\
+          "><span style="font-weight: 600;color: black;">'+element.nome+'</span><span>'+(element.total_pago ? element.total_pago : 0)+'$00</span></div>'
+          $("#top-guotas").append(militante)
+        }
+      })
+    }
+
+    $(document).ready(function(){
+      getDistribuicaoGenero()
+      getDistribuicaoIdade()
+      getDistribuicaoConcelho()
+      getDistribuicaoQuotas()
+    })
+  </script>
+  <!-- [ Main Content ] end -->
+{% endblock %}

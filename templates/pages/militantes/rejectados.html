@@ -1,0 +1,49 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card-header">
+        <h5>Rejectados</h5>
+      </div>
+      <div class="card-block px-0 py-3">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Nome</th>
+                <th>Estado de Civil</th>
+                <th>Tipo de Associado</th>
+                <th>Concelho</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for militante in militantes %}
+                <tr class="">
+                  <td>
+                    <img class="rounded-circle" style="width:40px;" src="{% static 'assets/images/user/avatar-1.jpg' %}" alt="activity-user" />
+                  </td>
+                  <td>
+                    <a href="{% url 'militantes.view' militante.id %}">
+                      <h6 class="mb-1">{{ militante.nome_completo }}</h6>
+                      <p class="m-0">{{ militante.alcunha }}</p>
+                    </a>
+                  </td>
+                  <td>{{ militante.estado_civil }}</td>
+                  <td>{{ militante.tp_associado }}</td>
+                  <td>{{ militante.concelho }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    
+      
+  </script>
+{% endblock %}

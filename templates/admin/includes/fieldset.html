@@ -1,0 +1,52 @@
+<div class="card module aligned {{ fieldset.classes }}">
+    {% if fieldset.name %}
+        <div class="card-header">
+            <h5>{{ fieldset.name }}</h5>
+        </div>
+    {% endif %}
+    <div class="card-body">
+        {% if fieldset.description %}
+        <div class="description">{{ fieldset.description|safe }}</div>
+        {% endif %}
+        <div class="row">
+            {% for line in fieldset %}
+                <div style="margin-top: 15px;" class="
+                {% for field in line %}{% if field.field.name == "groups" or field.field.name == "date_joined"  or field.field.name == "last_login" or field.field.name == "user_permissions" or field.field.name == "permissions"%} col-md-12 {% else %} col-md-6 {% endif %}{% endfor %}
+                {% if line.fields|length_is:'1' and line.errors %} errors{% endif %}{% if not line.has_visible_field %} hidden{% endif %}{% for field in line %}{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% endfor %}">
+                    {% if line.fields|length_is:'1' %}{{ line.errors }}{% endif %}
+                    {% for field in line %}
+                        <div class="" {% if not line.fields|length_is:'1' %} class="fieldBox{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% if not field.is_readonly and field.errors %} errors{% endif %}{% if field.field.is_hidden %} hidden{% endif %}"{% elif field.is_checkbox %} class="checkbox-row"{% endif %}>
+                            {% if not line.fields|length_is:'1' and not field.is_readonly %}{{ field.errors }}{% endif %}
+                            {% if field.is_checkbox %}
+                                {{ field.field }}{{ field.label_tag }}
+                            {% else %}
+                                <div class="form-group">
+                                
+                                    {{ field.label_tag }}
+                                    {% if field.is_readonly %}
+                                        <div class="readonly">{{ field.contents }}</div>
+                                    {% else %}
+                                        {% if field.field.name != "password"%}
+                                            {{ field.field }}       
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            {% if field.field.help_text %}
+                                {% if field.field.name == "password"%}
+                                    <p>Para mudar a palavra-passe, <a href="{% url 'change_password' original.id%}"> Clique aqui para mudar.</a></p>
+                                {% else %}       
+                                    <div class="help"{% if field.field.id_for_label %} id="{{ field.field.id_for_label }}_helptext"{% endif %}>
+                                        {{ field.field.help_text|safe }}
+                                    </div>
+                                {% endif %}
+                               
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>    
+</div>
+

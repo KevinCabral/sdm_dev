@@ -1,0 +1,125 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}
+
+{% endblock %}
+
+{% block content %}
+  <!-- [ Main Content ] start -->
+  <div class="row">
+    <div class="col-sm-8">
+      <div class="card">
+        <div class="card-header" style="display: flex;">
+          {% comment %} <h5>Dados</h5> {% endcomment %}
+          <div id="menu-action">
+            <a href="{% url 'profile.update' %}">
+              <i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </i>Editar
+            </a>
+            <a href="{% url 'admin:password_change' %}">
+              <i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </i>Mudar Palavra-Passe
+            </a>
+          </div>
+        </div>
+        <div class="card-block">
+          <div class="row">
+            <div class="col-sm-6 mb-4">
+              <div class="form-group">
+                <div class="form-group">
+                  <label>Email:</label>
+                  {{ user.email }}
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 mb-4">
+              <div class="form-group">
+                <div class="form-group">
+                  <label>Nome:</label>
+                  {{ user.first_name }}
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 mb-4">
+              <div class="form-group">
+                <div class="form-group">
+                  <label>Apelido:</label>
+                  {{ user.last_name }}
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 mb-4">
+              <div class="form-group">
+                <div class="form-group">
+                  <label>Endereços:</label>
+                  {{ profile.about }}
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 mb-4">
+              <div class="form-group">
+                <div class="form-group">
+                  <label>Sobre mi:</label>
+                  {{ profile.address }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card">
+        <div class="card-block">
+          <div class="d-flex align-items-center justify-content-center flex-column">
+            <div class="w-50 p-3" id="img-contrainer">
+              <img src="{% if user.profile and user.profile.image%} /media/{{user.profile.image}} {% else %} {% static 'assets/images/user/avatar-1.jpg' %} {% endif%}" alt="profile image" class="img-fluid rounded-circle" id="profile_image" style="width: 150px;height: 137px;transform: translateX(20px);" />
+            </div>
+            <div class="text-center">
+              <h4 class="font-weight-bold h6">{{ user.username }}</h4>
+              <p class="font-italic text-muted">Lorem ipsum dolor.</p>
+            </div>
+          </div>
+
+          <div class="small font-weight-light mt-4 text-center text-muted">
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dignissimos esse excepturi fugiat id numquam? Enim illo, perferendis. Eum, ratione, voluptas?</p>
+          </div>
+          <div class="d-flex justify-content-center align-items-center">
+            <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-facebook"></i></a>
+            <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-twitter"></i></a>
+            <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-instagram"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    label {
+      font-weight: 600;
+    }
+    
+    #menu-action {
+      width: 100%;
+      display: flex;
+      justify-content: end;
+    }
+    #menu-action a {
+      margin-right: 10px;
+    }
+    
+    #menu-action i svg {
+      transform: translateY(6px);
+    }
+  </style>
+  <!-- [ Main Content ] end -->
+{% endblock %}

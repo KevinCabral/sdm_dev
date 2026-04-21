@@ -1,0 +1,12 @@
+Ola, prezado(a).
+
+
+O seu perfil como militante foi aprovado.
+A sua conta foi criado na plataforma com seguintes crendencias:
+Username: {{username}}
+Palavra-passe: {{password}}
+url: {{url}}
+
+Por favor entra na plataforma e mude a palavra-passe.
+
+Obrigado

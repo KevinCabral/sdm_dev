@@ -1,0 +1,6 @@
+Ola, prezado(a) {{nome}}.
+
+{{text}}
+
+O endereço da plataforma: {{url}}
+Obrigado
