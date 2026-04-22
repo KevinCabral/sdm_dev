@@ -1,0 +1,78 @@
+{# Shared scripts for militantes create + update. Handles geo cascading, image preview, validation, submit. #}
+<script>
+  function loadOptions($el, url, params, placeholder, selected) {
+    $el.prop('disabled', true).html('<option>Carregando…</option>');
+    $.get(url, params, function (data) {
+      var arr = data.data || [];
+      var html = '<option value="">' + (placeholder || 'Selecione') + '</option>';
+      arr.forEach(function (x) {
+        var sel = (selected && String(selected) === String(x.id)) ? ' selected' : '';
+        html += '<option value="' + x.id + '"' + sel + '>' + x.nome + '</option>';
+      });
+      $el.prop('disabled', false).html(html);
+    });
+  }
+
+  function getPais(selected)              { loadOptions($('#pais'),      "{% url 'militantes.getPais' %}",      {},                      'Selecione', selected); }
+  function getIlhas(idPais, selected)     { loadOptions($('#ilha'),      "{% url 'militantes.getIlhas' %}",     { id_pais: idPais },     'Selecione', selected); }
+  function getConcelho(idIlha, selected)  { loadOptions($('#concelho'),  "{% url 'militantes.getConcelho' %}",  { id_ilha: idIlha },     'Selecione', selected); }
+  function getFreguesia(idConc, selected) { loadOptions($('#freguesia'), "{% url 'militantes.getFreguesia' %}", { id_concelho: idConc }, 'Selecione', selected); }
+  function getZona(idFreg, selected)      { loadOptions($('#zona'),      "{% url 'militantes.getZona' %}",      { id_freguesia: idFreg }, 'Selecione', selected); }
+
+  $(document).on('change', '#pais',      function () { getIlhas($(this).val()); });
+  $(document).on('change', '#ilha',      function () { getConcelho($(this).val()); });
+  $(document).on('change', '#concelho',  function () { getFreguesia($(this).val()); });
+  $(document).on('change', '#freguesia', function () { getZona($(this).val()); });
+
+  // Pre-select if context provided initial values
+  (function () {
+    var initialPais      = "{{ militantesForm.pais.value|default_if_none:''|escapejs }}";
+    var initialRegiao    = "{{ militantesForm.regiao.value|default_if_none:''|escapejs }}";
+    var initialConcelho  = "{{ militantesForm.concelho.value|default_if_none:''|escapejs }}";
+    var initialFreguesia = "{{ militantesForm.localidade.value|default_if_none:''|escapejs }}";
+    var initialZona      = "{{ militantesForm.zona.value|default_if_none:''|escapejs }}";
+
+    getPais(initialPais || '238');
+    var startIlha = initialPais || '238';
+    getIlhas(startIlha, initialRegiao);
+    if (initialRegiao)    getConcelho(initialRegiao, initialConcelho);
+    if (initialConcelho)  getFreguesia(initialConcelho, initialFreguesia);
+    if (initialFreguesia) getZona(initialFreguesia, initialZona);
+  })();
+
+  // ── Validation
+  function validateForm() {
+    var valid = true;
+    $('#form-militantes').find('input, textarea, select').each(function () {
+      var $el = $(this);
+      if ($el.prop('required') && !$el.val()) {
+        $el.addClass('invalid');
+        $el.closest('.ef-field').find('.errors').text('Este campo é obrigatório');
+        var $tab = $el.closest('.tab-pane');
+        if ($tab.length) {
+          $('a[href="#' + $tab.attr('id') + '"]').addClass('tw-text-rose-600');
+        }
+        valid = false;
+      }
+    });
+    return valid;
+  }
+  $(document).on('change input', '.invalid', function () {
+    $(this).removeClass('invalid');
+    $(this).closest('.ef-field').find('.errors').text('');
+  });
+
+  $(document).on('click', '#criar, #criar2', function () {
+    if (validateForm()) $('#form-militantes').submit();
+  });
+
+  // ── Image preview
+  document.getElementById('masc-img').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.getElementById('id_image').click();
+  });
+  document.getElementById('id_image').addEventListener('change', function (event) {
+    var file = event.target.files[0];
+    if (file) document.getElementById('profile_image').src = URL.createObjectURL(file);
+  });
+</script>

@@ -1,0 +1,9 @@
+{# args: field, span (e.g. 'lg:tw-col-span-3') #}
+<div class="ef-field {{ span|default:'' }}">
+  <label for="{{ field.id_for_label }}">
+    {{ field.label }}{% if field.field.required %} <span class="tw-text-rose-500">*</span>{% endif %}
+  </label>
+  {{ field }}
+  {{ field.errors }}
+  <span class="errors"></span>
+</div>

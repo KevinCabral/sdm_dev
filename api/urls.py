@@ -1,15 +1,56 @@
-from django.urls import re_path, include, path
-from django.views.decorators.csrf import csrf_exempt
-from .views import UserRegistration, ChangePasswordView, LoginView, RecoverPasswordView
-from rest_framework import routers
+from django.urls import path
 
-# router = routers.DefaultRouter()
-# router.register(r'users', UserViewSet)
-# router.register(r'groups', GroupViewSet)
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+
+from .views import (
+    ChangePasswordView,
+    LoginView,
+    LogoutView,
+    MeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+    UserRegistration,
+)
+from .views_mesa import EleitorViewSet, MesaViewSet, UserMesaViewSet
+
+router = DefaultRouter()
+router.register(r"mesas", MesaViewSet, basename="api-mesa")
+router.register(r"user-mesas", UserMesaViewSet, basename="api-user-mesa")
+router.register(r"eleitores", EleitorViewSet, basename="api-eleitor")
 
 urlpatterns = [
-	path('registrar', UserRegistration.as_view(), name='registrar'),
-	path('alterar-password', ChangePasswordView.as_view(), name='alterar-password'),
-    path('login', LoginView.as_view(), name='api-login'),
-	path('recuperar-password', RecoverPasswordView.as_view(), name='recuperar-password'),
+    # Auth (Bearer JWT)
+    path("auth/login/", LoginView.as_view(), name="api-auth-login"),
+    path("auth/logout/", LogoutView.as_view(), name="api-auth-logout"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="api-auth-refresh"),
+    path("auth/verify/", TokenVerifyView.as_view(), name="api-auth-verify"),
+    path("auth/me/", MeView.as_view(), name="api-auth-me"),
+    path("auth/register/", UserRegistration.as_view(), name="api-auth-register"),
+
+    # Password management
+    path(
+        "auth/password/change/",
+        ChangePasswordView.as_view(),
+        name="api-auth-password-change",
+    ),
+    path(
+        "auth/password/reset/",
+        PasswordResetRequestView.as_view(),
+        name="api-auth-password-reset",
+    ),
+    path(
+        "auth/password/reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="api-auth-password-reset-confirm",
+    ),
+
+    # --- Backwards-compatible aliases (legacy URLs) ---
+    path("login", LoginView.as_view()),
+    path("registrar", UserRegistration.as_view()),
+    path("alterar-password", ChangePasswordView.as_view()),
+    path("recuperar-password", PasswordResetRequestView.as_view()),
 ]
+
+# REST resource endpoints (mesas, user-mesas, eleitores)
+urlpatterns += router.urls

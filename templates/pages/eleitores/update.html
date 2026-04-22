@@ -1,208 +1,139 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+        }
+      }
+    }
+  </script>
+
+  {# Select2 CDN #}
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <style>
+    .pcoded-content { background: #f7f8fa !important; }
+
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08);
+      border-left: 3px solid #1a9123;
+      padding-left: 17px;
+    }
+  </style>
+{% endblock extrahead %}
+
 {% block content %}
-  <div class="row">
-    <div class="col-md-12" style="display: flex;">
-      <a href="{% url 'eleitores.index' %}" style="margin-right: 10px;color: #1a9123;"> <i class="fa fa-solid fa-arrow-left"></i> Voltar</a>
-      {% comment %} <h5>Atualizar Eleitor: {{form.nome.value}}</h5> {% endcomment %}
-    </div>
-    <div class="col-md-12">
-      <form action="" method="post">
-        <div class="card">
-          <div class="card-header">
-            <h5>Dados de Identificação</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">{{ form.nome.label_tag }}
-                  {{ form.nome }}
-                  {{ form.nome.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.alcunha.label_tag }}
-                  {{ form.alcunha }}
-                  {{ form.alcunha.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.nr_identificacao.label_tag }}
-                  {{ form.nr_identificacao }}
-                  {{ form.nr_identificacao.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.data_nascimento.label_tag }}
-                  {{ form.data_nascimento }}
-                  {{ form.data_nascimento.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.pai.label_tag }}
-                  {{ form.pai }}
-                  {{ form.pai.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.mae.label_tag }}
-                  {{ form.mae }}
-                  {{ form.mae.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.genero.label_tag }}
-                  {{ form.genero }}
-                  {{ form.genero.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.militante_id.label_tag }}
-                  {{ form.militante_id }}
-                  {{ form.militante_id.errors }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h5>Residencia</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">{{ form.pais.label_tag }}
-                  {{ form.pais }}
-                  {{ form.pais.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.ilha.label_tag }}
-                  {{ form.ilha }}
-                  {{ form.ilha.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.conc_pais_res.label_tag }}
-                  {{ form.conc_pais_res }}
-                  {{ form.conc_pais_res.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.local_cidade_res.label_tag }}
-                  {{ form.local_cidade_res }}
-                  {{ form.local_cidade_res.errors }}</div>
-              </div>
-              <div class="col-md-12">
-                <div class="form-group">{{ form.morada.label_tag }}
-                  {{ form.morada }}
-                  {{ form.morada.errors }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h5>Contacto</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">{{ form.telefone.label_tag }}
-                  {{ form.telefone }}
-                  {{ form.telefone.errors }}</div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">{{ form.telemovel.label_tag }}
-                  {{ form.telemovel }}
-                  {{ form.telemovel.errors }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h5>Eleitor</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-4">
-                <div class="form-group">{{ form.partido_voto.label_tag }}
-                  {{ form.partido_voto }}
-                  {{ form.partido_voto.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.acompanhamento.label_tag }}
-                  {{ form.acompanhamento }}
-                  {{ form.acompanhamento.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.transporte.label_tag }}
-                  {{ form.transporte }}
-                  {{ form.transporte.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.tp_associado.label_tag }}
-                  {{ form.tp_associado }}
-                  {{ form.tp_associado.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.desloca_outro_concelho.label_tag }}
-                  {{ form.desloca_outro_concelho }}
-                  {{ form.desloca_outro_concelho.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.gv.label_tag }}
-                  {{ form.gv }}
-                  {{ form.gv.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.desloca_de.label_tag }}
-                  {{ form.desloca_de }}
-                  {{ form.desloca_de.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.desloca_para.label_tag }}
-                  {{ form.desloca_para }}
-                  {{ form.desloca_para.errors }}</div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">{{ form.estado_sensibilidade.label_tag }}
-                  {{ form.estado_sensibilidade }}
-                  {{ form.estado_sensibilidade.errors }}</div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">{{ form.code_regiao.label_tag }}
-                  {{ form.code_regiao }}
-                  {{ form.code_regiao.errors }}</div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">{{ form.id_obito.label_tag }}
-                  {{ form.id_obito }}
-                  {{ form.id_obito.errors }}</div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">{{ form.nr_eleitor.label_tag }}
-                  {{ form.nr_eleitor }}
-                  {{ form.nr_eleitor.errors }}</div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">{{ form.nr_mesa.label_tag }}
-                  {{ form.nr_mesa }}
-                  {{ form.nr_mesa.errors }}</div>
-              </div>
-              
-              <div class="col-md-12">
-                <div class="form-group">{{ form.observacoes.label_tag }}
-                  {{ form.observacoes }}
-                  {{ form.observacoes.errors }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+<div class="tw-space-y-5">
 
-        <div class="row">
-            <div class="col-md-12">
+  {# ── Header ──────────────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
+    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-4">
 
-                <div style="text-align: end;">
-                    {% csrf_token %}
-                    <a href="{% url 'eleitores.index' %}" class="btn btn-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-primary" >Guardar</button>
-                </div>
-            </div>
+      <div class="tw-flex tw-items-start tw-gap-4 tw-min-w-0">
+        <a href="{% url 'eleitores.view' id %}"
+           class="tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 hover:tw-text-mpd-600 tw-transition tw-shrink-0"
+           title="Voltar">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+
+        <div class="tw-min-w-0">
+          <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-mb-1 tw-mt-0">
+            Atualizar Eleitor &middot; #{{ id }}
+          </p>
+          <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
+            {{ form.nome.value|default:"(sem nome)" }}
+          </h1>
+
+          <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-mt-2">
+            {% if eleitor.zona %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100">
+                <i class="fa fa-map-marker-alt tw-mr-1"></i> {{ eleitor.zona }}
+              </span>
+            {% endif %}
+            {% if eleitor.nr_eleitor %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100">
+                Nº Eleitor: <strong class="tw-ml-1 tw-text-slate-800">{{ eleitor.nr_eleitor }}</strong>
+              </span>
+            {% endif %}
+          </div>
         </div>
-      </form>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <a href="{% url 'eleitores.view' id %}"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+          Cancelar
+        </a>
+        <button type="submit" form="eleitor-form"
+                class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+          <i class="fa fa-save"></i> Guardar alterações
+        </button>
+      </div>
     </div>
   </div>
+
+  {# ── Form ────────────────────────────────────────── #}
+  <form method="post" id="eleitor-form" class="tw-space-y-5">
+    {% csrf_token %}
+    {% include 'pages/eleitores/_form_fields.html' %}
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
+      <a href="{% url 'eleitores.view' id %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-save"></i> Guardar alterações
+      </button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  (function () {
+    var $ = window.jQuery;
+    if (!$ || !$.fn.select2) return;
+
+    var $select = $('select.militante-select, select[name="militante_id"]');
+    if (!$select.length) return;
+
+    $select.select2({
+      placeholder: 'Pesquisar militante por nome…',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 2,
+      ajax: {
+        url: $select.data('search-url') || '/militantes/search',
+        dataType: 'json',
+        delay: 200,
+        data: function (params) { return { q: params.term, estado: 'A' }; },
+        processResults: function (data) { return { results: data.results || [] }; },
+        cache: true,
+      },
+      language: {
+        inputTooShort: function () { return 'Digite pelo menos 2 caracteres'; },
+        searching:     function () { return 'A pesquisar…'; },
+        noResults:     function () { return 'Nenhum militante encontrado'; },
+      },
+    });
+  })();
+</script>
 {% endblock %}

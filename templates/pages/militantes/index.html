@@ -1,880 +1,352 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
+{% block extrahead %}
+  {% include 'pages/militantes/_theme.html' %}
+{% endblock extrahead %}
+
 {% block content %}
+<div id="toast-container"></div>
 
-<style>
-  #exampleModal label{
-    font-weight: 600;
-    color: black;
-  }
-</style>
+<section class="list-militantes tw-space-y-5">
 
-<section class="list-militantes">
-  <div>
-    <div class="row">
-      <div class="col-md-12">
-        <div class="" style="padding-left: 0;display: flex;justify-content: end;">
-          {% comment %} <h5>Militantes</h5> {% endcomment %}
-          <div class="col-md-2" style="padding-top: 27px;transform: translateY(-30px);display: flex;justify-content: end;">
-            <button class="btn btn-primary" id="exportar" style="background-color:#1a9123;border:none;"><i class="fa fa-download" style='font-size: 15px;'></i>Exportar </button>
-          </div>
-        </div>
-      </div>
-      
+  {# ── Header ──────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-4 tw-pt-2 tw-pb-1">
+    <div>
+      <h1 class="tw-text-2xl md:tw-text-3xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">Militantes</h1>
+      <p class="tw-text-sm tw-text-slate-500 tw-mt-1 tw-mb-0">
+        <span id="total-count">{{ page_obj.paginator.count }}</span> registos no total
+      </p>
     </div>
-    <div class="card card-body">
-      <div class="row" style="padding-top: 10px;">
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="estado">Estados</label>
-            <select name="estado" id="estado" class="form-control">
-              <option value="" {% if request.GET.estado == "P" %} selected {% endif %}>Todos</option>
-              <option value="A" {% if request.GET.estado == "A"  or  'estado' not in request.GET %} selected {% endif %} >Aprovados</option>
-              <option value="R" {% if request.GET.estado == "R" %} selected {% endif %}>Rejetados</option>
-              <option value="P" {% if request.GET.estado == "P" %} selected {% endif %}>Pedidos</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="nome">Nome</label>
-            <input type="text" name="nome" maxlength="200" class="form-control" required="" id="nome" />
-          </div>
-        </div>
-
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="ilha">Ilha</label>
-            <select id="ilha"  class="form-control"><option value="">Todos</option>
-            </select>
-            </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="concelho">Concelho</label>
-            <select id="concelho"  class="form-control"><option value="">Todos</option>
-            </select>
-            </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="freguesia">Freguesia</label>
-            <select id="freguesia"  class="form-control"><option value="">Todos</option>
-            </select>
-            </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group">
-            <label for="zona">Zona</label>
-            <select id="zona"  class="form-control"><option value="">Todos</option>
-            </select>
-            </div>
-        </div>
-      
-      </div>
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card-block px-0 py-3">
-            <div class="table-responsive">
-              <table class="table table-hover" id="table-data">
-                <thead>
-                  <tr style="font-weight: 800;color: #0e7716;border-bottom: 3px solid #dbd1d1;">
-                    <th></th>
-                    <th>Username</th>
-                    <th>Nome</th>
-                    <th>Estado Civil</th>
-                    <th>Tipo de Associado</th>
-                    <th>Concelho</th>
-                    <th style="display: flex;justify-content: center;">Acção</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for militante in page_obj %}
-                    <tr class="">
-                      <td>
-                        <img class="rounded-circle" style="width:40px;" src="{% if  militante.image %}
-                        /media/{{ militante.image }}
-                        {% else %} {% static 'assets/images/user/avatar-1.jpg' %} {% endif %}" alt="activity-user" />
-                      </td>
-                      <td>
-                        {{militante.username}}
-                      </td>
-                      <td>
-                        <span>
-                          <h6 class="mb-1">{{ militante.nome_completo }}</h6>
-                          <p class="m-0"> {% if militante.alcunha != None %}{{ militante.alcunha }} {% endif %}</p>
-                        </span>
-                      </td>
-                      <td>{% if militante.estado_civil != None %}{{ militante.estado_civil }}{% endif %}</td>
-                      <td>{% if militante.tp_associado != None %}{{ militante.tp_associado }}{% endif %}</td>
-                      
-                      <td>
-                        {% with morada=militante.morada_set.get %}
-                        <p>{{ morada.geografia.concelho }}</p>
-                      {% endwith %}</td>
-                      <td class="table-actions" style="display: flex;justify-content: start;">
-                        <a href="javascript:void(0)" class="label f-12 view" id-militante="{{ militante.id }}">
-                          <i class="fa fa-solid fa-eye" style="font-size: 24px;color:#1a9123;"></i>
-                        </a>
-                        <a href="{% url 'militantes.update' militante.id %}" class="label f-12">
-                          <i class="fa fa-solid fa-edit" style="font-size: 24px;color:#1a9123;"></i>
-                        </a>
-                        <a href="javascript:void(0)" class="label text-danger f-12 apagar" id-militante="{{ militante.id }}">
-                          <i class="fa fa-solid fa-trash" style="font-size: 24px;"></i>
-                        </a>
-
-                        {% if not militante.exist_user %}
-                          <a href="javascript:void(0)"  class="label theme-bg f-12 create-user" style="background:#1a9123;color: white;border-radius: 5px;padding-top: 7px;" id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal}}">Criar Utilizador</a>
-                        {% endif %}
-                        {% if militante.estado_militante == 'P'%}
-                          <a href="javascript:void(0)" style="border-radius: 5px;padding-top: 7px;" class="label btn-danger text-white f-12 rejectar" id-militante="{{ militante.id }}">Rejectar</a>
-                          <a href="javascript:void(0)"  class="label theme-bg f-12 aprovar" style="background:#1a9123;color: white;border-radius: 5px;padding-top: 7px;" id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal}}">Aprovar</a>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="row">
-    <div class="col-md-12">
-      <div class="pagination" style="display: flex;justify-content: center;">
-      {% if page_obj.has_previous %}
-          <a href="javascript:void(0)" class="page-item page-link" data-href="1">Primeira</a>
-          <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.previous_page_number }}">Anterior</a>
-      {% endif %}
-
-      <span style="margin: 10px;">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-
-      {% if page_obj.has_next %}
-          <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.next_page_number }}">Próxima</a>
-          <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.paginator.num_pages }}">Última</a>
-      {% endif %}
-    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+      <button type="button" id="exportar"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-px-3.5 tw-h-9 tw-rounded-lg tw-text-sm tw-font-medium tw-transition">
+        <i class="fa fa-download tw-text-xs"></i> Exportar
+      </button>
+      <a href="{% url 'militantes.create' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-px-3.5 tw-h-9 tw-rounded-lg tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+        <i class="fa fa-plus tw-text-xs"></i> Novo militante
+      </a>
     </div>
   </div>
 
-  <!-- Modal -->
-  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel"></h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="card">
-            <div class="card-header">
-              <h5>Dados de Militantes</h5>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-4">
-                  <div>
-                    <label>Nome Completo:</label>
-                    <p class="nome_completo"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <div>
-                      <label>Alcunha</label>
-                      <p class="alcunha"></p>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Tipo Associado</label>
-                    <p class="tp_associado"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Agreagado Familiar</label>
-                    <p class="agregado_familiar"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Local Trabalho</label>
-                    <p class="local_trabalho"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Profissão Atual</label>
-                    <p class="profissao_atual"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Empresa</label>
-                    <p class="empresa"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Sector</label>
-                    <p class="sector"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Função</label>
-                    <p class="funcao"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Area Atuação</label>
-                    <p class="area_atuacao"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Grau Academica</label>
-                    <p class="grau_academica"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Curso</label>
-                    <p class="curso"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Local de Votação</label>
-                    <p class="curso"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Local de Resenciamento</label>
-                    <p class="local_renciamento"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h5>Dados de Identificação</h5>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Nome Pai</label>
-                    <p class="nm_pai"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Nome Mãe</label>
-                    <p class="nm_mae"></p>
-                  </div>
-                </div>
+  {# ── Filters ─────────────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-slate-100 tw-p-5">
+    <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-12 tw-gap-x-4 tw-gap-y-4">
 
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Data de Nascimento</label>
-                    <p class="dt_nascimento"></p>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Genero</label>
-                    <p class="genero"></p>
-                  </div>
-                </div>
+      <div class="lg:tw-col-span-2">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Estado</label>
+        <select id="estado" class="tw-w-full tw-h-10 tw-px-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition">
+          <option value=""  {% if filters.estado == "" %}selected{% endif %}>Todos</option>
+          <option value="A" {% if filters.estado == "A" or not filters.estado %}selected{% endif %}>Aprovados</option>
+          <option value="R" {% if filters.estado == "R" %}selected{% endif %}>Rejeitados</option>
+          <option value="P" {% if filters.estado == "P" %}selected{% endif %}>Pedidos</option>
+        </select>
+      </div>
 
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Estado Civil</label>
-                    <p class="estado_civil"></p>
-                  </div>
-                </div>
-
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label>Tipo de Documento</label>
-                    <p class="tp_documento"></p>
-                  </div>
-                </div>
-                <div class="col-md-4 tipo_bi">
-                  <div class="form-group">
-                    <label>Numero de Identificação</label>
-                    <p class="nr_documento"></p>
-                  </div>
-                </div>
-                <div class="col-md-4 tipo_bi">
-                  <div class="form-group">
-                    <label>Data emissão</label>
-                    <p class="dt_emissao_doc"></p>
-                  </div>
-                </div>
-                <div class="col-md-4 tipo_bi">
-                  <div class="form-group">
-                    <label>Data Validade</label>
-                    <p class="dt_validade_doc"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h5>Dados de Contactos</h5>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Telefone 1</label>
-                    <p class="nr_telemovel1"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Telefone 2</label>
-                    <p class="nr_telemovel2"></p>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Telefone Casa</label>
-                    <p class="nr_telefone_casa"></p>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Email</label>
-                    <p class="email_pessoal"></p>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Email Trabalho</label>
-                    <p class="email_trabalho"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>País</label>
-                    <p class="pais"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Ilha</label>
-                    <p class="regiao"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Concelho</label>
-                    <p class="concelho"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Freguesia</label>
-                    <p class="localidade"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Zona</label>
-                    <p class="zona"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Morada Atual</label>
-                    <p class="morada_atual"></p>
-                  </div>
-                </div>
-                <div class="col-md-12">
-                  <div class="form-group">
-                    <label>Perto</label>
-                    <p class="perto_de"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h5>Dados de Votação</h5>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Votou</label>
-                    <p class="votou"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Data de Votação</label>
-                    <p class="data_votacao"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h5>Dados de Resenciamento</h5>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Resenciado</label>
-                    <p class="resenciado"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Data de Resenciamento</label>
-                    <p class="dt_recenseamento"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Resenciamento Fora de Praia</label>
-                    <p class="resenciado_fora_praia"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Mesa de Voto</label>
-                    <p class="nr_mesa_voto"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Siga de Mesa</label>
-                    <p class="sigla_mesa_voto"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Telemovel Eleitoral</label>
-                    <p class="telemovel_eleitoral"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Telefone Eleitoral</label>
-                    <p class="telefone_eleitoral"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Pais Eleitoral</label>
-                    <p class="pais_eleitoral"></p>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="form-group">
-                    <label>Concelho Eleitoral</label>
-                    <p class="concelho_eleitoral"></p>
-                  </div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">
-                  <label>Zona Eleitoral</label>
-                  <p class="zona_eleitoral"></p>
-                </div>
-            </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary aprovar" id-militante="">Aprovar</button>
-          <button type="button" class="btn btn-danger rejectar" id-militante="">Rejectar</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      <div class="lg:tw-col-span-3">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Nome / alcunha</label>
+        <div class="tw-relative">
+          <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+          <input id="nome" type="text" maxlength="200" value="{{ filters.nome }}"
+                 placeholder="Pesquisar…"
+                 class="tw-w-full tw-h-10 tw-pl-9 tw-pr-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition" />
         </div>
       </div>
+
+      <div class="lg:tw-col-span-2">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Ilha</label>
+        <select id="ilha" class="tw-w-full tw-h-10 tw-px-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div class="lg:tw-col-span-2">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Concelho</label>
+        <select id="concelho" class="tw-w-full tw-h-10 tw-px-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div class="lg:tw-col-span-2">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Freguesia</label>
+        <select id="freguesia" class="tw-w-full tw-h-10 tw-px-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div class="lg:tw-col-span-1">
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium tw-mb-1.5">Zona</label>
+        <select id="zona" class="tw-w-full tw-h-10 tw-px-3 tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  {# ── Table ──────────────────────────────────────── #}
+  {% include 'pages/militantes/_table.html' %}
+
+</section>
+
+{# ── Modal: Detalhes ─────────────────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="militante-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/50" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-overflow-hidden tw-mx-4 tw-flex tw-flex-col">
+    <div class="tw-flex tw-items-start tw-justify-between tw-px-6 tw-py-4 tw-border-b tw-border-slate-100">
+      <div class="tw-min-w-0">
+        <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-m-0">Detalhes do militante</p>
+        <h3 class="tw-text-lg tw-font-semibold tw-text-slate-900 tw-m-0 tw-truncate" id="modal-title"></h3>
+      </div>
+      <button type="button" data-close class="tw-w-9 tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-500 hover:tw-bg-slate-100">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="tw-px-6 tw-py-5 tw-overflow-y-auto tw-space-y-5" id="modal-body">
+      {# Sections injected by JS via data-field bindings #}
+      {% include 'pages/militantes/_view_sections.html' %}
+    </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-6 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" id="modal-aprovar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition aprovar">
+        <i class="fa fa-check"></i> Aprovar
+      </button>
+      <button type="button" id="modal-rejectar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition rejectar">
+        <i class="fa fa-times"></i> Rejeitar
+      </button>
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Fechar</button>
     </div>
   </div>
 </div>
-  
 
-  <div class="modal fade" id="modalRejectar" tabindex="-1" role="dialog" aria-labelledby="modalRejectarLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalRejectarLabel">Rejectar</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-md-12">
-              <textarea id="motivoRejeicao" style="width: 100%;height: 100%;" rows="10"></textarea>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-danger" id="rejectarButton" id-militante="">Rejectar</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        </div>
-      </div>
+{# ── Modal: Rejeitar ─────────────────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="reject-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/50" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-md tw-mx-4">
+    <div class="tw-flex tw-items-start tw-justify-between tw-px-5 tw-py-4 tw-border-b tw-border-slate-100">
+      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0">Rejeitar militante</h3>
+      <button type="button" data-close class="tw-w-9 tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-500 hover:tw-bg-slate-100"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="tw-px-5 tw-py-4">
+      <label class="tw-block tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Motivo</label>
+      <textarea id="motivoRejeicao" rows="6"
+                class="tw-w-full tw-p-3 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/30 focus:tw-border-mpd-500"
+                placeholder="Indique o motivo…"></textarea>
+    </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+      <button type="button" id="rejectarButton" id-militante=""
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition">
+        <i class="fa fa-times"></i> Confirmar
+      </button>
     </div>
   </div>
-  
-  <div class="modal fade" id="modalCreateUser" tabindex="-1" role="dialog" aria-labelledby="modalCreateUserLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalCreateUserLabel">Criar Utilizador</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-md-12">
-              <div class="form-group">
-                <label for="militante-username" class="">Username:</label>
-                <input type="text" id="militante-username" class="form-control" readonly>
-              </div>
-            </div>
-            <div class="col-md-12">
-              <div class="form-group">
-                <label for="militante-email" class=""> Email</label>
-                <input type="text" id="militante-email" class="form-control" readonly>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" id="createButton" id-militante="">Criar</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        </div>
+</div>
+
+{# ── Modal: Criar utilizador ─────────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="create-user-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/50" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-md tw-mx-4">
+    <div class="tw-flex tw-items-start tw-justify-between tw-px-5 tw-py-4 tw-border-b tw-border-slate-100">
+      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0">Criar utilizador</h3>
+      <button type="button" data-close class="tw-w-9 tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-500 hover:tw-bg-slate-100"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="tw-px-5 tw-py-4 tw-space-y-3">
+      <div>
+        <label class="tw-block tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Username</label>
+        <input id="militante-username" readonly type="text"
+               class="tw-w-full tw-h-10 tw-px-3 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm tw-bg-slate-50 tw-text-slate-700" />
+      </div>
+      <div>
+        <label class="tw-block tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Email</label>
+        <input id="militante-email" readonly type="text"
+               class="tw-w-full tw-h-10 tw-px-3 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm tw-bg-slate-50 tw-text-slate-700" />
       </div>
     </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+      <button type="button" id="createButton" id-militante=""
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition">
+        <i class="fa fa-user-plus"></i> Criar
+      </button>
+    </div>
   </div>
+</div>
 
-</section>
-  <style>
-    .page-link.active{
-      background-color: #0e7716;
-    }
+<script>
+  function getCookie(name) {
+    var m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+    return m ? decodeURIComponent(m[2]) : null;
+  }
 
-    .card .card-header h5::after{
-      background-color: #1a9123;
-    }
-  </style>
+  function showToast(msg, kind) {
+    var palette = {
+      success: 'tw-bg-mpd-500 tw-text-white',
+      error:   'tw-bg-rose-500 tw-text-white',
+      info:    'tw-bg-slate-700 tw-text-white',
+    };
+    var $t = $('<div class="tw-px-4 tw-py-2 tw-rounded-lg tw-shadow-soft tw-text-sm tw-font-medium tw-animate-slide-in ' + (palette[kind] || palette.info) + '"></div>').text(msg);
+    $('#toast-container').append($t);
+    setTimeout(function () { $t.addClass('tw-animate-fade-out'); setTimeout(function(){ $t.remove(); }, 250); }, 2500);
+  }
 
-  <script>
-    offset = 0
-    function getCookie(name) {
-      let cookieValue = null
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';')
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim()
-          // Does this cookie string begin with the name we want?
-          if (cookie.substring(0, name.length + 1) === name + '=') {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-            break
-          }
-        }
+  function openModal(id) {
+    var $m = $('#' + id);
+    $m.removeClass('tw-hidden').addClass('tw-flex');
+  }
+  function closeModal($m) {
+    $m.removeClass('tw-flex').addClass('tw-hidden');
+  }
+  $(document).on('click', '[data-close]', function () { closeModal($(this).closest('.tw-fixed')); });
+  $(document).on('keyup', function (e) { if (e.key === 'Escape') $('.tw-fixed').addClass('tw-hidden').removeClass('tw-flex'); });
+
+  // ── Aprovar / Rejeitar / Apagar
+  $(document).on('click', '.aprovar', function () {
+    var id = $(this).attr('id-militante');
+    var email = $(this).attr('email-militante');
+    if (!confirm('Aprovar este militante?')) return;
+    $.post("{% url 'militantes.aprovar' %}", { 'id-militante': id, csrfmiddlewaretoken: getCookie('csrftoken'), email: email }, function (data) {
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+      showToast('Militante aprovado', 'success');
+    });
+  });
+
+  $(document).on('click', '.rejectar', function () {
+    var id = $(this).attr('id-militante');
+    $('#rejectarButton').attr('id-militante', id);
+    openModal('reject-modal');
+  });
+
+  $(document).on('click', '#rejectarButton', function () {
+    var id = $(this).attr('id-militante');
+    var reason = $('#motivoRejeicao').val();
+    $.post("{% url 'militantes.rejectar' %}", { 'id-militante': id, reason: reason, csrfmiddlewaretoken: getCookie('csrftoken') }, function (data) {
+      closeModal($('#reject-modal'));
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+      showToast('Militante rejeitado', 'success');
+    });
+  });
+
+  $(document).on('click', '.apagar', function () {
+    var id = $(this).attr('id-militante');
+    if (!confirm('Apagar este militante?')) return;
+    $.post("{% url 'militantes.delete' %}", { 'id-militante': id, csrfmiddlewaretoken: getCookie('csrftoken') }, function (data) {
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+      showToast('Militante removido', 'success');
+    });
+  });
+
+  // ── Ver detalhes (modal)
+  $(document).on('click', '.view', function () {
+    var id = $(this).attr('id-militante');
+    var isPedido = $(this).closest('tr, .md\\:tw-hidden > div').find('.aprovar').length > 0;
+
+    $.get('militantes/get/' + id, function (obj) {
+      Object.keys(obj).forEach(function (k) {
+        $('#militante-modal').find('[data-field="' + k + '"]').text(obj[k] == null ? '—' : obj[k]);
+      });
+      $('#modal-title').text(obj['nome_completo'] || 'Militante');
+      if (isPedido) {
+        $('#modal-aprovar, #modal-rejectar').removeClass('tw-hidden').attr('id-militante', id);
+        $('#modal-aprovar').attr('email-militante', obj['email_pessoal'] || '');
+      } else {
+        $('#modal-aprovar, #modal-rejectar').addClass('tw-hidden');
       }
-      return cookieValue
-    }
-    
-    $(document).on('click', '.aprovar', function () {
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      let email = $(this).attr('email-militante')
-      if (confirm('Desejar aprovar este militante?')) {
-        $.post("{% url 'militantes.aprovar'%}", { 'id-militante': id, csrfmiddlewaretoken: csrftoken,email }, function (data, status) {
-            $(".pcoded-content").html($(data).find(".pcoded-content").children())
-        })
-      }
-    })
-    
-    $(document).on('click', '#rejectarButton', function () {
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      let reason = $('#motivoRejeicao').val()
-      
-      $.post("{% url 'militantes.rejectar'%}", { 'id-militante': id, reason: reason, csrfmiddlewaretoken: csrftoken }, function (data) {
-        $('#modalRejectar').modal('hide')
-        setTimeout(function(){
-          $(".pcoded-content").html($(data).find(".pcoded-content").children())
-        },500)
-      })
-    })
-    
-    $(document).on('click', '.rejectar', function () {
-      let id = $(this).attr('id-militante')
-      $('#rejectarButton').attr('id-militante', id)
-      $('#modalRejectar').modal('show')
-    })
-    
-    $(document).on('click', '.apagar', function () {
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      if (confirm('Desejar apagar este militante?')) {
-        $.post("{% url 'militantes.delete'%}", { 'id-militante': id, csrfmiddlewaretoken: csrftoken }, function (data) {
-          $(".pcoded-content").html($(data).find(".pcoded-content").children())
-        })
-      }
-    })
-    
-    $(document).on('click', '.view', function () {
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      let isPedido = $(this).parents('tr')
-    
-      $.get('militantes/get/' + id, function (data) {
-        obj = data
-        Object.keys(obj).forEach(function (item) {
-          $('.' + item).text(obj[item])
-        })
-        $('#exampleModal').modal('show')
-        $('.modal-title').text(obj['nome_completo'])
-    
-        if ($(isPedido).find('.aprovar').length == 1) {
-          $('#exampleModal').find('.aprovar').show()
-          $('#exampleModal').find('.rejectar').show()
-          $('#exampleModal').find('.aprovar').attr('id-militante', id)
-          $('#exampleModal').find('.rejectar').attr('id-militante', id)
-        } else {
-          $('#exampleModal').find('.aprovar').hide()
-          $('#exampleModal').find('.rejectar').hide()
-        }
-    
-        //if (obj['nr_bi']) {
-        //$('.tp_documento').text('BI')
-        //$('.numero_id').text(obj['nr_bi'])
-        //$('.data_id').text(obj['dt_emissao_doc'])
-        //$('.label_data_id').text('Data de Emissão')
-        //} else {
-        //$('.tp_documento').text('CNI')
-        //$('.numero_id').text(obj['nr_documento'])
-        //$('.data_id').text(obj['dt_validade_doc'])
-        //$('.label_data_id').text('Data de Validade')
-        //}
-      })
-    })
-    
-    $(document).on('change', '#estado', function () {
-      search()
-    })
+      openModal('militante-modal');
+    });
+  });
 
-    $(document).on('change', '#nome', function () {
-      search()
-    })
+  // ── Filters search (debounced)
+  var searchTimer;
+  function search(page) {
+    var data = {
+      estado: $('#estado').val(),
+      nome:   $('#nome').val(),
+      zona:   $('#zona').val(),
+      concelho: $('#concelho').val(),
+      regiao: $('#ilha').val(),
+      localidade: $('#freguesia').val(),
+    };
+    if (page) data.page = page;
+    $.get('', data, function (data) {
+      var $new = $(data).find('#table-data');
+      if ($new.length) $('#table-data').replaceWith($new);
+      var $cnt = $(data).find('#total-count');
+      if ($cnt.length) $('#total-count').text($cnt.text());
+    });
+  }
+  function debouncedSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(search, 300); }
 
-    function search(page = null){
+  $(document).on('change', '#estado, #zona', search);
+  $(document).on('input', '#nome', debouncedSearch);
+  $(document).on('keypress', '#nome', function (e) { if (e.which === 13) { e.preventDefault(); search(); } });
 
-      $('#table-data').html("<div style='display: flex;justify-content: center;'><i class='fa fa-solid fa-spinner' style='font-size: 48px;'></i></div>")
-      
-      let estado = $("#estado").val()
-      let nome = $("#nome").val()
-      let zona = $("#zona").val()
-      let concelho = $("#concelho").val()
-      let regiao = $("#ilha").val()
-      let localidade = $("#freguesia").val()
+  // ── Cascading geo
+  function loadGeo($el, url, params, placeholder) {
+    $el.prop('disabled', true).html('<option>Carregando…</option>');
+    $.get(url, params, function (data) {
+      var arr = data.data || [];
+      var html = '<option value="">' + (placeholder || 'Todos') + '</option>';
+      arr.forEach(function (x) { html += '<option value="' + x.id + '">' + x.nome + '</option>'; });
+      $el.prop('disabled', false).html(html);
+    });
+  }
+  function getIlhas(idPais)        { loadGeo($('#ilha'),      "{% url 'militantes.getIlhas' %}",     { id_pais: idPais }); $('#concelho,#freguesia,#zona').html('<option value="">Todos</option>'); }
+  function getConcelho(idIlha)     { loadGeo($('#concelho'),  "{% url 'militantes.getConcelho' %}",  { id_ilha: idIlha }); $('#freguesia,#zona').html('<option value="">Todos</option>'); }
+  function getFreguesia(idConc)    { loadGeo($('#freguesia'), "{% url 'militantes.getFreguesia' %}", { id_concelho: idConc }); $('#zona').html('<option value="">Todos</option>'); }
+  function getZona(idFreg)         { loadGeo($('#zona'),      "{% url 'militantes.getZona' %}",      { id_freguesia: idFreg }); }
 
-      let data = {estado,nome,zona,concelho,regiao,localidade,offset}
+  $(document).on('change', '#ilha',      function () { getConcelho($(this).val()); search(); });
+  $(document).on('change', '#concelho',  function () { getFreguesia($(this).val()); search(); });
+  $(document).on('change', '#freguesia', function () { getZona($(this).val()); search(); });
 
-      if(page){
-        data["page"] = page 
-      }
+  getIlhas('238');
 
-      $.get('',data , function (data) {
-        $('#table-data').html($(data).find('#table-data'))
-      })
-    }
+  // ── Pagination clicks
+  $(document).on('click', '.page-item', function () { search($(this).attr('data-href')); });
 
-    $(document).on("click","#exportar",function(event){
-      event.preventDefault()
-      $(this).append("<i class='fa fa-solid fa-spinner' style='font-size: 15px;'></i>")
-      $(this).prop("disabled",true)
-      let estado = $("#estado").val()
-      let nome = $("#nome").val()
-      let zona = $("#zona").val()
-      let concelho = $("#concelho").val()
-      let regiao = $("#ilha").val()
-      let localidade = $("#freguesia").val()
+  // ── Export
+  $(document).on('click', '#exportar', function (e) {
+    e.preventDefault();
+    var $btn = $(this).prop('disabled', true).append(' <i class="fa fa-spinner fa-spin"></i>');
+    $.get("{% url 'militantes.exportExcel' %}", {
+      estado: $('#estado').val(), nome: $('#nome').val(), zona: $('#zona').val(),
+      concelho: $('#concelho').val(), regiao: $('#ilha').val(),
+    }, function (data) {
+      var blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'militantes.csv'; a.click();
+      $btn.prop('disabled', false).find('i').remove();
+    });
+  });
 
-      let button = $(this)
-      $.get("{% url 'militantes.exportExcel' %}",{estado,nome,zona,concelho,regiao,},function(data){
-        downloadBlob(data, 'militante.csv', 'text/csv;charset=utf-8;')
-        $(button).find("i").remove()
-        $(button).prop("disabled",false)
-      })
-    })
+  // ── Create user
+  $(document).on('click', '.create-user', function (e) {
+    e.preventDefault();
+    var id = $(this).attr('id-militante');
+    var email = $(this).attr('email-militante');
+    $.get("{% url 'militantes.username' %}", { id: id }, function (data) {
+      if (data.error) { showToast('Militante não encontrado', 'error'); return; }
+      $('#createButton').attr('id-militante', id);
+      $('#militante-username').val(data.username);
+      $('#militante-email').val(email);
+      openModal('create-user-modal');
+    });
+  });
 
-    function downloadBlob(content, filename, contentType) {
-      // Create a blob
-      var blob = new Blob([content], { type: contentType });
-      var url = URL.createObjectURL(blob);
-    
-      // Create a link to download it
-      var pom = document.createElement('a');
-      pom.href = url;
-      pom.setAttribute('download', filename);
-      pom.click();
-    }
-
-    function getPais(){
-      $.get("{% url 'militantes.getPais' %}",{},function(data){
-        data = data.data
-        for(i=0;i<data.length ; i++){
-          $("#pais").append('<option value="'+data[i].id+'">'+data[i].nome+'</option>')
-        }
-      })
-    }
-
-    function getIlhas(id){
-      $("#ilha").html("")
-      $("#ilha").prop("disabled",true)
-      $("#ilha").append('<option value="">Carrengado...</option>')
-      $.get("{% url 'militantes.getIlhas' %}",{'id_pais':id},function(data){
-        data = data.data
-        $("#ilha").html("")
-        $("#ilha").append('<option value="">Todos</option>')
-        for(i=0;i<data.length ; i++){
-          $("#ilha").append('<option value="'+data[i].id+'">'+data[i].nome+'</option>')
-        }
-        $("#ilha").prop("disabled",false)
-      })
-    }
-
-    function getConcelho(id){
-      $("#concelho").html("")
-      $("#concelho").prop("disabled",true)
-      $("#concelho").append('<option value="">Carrengado...</option>')
-      $.get("{% url 'militantes.getConcelho' %}",{'id_ilha':id},function(data){
-        data = data.data
-        $("#concelho").html("")
-        $("#concelho").append('<option value="">Todos</option>')
-        for(i=0;i<data.length ; i++){
-          $("#concelho").append('<option value="'+data[i].id+'">'+data[i].nome+'</option>')
-        }
-        $("#concelho").prop("disabled",false)
-      })
-    }
-
-    function getFreguesia(id){
-      $("#freguesia").html("")
-      $("#freguesia").prop("disabled",true)
-      $("#freguesia").append('<option value="">Carrengado...</option>')
-      $.get("{% url 'militantes.getFreguesia' %}",{'id_concelho':id},function(data){
-        data = data.data
-        $("#freguesia").html("")
-        $("#freguesia").append('<option value="">Todos</option>')
-        for(i=0;i<data.length ; i++){
-          $("#freguesia").append('<option value="'+data[i].id+'">'+data[i].nome+'</option>')
-        }
-        $("#freguesia").prop("disabled",false)
-      })
-    }
-
-    function getZona(id){
-      $("#zona").html("")
-      $("#zona").prop("disabled",true)
-      $("#zona").append('<option value="">Carrengado...</option>')
-      $.get("{% url 'militantes.getZona' %}",{'id_freguesia':id},function(data){
-        data = data.data
-        $("#zona").html("")
-        $("#zona").append('<option value="">Todos</option>')
-        for(i=0;i<data.length ; i++){
-          $("#zona").append('<option value="'+data[i].id+'">'+data[i].nome+'</option>')
-        }
-        $("#zona").prop("disabled",false)
-      })
-    }
-
-    $(document).on('change', '#zona', function () {
-      search()
-    })
-
-    $(document).on("change","#ilha",function(){
-      let id = $(this).val()
-      getConcelho(id)
-      search()
-    })
-
-    $(document).on("change","#concelho",function(){
-      let id = $(this).val()
-      getFreguesia(id)
-      search()
-    })
-
-    $(document).on("change","#freguesia",function(){
-      let id = $(this).val()
-      getZona(id)
-      search()
-    })
-
-    getPais()
-    getIlhas("238")
-
-
-    $(document).on("click",".page-item",function(event){
-      let page = $(this).attr("data-href")
-      search(page)
-    })
-
-    $(document).on('click', '.create-user', function (event) {
-      event.preventDefault()
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      let email = $(this).attr('email-militante')
-      $.get("{% url 'militantes.username'%}", { 'id': id }, function (data, status) {
-
-        if(data.error){
-          alert("Militantes não encontrados")
-          return 
-        }
-        
-        $("#createButton").attr("id-militante",id)
-        $("#militante-username").val(data.username)
-        $("#militante-email").val(email)
-        $("#modalCreateUser").modal("show")  
-      })
-    })
-
-    $(document).on('click', '#createButton', function (event) {
-      event.preventDefault()
-      const csrftoken = getCookie('csrftoken')
-      let id = $(this).attr('id-militante')
-      let email = $('#militante-email').val()
-      let username = $('#militante-username').val()
-      $(this).prop("disabled",true)
-      $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
-      $(this).prop("disabled",true)
-
-      $.post("{% url 'militantes.createUser'%}", { 'id-militante': id, csrfmiddlewaretoken: csrftoken,email,username }, function (data, status) {
-        $('#createButton').prop("disabled",false)
-        $($('#createButton').find("i")).remove()
-        $("#modalCreateUser").modal("hide")  
-          setTimeout(function(){
-            $(".list-militantes").html($(data).find(".list-militantes").children())
-          },500)
-      })
-    })
-
-
-  </script>
+  $(document).on('click', '#createButton', function () {
+    var $btn = $(this).prop('disabled', true);
+    $.post("{% url 'militantes.createUser' %}", {
+      'id-militante': $btn.attr('id-militante'),
+      email: $('#militante-email').val(),
+      username: $('#militante-username').val(),
+      csrfmiddlewaretoken: getCookie('csrftoken'),
+    }, function (data) {
+      closeModal($('#create-user-modal'));
+      $btn.prop('disabled', false);
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+      showToast('Utilizador criado', 'success');
+    });
+  });
+</script>
 {% endblock %}

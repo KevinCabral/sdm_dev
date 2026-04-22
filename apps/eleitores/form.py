@@ -1,85 +1,80 @@
 from django import forms
-from .models import Eleitores
+
 from apps.militantes.models import Militantes
+from .models import Eleitores
 
 
 class EleitoresForm(forms.ModelForm):
+    """Form for the legacy ``eleitores`` table.
 
-    GENERO = (("M" , "M"), ("F" ,"F"))
+    Only fields that actually exist in the database are exposed. Boolean
+    flags use checkboxes; ``militante_id`` is a select populated with active
+    militantes.
+    """
 
-    observacoes = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}), label="Observacoes", required=False)
     nome = forms.CharField(max_length=200, required=True, label="Nome Completo")
-    nr_identificacao = forms.CharField(max_length=200, required=True, label="Número de identificação")
-    pai = forms.CharField(max_length=100, required=True, label="Nome de Pai")
-    mae = forms.CharField(max_length=100, required=True, label="Nome de Mãe")
-    data_nascimento = forms.CharField(max_length=20, required=True, label="Data de Nascimento")
-    genero = forms.ChoiceField(choices=GENERO, required=True, label="Genero")
-    pais = forms.CharField(max_length=100, required=True, label="Pais")
-    ilha = forms.CharField(max_length=50, required=True, label="Ilha")
-    conc_pais_res = forms.CharField(max_length=100, required=True, label="Concelho de Residencia")
-    local_cidade_res = forms.CharField(max_length=100, required=True, label="Local")
-    morada = forms.CharField(max_length=100, required=True, label="Morada")
-    telefone = forms.IntegerField(required=True, label="Telefone")
-    telemovel = forms.IntegerField(required=True, label="Telemovel")
-    status = forms.IntegerField(required=False,label="Status",initial='1')
-    id_obito = forms.IntegerField(required=True, label="ID Obitido")
-    partido_voto = forms.CharField(max_length=20, required=True, label="Partido Voto")
-    acompanhamento = forms.IntegerField(required=True, label="Acompanhamento")
-    transporte = forms.IntegerField(required=True, label="Transporte")
-    tp_associado = forms.CharField(max_length=20, required=True, label="Tipo de Associado")
-    desloca_outro_concelho = forms.CharField(max_length=100, required=True, label="Deslocação para Concelho")
-    gv = forms.CharField(max_length=100, required=True, label="GV")
-    desloca_de = forms.CharField(max_length=255, required=True, label="Desloca de")
-    desloca_para = forms.CharField(max_length=255, required=True, label="Desloca para")
-    estado_sensibilidade = forms.IntegerField(required=True, label="Estado de sensibilidade")
-    code_regiao = forms.CharField(max_length=5, required=True, label="Codigo Região")
-    observacoes = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),max_length=500, required=True, label="Observações")
-    # datahora_atualizacao = forms.CharField(max_length=20, required=True, label="Data e hora de atualização")
-    nr_eleitor = forms.IntegerField(required=True, label="Número Eleitor")
-    nr_mesa = forms.CharField(max_length=40, required=True, label="Número de mesa")
+    nominho = forms.CharField(max_length=200, required=False, label="Alcunha / Apelido")
+    filiacao = forms.CharField(max_length=255, required=False, label="Filiação")
+    data_nascimento = forms.DateField(required=False, label="Data de Nascimento")
+    idade_eleitor = forms.IntegerField(required=False, label="Idade")
+    contato = forms.CharField(max_length=100, required=False, label="Contacto")
+    nacionalidade = forms.CharField(max_length=100, required=False, label="Nacionalidade")
+    concelho = forms.CharField(max_length=100, required=False, label="Concelho")
+    zona = forms.CharField(max_length=100, required=False, label="Zona")
+    nr_mesa = forms.CharField(max_length=40, required=False, label="Número de Mesa")
+    nr_eleitor = forms.IntegerField(required=False, label="Número de Eleitor")
 
-    militantes = [(militantes.id, militantes.nome_completo) for militantes in Militantes.objects.filter(estado_militante='A').all()]
-    militantes.insert(0, (None, 'Selecione um Militante')) 
+    falecido = forms.BooleanField(required=False, label="Falecido")
+    ausente = forms.BooleanField(required=False, label="Ausente")
+    indeciso = forms.BooleanField(required=False, label="Indeciso")
+    nao_vai_votar = forms.BooleanField(required=False, label="Não vai votar")
+    mpd = forms.BooleanField(required=False, label="Apoiante MPD")
+    descarga = forms.BooleanField(required=False, label="Descarga")
 
-    militante_id =  forms.ChoiceField(choices=militantes,required=False, label="Militante",initial=None)
+    militante_id = forms.ModelChoiceField(
+        queryset=Militantes.objects.none(),
+        required=False,
+        empty_label="Selecione um Militante",
+        label="Militante",
+    )
 
-
-    def __init__(self, *args, **kwargs):
-        super(EleitoresForm, self).__init__(*args, **kwargs)
-        for visible in self.visible_fields():
-            visible.field.widget.attrs['class'] = 'form-control'
-        self.fields['data_nascimento'].widget = forms.widgets.DateInput(
-            # format="yyyy-mm-dd",
-            attrs={
-                'type': 'date', 'placeholder': 'yyyy-mm-dd',
-                'class': 'form-control'
-                }
-            )
-    
-    def clean_militante_id(self):
-        militante_id = self.cleaned_data['militante_id']
-
-        if militante_id == "":
-            return None
-        try:
-            militante = Militantes.objects.get(id=militante_id)
-        except Militantes.DoesNotExist:
-            raise forms.ValidationError("Militante não encontrado.")
-        # Retorna o objeto Militantes para ser atribuído ao campo 'militante' de Eleitores
-        return militante
-
-    def clean(self):
-        cleaned_data = super().clean()
-        militante = cleaned_data.get('militante_id')
-        if militante == "":
-            return None
-        
-        if militante:
-            # Se o campo militante_id estiver presente e válido,
-            # atribua o objeto Militantes ao campo 'militante' de Eleitores
-            self.instance.militante = militante
-        return cleaned_data
-    
     class Meta:
         model = Eleitores
-        fields = '__all__'
+        fields = (
+            'nome', 'nominho', 'filiacao', 'data_nascimento', 'idade_eleitor',
+            'contato', 'nacionalidade', 'concelho', 'zona', 'nr_mesa', 'nr_eleitor',
+            'falecido', 'ausente', 'indeciso', 'nao_vai_votar', 'mpd', 'descarga',
+            'militante_id',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only include the currently selected militante in the queryset to
+        # keep the rendered <select> tiny. Select2 + AJAX endpoint
+        # (/militantes/search) handles searching the rest.
+        militante_qs = Militantes.objects.none()
+        selected_id = None
+        if self.instance and self.instance.pk and self.instance.militante_id_id:
+            selected_id = self.instance.militante_id_id
+        elif self.is_bound:
+            selected_id = self.data.get(self.add_prefix('militante_id'))
+        if selected_id:
+            try:
+                militante_qs = Militantes.objects.filter(pk=selected_id)
+            except (ValueError, TypeError):
+                militante_qs = Militantes.objects.none()
+        self.fields['militante_id'].queryset = militante_qs
+
+        for visible in self.visible_fields():
+            widget = visible.field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                widget.attrs['class'] = 'form-check-input'
+            else:
+                widget.attrs.setdefault('class', 'form-control')
+        self.fields['data_nascimento'].widget = forms.DateInput(
+            attrs={'type': 'date', 'class': 'form-control'}
+        )
+        self.fields['militante_id'].widget.attrs.update({
+            'class': 'form-control militante-select',
+            'data-search-url': '/militantes/search',
+        })

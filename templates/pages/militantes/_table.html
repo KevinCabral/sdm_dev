@@ -1,0 +1,151 @@
+{% load static %}
+{# Reusable Tailwind table for militantes lists. Expects: page_obj, show_actions, show_pedido_actions. #}
+
+  <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden" id="table-data">
+
+  {# ── Desktop table ──────────────────────────────────── #}
+  <div class="tw-hidden md:tw-block tw-overflow-auto" style="max-height: calc(100vh - 360px); min-height: 320px;">
+    <table class="tw-w-full tw-text-sm tw-border-collapse">
+      <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+        <tr class="tw-text-left tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wider">
+          <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Nome</th>
+          <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Estado civil</th>
+          <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Tipo associado</th>
+          <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Concelho</th>
+          <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-right">&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody class="tw-divide-y tw-divide-slate-100">
+        {% for militante in page_obj %}
+          <tr class="tbl-row tw-transition">
+            <td class="tw-px-5 tw-py-3 tw-align-middle">
+              <div class="tw-font-medium tw-text-slate-900 tw-leading-snug">{{ militante.nome_completo|default:'—' }}</div>
+              {% if militante.alcunha %}
+                <div class="tw-text-xs tw-text-slate-500 tw-mt-0.5">{{ militante.alcunha }}</div>
+              {% elif militante.username %}
+                <div class="tw-text-xs tw-text-slate-400 tw-mt-0.5">@{{ militante.username }}</div>
+              {% endif %}
+            </td>
+            <td class="tw-px-5 tw-py-3 tw-text-slate-700">{{ militante.estado_civil|default:'—' }}</td>
+            <td class="tw-px-5 tw-py-3 tw-text-slate-700">{{ militante.tp_associado|default:'—' }}</td>
+            <td class="tw-px-5 tw-py-3 tw-text-slate-700">
+              {% with morada=militante.morada_set.all|first %}
+                {{ morada.geografia.concelho|default:'—' }}
+              {% endwith %}
+            </td>
+            <td class="tw-px-5 tw-py-3">
+              <div class="tw-flex tw-items-center tw-justify-end tw-gap-0.5">
+                {% if not militante.exist_user and militante.estado_militante != 'P' %}
+                  <button type="button"
+                          class="create-user tw-inline-flex tw-items-center tw-gap-1.5 tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-transition"
+                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">
+                    <i class="fa fa-user-plus tw-text-[10px]"></i> Criar utilizador
+                  </button>
+                {% endif %}
+                {% if militante.estado_militante == 'P' %}
+                  <button type="button"
+                          class="rejectar tw-inline-flex tw-items-center tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-text-slate-600 hover:tw-text-rose-600 hover:tw-bg-rose-50 tw-transition"
+                          id-militante="{{ militante.id }}">Rejeitar</button>
+                  <button type="button"
+                          class="aprovar tw-inline-flex tw-items-center tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-font-medium tw-text-white tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-transition"
+                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">Aprovar</button>
+                {% endif %}
+
+                <button type="button" class="view tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-sky-50 tw-text-sky-600 hover:tw-bg-sky-100 hover:tw-text-sky-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150"
+                        data-id="{{ militante.id }}" id-militante="{{ militante.id }}" title="Ver">
+                  <i class="fa fa-eye tw-text-xs"></i>
+                </button>
+                <a href="{% url 'militantes.update' militante.id %}" title="Editar"
+                   class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                  <i class="fa fa-edit tw-text-xs"></i>
+                </a>
+                <button type="button" class="apagar tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150"
+                        data-id="{{ militante.id }}" id-militante="{{ militante.id }}" title="Apagar">
+                  <i class="fa fa-trash tw-text-xs"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">
+            <div class="tw-py-20 tw-text-center">
+              <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+                <i class="fa fa-inbox"></i>
+              </div>
+              <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Nenhum militante encontrado</div>
+              <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+            </div>
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Mobile cards ──────────────────────────────────── #}
+  <div class="md:tw-hidden tw-divide-y tw-divide-slate-100">
+    {% for militante in page_obj %}
+      <div class="tw-p-4">
+        <div class="tw-min-w-0">
+          <div class="tw-font-medium tw-text-slate-900 tw-truncate">{{ militante.nome_completo|default:'—' }}</div>
+          {% if militante.alcunha %}
+            <div class="tw-text-xs tw-text-slate-500 tw-truncate tw-mt-0.5">{{ militante.alcunha }}</div>
+          {% elif militante.username %}
+            <div class="tw-text-xs tw-text-slate-400 tw-truncate tw-mt-0.5">@{{ militante.username }}</div>
+          {% endif %}
+          <div class="tw-grid tw-grid-cols-2 tw-gap-x-3 tw-gap-y-1 tw-mt-2 tw-text-xs tw-text-slate-600">
+            <div><span class="tw-text-slate-400">Estado civil:</span> {{ militante.estado_civil|default:'—' }}</div>
+            <div><span class="tw-text-slate-400">Tipo:</span> {{ militante.tp_associado|default:'—' }}</div>
+            <div class="tw-col-span-2">
+              <span class="tw-text-slate-400">Concelho:</span>
+              {% with morada=militante.morada_set.all|first %}{{ morada.geografia.concelho|default:'—' }}{% endwith %}
+            </div>
+          </div>
+        </div>
+        <div class="tw-flex tw-items-center tw-justify-end tw-gap-1 tw-mt-3">
+          {% if militante.estado_militante == 'P' %}
+            <button type="button" class="rejectar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-rose-600 tw-bg-rose-50" id-militante="{{ militante.id }}">Rejeitar</button>
+            <button type="button" class="aprovar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-white tw-bg-mpd-600" id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">Aprovar</button>
+          {% endif %}
+          <button type="button" class="view tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100"
+                  data-id="{{ militante.id }}" id-militante="{{ militante.id }}">Ver</button>
+          <a href="{% url 'militantes.update' militante.id %}" class="tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100">Editar</a>
+          <button type="button" class="apagar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-red-600 tw-bg-red-50"
+                  data-id="{{ militante.id }}" id-militante="{{ militante.id }}">Apagar</button>
+        </div>
+      </div>
+    {% empty %}
+      <div class="tw-py-16 tw-text-center">
+        <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+          <i class="fa fa-inbox"></i>
+        </div>
+        <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Nenhum militante encontrado</div>
+        <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Pagination ─────────────────────────────────────── #}
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+      <div class="tw-text-xs tw-text-slate-500">
+        Mostrando página <span class="tw-font-medium tw-text-slate-700">{{ page_obj.number }}</span>
+        de <span class="tw-font-medium tw-text-slate-700">{{ page_obj.paginator.num_pages }}</span>
+        · {{ page_obj.paginator.count }} registos
+      </div>
+      <div class="tw-inline-flex tw-items-center tw-gap-1">
+        {% if page_obj.has_previous %}
+          <a href="javascript:void(0)" data-href="{{ page_obj.previous_page_number }}"
+             class="page-item tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Anterior</a>
+        {% else %}
+          <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Anterior</span>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="javascript:void(0)" data-href="{{ page_obj.next_page_number }}"
+             class="page-item tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Próxima</a>
+        {% else %}
+          <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Próxima</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>

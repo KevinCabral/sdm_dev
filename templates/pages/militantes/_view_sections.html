@@ -1,0 +1,76 @@
+{% comment %}Read-only sections for a militante; cells use data-field for JS injection.{% endcomment %}
+
+{% with m=militante|default:None %}
+
+<section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+  <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+    <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+    <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Dados profissionais</h2>
+  </header>
+  <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+    {% include 'pages/militantes/_view_field.html' with label='Nome Completo'   field='nome_completo'    val=m.nome_completo %}
+    {% include 'pages/militantes/_view_field.html' with label='Alcunha'         field='alcunha'          val=m.alcunha %}
+    {% include 'pages/militantes/_view_field.html' with label='Tipo Associado'  field='tp_associado'     val=m.tp_associado %}
+    {% include 'pages/militantes/_view_field.html' with label='Agregado familiar' field='agregado_familiar' val=m.agregado_familiar %}
+    {% include 'pages/militantes/_view_field.html' with label='Local Trabalho'  field='local_trabalho'   val=m.local_trabalho %}
+    {% include 'pages/militantes/_view_field.html' with label='Profissão atual' field='profissao_atual'  val=m.profissao_atual %}
+    {% include 'pages/militantes/_view_field.html' with label='Empresa'         field='empresa'          val=m.empresa %}
+    {% include 'pages/militantes/_view_field.html' with label='Sector'          field='sector'           val=m.sector %}
+    {% include 'pages/militantes/_view_field.html' with label='Função'          field='funcao'           val=m.funcao %}
+    {% include 'pages/militantes/_view_field.html' with label='Área Atuação'    field='area_atuacao'     val=m.area_atuacao %}
+    {% include 'pages/militantes/_view_field.html' with label='Grau Académica'  field='grau_academica'   val=m.grau_academica %}
+    {% include 'pages/militantes/_view_field.html' with label='Curso'           field='curso'            val=m.curso %}
+  </div>
+</section>
+
+<section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+  <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+    <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+    <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Identificação</h2>
+  </header>
+  <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+    {% include 'pages/militantes/_view_field.html' with label='Nome do Pai'    field='nm_pai'         val=m.nm_pai %}
+    {% include 'pages/militantes/_view_field.html' with label='Nome da Mãe'    field='nm_mae'         val=m.nm_mae %}
+    {% include 'pages/militantes/_view_field.html' with label='Data Nascimento' field='dt_nascimento'  val=m.dt_nascimento %}
+    {% include 'pages/militantes/_view_field.html' with label='Género'          field='genero'         val=m.genero %}
+    {% include 'pages/militantes/_view_field.html' with label='Estado Civil'    field='estado_civil'   val=m.estado_civil %}
+    {% include 'pages/militantes/_view_field.html' with label='Tipo Documento'  field='tp_documento'   val=m.tp_documento %}
+    {% include 'pages/militantes/_view_field.html' with label='Nº Documento'    field='nr_documento'   val=m.nr_documento %}
+    {% include 'pages/militantes/_view_field.html' with label='Data Emissão'    field='dt_emissao_doc' val=m.dt_emissao_doc %}
+    {% include 'pages/militantes/_view_field.html' with label='Data Validade'   field='dt_validade_doc' val=m.dt_validade_doc %}
+  </div>
+</section>
+
+<section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+  <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+    <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+    <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Contactos</h2>
+  </header>
+  <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+    {% include 'pages/militantes/_view_field.html' with label='Telemóvel 1'    field='nr_telemovel1'    val=m.nr_telemovel1 %}
+    {% include 'pages/militantes/_view_field.html' with label='Telemóvel 2'    field='nr_telemovel2'    val=m.nr_telemovel2 %}
+    {% include 'pages/militantes/_view_field.html' with label='Telefone Casa'  field='nr_telefone_casa' val=m.nr_telefone_casa %}
+    {% include 'pages/militantes/_view_field.html' with label='Email pessoal'  field='email_pessoal'    val=m.email_pessoal %}
+    {% include 'pages/militantes/_view_field.html' with label='Email trabalho' field='email_trabalho'   val=m.email_trabalho %}
+  </div>
+</section>
+
+<section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+  <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+    <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+    <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Endereço</h2>
+  </header>
+  <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+    {% include 'pages/militantes/_view_field.html' with label='País'      field='pais'         val='' %}
+    {% include 'pages/militantes/_view_field.html' with label='Ilha'      field='regiao'       val='' %}
+    {% include 'pages/militantes/_view_field.html' with label='Concelho'  field='concelho'     val='' %}
+    {% include 'pages/militantes/_view_field.html' with label='Freguesia' field='localidade'   val='' %}
+    {% include 'pages/militantes/_view_field.html' with label='Zona'      field='zona'         val='' %}
+    {% include 'pages/militantes/_view_field.html' with label='Morada Atual' field='morada_atual' val='' %}
+    <div class="lg:tw-col-span-4">
+      {% include 'pages/militantes/_view_field.html' with label='Perto de' field='perto_de' val='' %}
+    </div>
+  </div>
+</section>
+
+{% endwith %}

@@ -1,0 +1,214 @@
+{% load static %}
+
+{# Reusable Tailwind form fields for militantes create/update. Expects militantesForm and optional militante. #}
+
+<div class="tw-space-y-5" id="militantes-form-fields">
+
+  {# ── Tabs (pure CSS via :checked / :target alternative — keep Bootstrap tabs to use Bootstrap JS shipped with admin_datta) ─ #}
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <div class="tw-border-b tw-border-slate-100 tw-overflow-x-auto">
+      <ul class="nav nav-tabs tw-flex tw-flex-nowrap tw-gap-1 tw-px-3 tw-pt-3 tw-border-0" id="militantes-tabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active show tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-rounded-t-lg tw-text-sm tw-font-semibold tw-text-slate-600 hover:tw-text-mpd-700"
+             id="tab-pessoais" data-toggle="tab" href="#pessoais" role="tab"><i class="fa fa-user"></i> Pessoais</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-rounded-t-lg tw-text-sm tw-font-semibold tw-text-slate-600 hover:tw-text-mpd-700"
+             id="tab-identificacao" data-toggle="tab" href="#identificacao" role="tab"><i class="fa fa-id-card"></i> Identificação</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-rounded-t-lg tw-text-sm tw-font-semibold tw-text-slate-600 hover:tw-text-mpd-700"
+             id="tab-contactos" data-toggle="tab" href="#contactos" role="tab"><i class="fa fa-phone"></i> Contactos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-rounded-t-lg tw-text-sm tw-font-semibold tw-text-slate-600 hover:tw-text-mpd-700"
+             id="tab-endereco" data-toggle="tab" href="#endereco" role="tab"><i class="fa fa-map-marker-alt"></i> Endereço</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="tab-content tw-p-5">
+
+      {# ── Pessoais ───────────────────────────────── #}
+      <div class="tab-pane fade active show" id="pessoais" role="tabpanel">
+
+        <div class="tw-flex tw-flex-col md:tw-flex-row tw-items-center md:tw-items-start tw-gap-5 tw-mb-5">
+          <div class="tw-relative tw-shrink-0">
+            <img id="profile_image" alt=""
+                 src="{% if militante.image %}/media/{{ militante.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
+                 class="tw-w-28 tw-h-28 tw-rounded-full tw-object-cover tw-border-2 tw-border-slate-200 tw-shadow-soft" />
+            <button type="button" id="masc-img"
+                    class="tw-absolute tw-inset-0 tw-rounded-full tw-bg-slate-900/50 tw-text-white tw-opacity-0 hover:tw-opacity-100 tw-transition tw-flex tw-items-center tw-justify-center tw-cursor-pointer">
+              <i class="fa fa-camera tw-text-xl"></i>
+            </button>
+          </div>
+          <div class="tw-flex-1 tw-w-full">
+            <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Foto de perfil</p>
+            <p class="tw-text-xs tw-text-slate-400 tw-mb-2 tw-mt-0">PNG ou JPG. Recomendado 400×400.</p>
+            <div class="ef-field">{{ militantesForm.image }}{{ militantesForm.image.errors }}</div>
+          </div>
+        </div>
+
+        <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-6 tw-gap-4">
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nome_completo span='lg:tw-col-span-4' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.alcunha span='lg:tw-col-span-2' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.tp_associado span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.agregado_familiar span='lg:tw-col-span-3' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.local_trabalho span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.profissao_atual span='lg:tw-col-span-3' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.empresa span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.sector span='lg:tw-col-span-3' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.funcao span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.area_atuacao span='lg:tw-col-span-3' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.grau_academica span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.curso span='lg:tw-col-span-3' %}
+        </div>
+      </div>
+
+      {# ── Identificação ──────────────────────────── #}
+      <div class="tab-pane fade" id="identificacao" role="tabpanel">
+        <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-6 tw-gap-4">
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nm_pai span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nm_mae span='lg:tw-col-span-3' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.dt_nascimento span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.genero span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.estado_civil span='lg:tw-col-span-2' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.tp_documento span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nr_documento span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.dt_emissao_doc span='lg:tw-col-span-1' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.dt_validade_doc span='lg:tw-col-span-1' %}
+        </div>
+      </div>
+
+      {# ── Contactos ──────────────────────────────── #}
+      <div class="tab-pane fade" id="contactos" role="tabpanel">
+        <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-6 tw-gap-4">
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nr_telemovel1 span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nr_telemovel2 span='lg:tw-col-span-2' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.nr_telefone_casa span='lg:tw-col-span-2' %}
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.email_pessoal span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.email_trabalho span='lg:tw-col-span-3' %}
+        </div>
+      </div>
+
+      {# ── Endereço ───────────────────────────────── #}
+      <div class="tab-pane fade" id="endereco" role="tabpanel">
+        <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-6 tw-gap-4">
+          <div class="lg:tw-col-span-3 ef-field">
+            <label for="pais">País</label>
+            <select id="pais" name="{{ militantesForm.pais.name }}"></select>
+          </div>
+          <div class="lg:tw-col-span-3 ef-field">
+            <label for="ilha">Ilha</label>
+            <select id="ilha" name="{{ militantesForm.regiao.name }}"><option value="">Todos</option></select>
+            {{ militantesForm.regiao.errors }}
+          </div>
+          <div class="lg:tw-col-span-2 ef-field">
+            <label for="concelho">Concelho</label>
+            <select id="concelho" name="{{ militantesForm.concelho.name }}"></select>
+            {{ militantesForm.concelho.errors }}
+          </div>
+          <div class="lg:tw-col-span-2 ef-field">
+            <label for="freguesia">Freguesia</label>
+            <select id="freguesia" name="{{ militantesForm.localidade.name }}"></select>
+            {{ militantesForm.localidade.errors }}
+          </div>
+          <div class="lg:tw-col-span-2 ef-field">
+            <label for="zona">Zona</label>
+            <select id="zona" name="{{ militantesForm.zona.name }}"></select>
+            {{ militantesForm.zona.errors }}
+          </div>
+
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.morada_atual span='lg:tw-col-span-3' %}
+          {% include 'pages/militantes/_form_input.html' with field=militantesForm.perto_de span='lg:tw-col-span-3' %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Tab styling override (Bootstrap nav-tabs) */
+  #militantes-tabs.nav-tabs { border-bottom: 0; }
+  #militantes-tabs .nav-link {
+    border: 1px solid transparent;
+    border-bottom: 0;
+    margin-bottom: -1px;
+    background: transparent;
+  }
+  #militantes-tabs .nav-link.active,
+  #militantes-tabs .nav-link.active:hover {
+    color: #1a9123 !important;
+    background: #fff !important;
+    border-color: #e2e8f0 #e2e8f0 #fff !important;
+  }
+
+  /* Field styling, matches eleitores */
+  .ef-field label {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #64748b;
+    margin: 0 0 .35rem;
+  }
+  .ef-field input[type="text"],
+  .ef-field input[type="number"],
+  .ef-field input[type="date"],
+  .ef-field input[type="email"],
+  .ef-field input[type="tel"],
+  .ef-field select,
+  .ef-field textarea {
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .5rem;
+    font-size: .875rem;
+    background: #fff;
+    color: #0f172a;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    box-sizing: border-box;
+  }
+  .ef-field textarea { height: auto; padding: .5rem .75rem; }
+  .ef-field input[type="file"] {
+    width: 100%;
+    padding: .4rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: .5rem;
+    background: #fff;
+    font-size: .8rem;
+  }
+  .ef-field input:focus,
+  .ef-field select:focus,
+  .ef-field textarea:focus {
+    outline: none;
+    border-color: #1a9123;
+    box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+  }
+  .ef-field input.invalid,
+  .ef-field select.invalid,
+  .ef-field textarea.invalid {
+    border-color: #f43f5e;
+    box-shadow: 0 0 0 3px rgba(244,63,94,.15);
+  }
+  .ef-field .errorlist,
+  .ef-field .errors {
+    list-style: none;
+    padding: 0;
+    margin: .35rem 0 0;
+    color: #dc2626;
+    font-size: .75rem;
+  }
+  #id_image { display: none; }
+</style>

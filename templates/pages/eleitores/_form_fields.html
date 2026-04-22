@@ -1,0 +1,200 @@
+{% load static %}
+
+<div class="tw-space-y-5">
+
+  {# ── Identificação ─────────────────────────────────── #}
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Dados de Identificação</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-6 tw-gap-4">
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+        {{ form.nome }}{{ form.nome.errors }}
+      </div>
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.nominho.id_for_label }}">{{ form.nominho.label }}</label>
+        {{ form.nominho }}{{ form.nominho.errors }}
+      </div>
+
+      <div class="lg:tw-col-span-6 ef-field">
+        <label for="{{ form.filiacao.id_for_label }}">{{ form.filiacao.label }}</label>
+        {{ form.filiacao }}{{ form.filiacao.errors }}
+      </div>
+
+      <div class="lg:tw-col-span-2 ef-field">
+        <label for="{{ form.data_nascimento.id_for_label }}">{{ form.data_nascimento.label }}</label>
+        {{ form.data_nascimento }}{{ form.data_nascimento.errors }}
+      </div>
+      <div class="lg:tw-col-span-1 ef-field">
+        <label for="{{ form.idade_eleitor.id_for_label }}">{{ form.idade_eleitor.label }}</label>
+        {{ form.idade_eleitor }}{{ form.idade_eleitor.errors }}
+      </div>
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.contato.id_for_label }}">{{ form.contato.label }}</label>
+        {{ form.contato }}{{ form.contato.errors }}
+      </div>
+
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.nacionalidade.id_for_label }}">{{ form.nacionalidade.label }}</label>
+        {{ form.nacionalidade }}{{ form.nacionalidade.errors }}
+      </div>
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.militante_id.id_for_label }}">{{ form.militante_id.label }}</label>
+        {{ form.militante_id }}{{ form.militante_id.errors }}
+      </div>
+    </div>
+  </section>
+
+  {# ── Localização ──────────────────────────────────── #}
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Localização</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+      <div class="ef-field">
+        <label for="{{ form.concelho.id_for_label }}">{{ form.concelho.label }}</label>
+        {{ form.concelho }}{{ form.concelho.errors }}
+      </div>
+      <div class="ef-field">
+        <label for="{{ form.zona.id_for_label }}">{{ form.zona.label }}</label>
+        {{ form.zona }}{{ form.zona.errors }}
+      </div>
+    </div>
+  </section>
+
+  {# ── Eleitor ─────────────────────────────────────── #}
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Dados de Eleitor</h2>
+    </header>
+
+    <div class="tw-p-5 tw-space-y-5">
+      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+        <div class="ef-field">
+          <label for="{{ form.nr_eleitor.id_for_label }}">{{ form.nr_eleitor.label }}</label>
+          {{ form.nr_eleitor }}{{ form.nr_eleitor.errors }}
+        </div>
+        <div class="ef-field">
+          <label for="{{ form.nr_mesa.id_for_label }}">{{ form.nr_mesa.label }}</label>
+          {{ form.nr_mesa }}{{ form.nr_mesa.errors }}
+        </div>
+      </div>
+
+      <div>
+        <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-2 tw-mt-0">
+          Estado do Eleitor
+        </p>
+        <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3">
+          {% for fld in form %}
+            {% if fld.name == 'mpd' or fld.name == 'indeciso' or fld.name == 'nao_vai_votar' or fld.name == 'ausente' or fld.name == 'descarga' or fld.name == 'falecido' %}
+              <label class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 hover:tw-border-mpd-200 tw-bg-slate-50 hover:tw-bg-mpd-50 tw-transition tw-cursor-pointer">
+                <span class="tw-text-sm tw-text-slate-700 tw-font-medium">{{ fld.label }}</span>
+                <span class="switch">
+                  {{ fld }}
+                  <span class="slider"></span>
+                </span>
+              </label>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<style>
+  .ef-field label {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #64748b;
+    margin: 0 0 .35rem;
+  }
+  .ef-field input[type="text"],
+  .ef-field input[type="number"],
+  .ef-field input[type="date"],
+  .ef-field input[type="email"],
+  .ef-field select,
+  .ef-field textarea {
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .5rem;
+    font-size: .875rem;
+    background: #fff;
+    color: #0f172a;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    box-sizing: border-box;
+  }
+  .ef-field textarea { height: auto; padding: .5rem .75rem; }
+  .ef-field input:focus,
+  .ef-field select:focus,
+  .ef-field textarea:focus {
+    outline: none;
+    border-color: #1a9123;
+    box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+  }
+  .ef-field input[readonly],
+  .ef-field input:disabled,
+  .ef-field select:disabled,
+  .ef-field textarea[readonly] {
+    background: #f1f5f9;
+    color: #475569;
+    cursor: not-allowed;
+  }
+  .ef-field .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: .35rem 0 0;
+    color: #dc2626;
+    font-size: .75rem;
+  }
+  .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; cursor: pointer; background: #cbd5e1;
+    border-radius: 9999px; transition: .2s;
+  }
+  .switch .slider::before {
+    content: ''; position: absolute; height: 18px; width: 18px; left: 2px; top: 2px;
+    background: #fff; border-radius: 50%; transition: .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  }
+  .switch input:checked + .slider { background: #1a9123; }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+  .switch input:disabled + .slider { opacity: .55; cursor: not-allowed; }
+
+  /* Select2 v4 alignment with our inputs */
+  .select2-container--default .select2-selection--single {
+    height: 2.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .5rem;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 2.5rem;
+    padding-left: .75rem;
+    color: #0f172a;
+    font-size: .875rem;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 2.5rem;
+  }
+  .select2-container--default.select2-container--focus .select2-selection--single,
+  .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #1a9123;
+    box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+  }
+  .select2-container--default .select2-selection--single[aria-disabled="true"] {
+    background: #f1f5f9;
+  }
+  .select2-dropdown { border-color: #cbd5e1; border-radius: .5rem; }
+  .select2-container { width: 100% !important; }
+</style>

@@ -1,0 +1,109 @@
+{# Shared Tailwind theme + base styles for all militantes pages. Place inside extrahead block. #}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    prefix: 'tw-',
+    corePlugins: { preflight: false },
+    theme: {
+      extend: {
+        colors: {
+          mpd: {
+            50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+            500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+          }
+        },
+        boxShadow: {
+          soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+        },
+        keyframes: {
+          'slide-in': { '0%': { transform: 'translateY(-12px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+          'fade-out': { '0%': { opacity: '1' }, '100%': { opacity: '0', transform: 'translateY(-8px)' } },
+        },
+        animation: {
+          'slide-in': 'slide-in .25s ease-out',
+          'fade-out': 'fade-out .25s ease-in forwards',
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  .pcoded-content { background: #f6f7f9 !important; }
+
+  /* Subtle row hover (matches eleitores) */
+  .tbl-row:hover { background: #fafbfc; }
+
+  /* Force pointer cursor on all interactive elements inside militantes pages */
+  .list-militantes button:not([disabled]),
+  .list-militantes a,
+  .list-militantes label.tw-cursor-pointer,
+  #table-data button:not([disabled]),
+  #table-data a { cursor: pointer; }
+
+  .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+  .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+    background: rgba(255,255,255,.08);
+    border-left: 3px solid #1a9123;
+    padding-left: 17px;
+  }
+
+  /* iOS-style switch */
+  .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; cursor: pointer; background: #cbd5e1;
+    border-radius: 9999px; transition: .2s;
+  }
+  .switch .slider::before {
+    content: ''; position: absolute; height: 18px; width: 18px; left: 2px; top: 2px;
+    background: #fff; border-radius: 50%; transition: .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  }
+  .switch input:checked + .slider { background: #1a9123; }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+
+  /* Toast container */
+  #toast-container {
+    position: fixed; top: 1rem; right: 1rem; z-index: 1080;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+
+  /* Neutralize admin theme button borders inside our Tailwind UI */
+  .list-militantes button,
+  #table-data button,
+  #table-data a {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    outline: none;
+  }
+  .list-militantes button:focus,
+  #table-data button:focus,
+  #table-data a:focus { box-shadow: none; outline: none; }
+
+  /* Modern action buttons */
+  .btn-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    color: #94a3b8; transition: all .15s ease;
+    cursor: pointer;
+  }
+  .btn-icon:hover { color: #0f172a; background: #f1f5f9; }
+  .btn-icon.is-danger:hover { color: #e11d48; background: #fff1f2; }
+  .btn-icon.is-primary:hover { color: #0e7716; background: #e8f5ec; }
+  .btn-icon i { font-size: 13px; }
+
+  .btn-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 12px; border-radius: 9999px;
+    font-size: 12px; font-weight: 500; line-height: 1;
+    transition: all .15s ease; cursor: pointer; white-space: nowrap;
+  }
+  .btn-pill.is-primary { background: #1a9123; color: #fff; font-weight: 600; }
+  .btn-pill.is-primary:hover { background: #0e7716; }
+  .btn-pill.is-ghost-danger { background: transparent; color: #e11d48; }
+  .btn-pill.is-ghost-danger:hover { background: #fff1f2; }
+  .btn-pill.is-ghost { background: transparent; color: #475569; }
+  .btn-pill.is-ghost:hover { background: #f1f5f9; color: #0f172a; }
+</style>

@@ -1,173 +1,145 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
+{% block extrahead %}
+  {% include 'pages/militantes/_theme.html' %}
+{% endblock extrahead %}
+
 {% block content %}
-  <!-- [ Main Content ] start -->
-  <div class="row">
-    <div class="col-sm-12">
-      <div class="card">
-        <div class="card-header">
-          <h5>Dados de Militantes</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div>
-                <label>Nome Completo:</label>
-                <p>{{ militante.nome_completo }}</p>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <div>
-                  <label>Alcunha</label>
-                  {{ militante.alcunha }}
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Tipo Associado</label>
-                {{ militante.tp_associado }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Estado Civil</label>
-                {{ militante.estado_civil }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Agreagado Familiar</label>
-                {{ militante.agregado_familiar }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Local Trabalho</label>
-                {{ militante.local_trabalho }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Profissão Atual</label>
-                {{ militante.profissao_atual }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Empresa</label>
-                {{ militante.empresa }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Sector</label>
-                {{ militante.sector }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Função</label>
-                {{ militante.funcao }}
-                ...
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Area Atuação</label>
-                {{ militante.area_atuacao }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Grau Academica</label>
-                {{ militante.grau_academica }}
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Curso</label>
-                {{ militante.curso }}
-              </div>
-            </div>
+<div class="tw-space-y-5">
+
+  {# ── Header ──────────────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
+    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-4">
+
+      <div class="tw-flex tw-items-start tw-gap-4 tw-min-w-0">
+        <a href="{% if militante.estado_militante == 'P' %}{% url 'militantes.pedidos' %}{% elif militante.estado_militante == 'R' %}{% url 'militantes.rejectados' %}{% else %}{% url 'militantes.index' %}{% endif %}"
+           class="tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 hover:tw-text-mpd-600 tw-transition tw-shrink-0"
+           title="Voltar">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+
+        {% if militante.image %}
+          <img class="tw-w-16 tw-h-16 tw-rounded-full tw-object-cover tw-border tw-border-slate-200 tw-shrink-0"
+               src="/media/{{ militante.image }}" alt="" />
+        {% else %}
+          <div class="tw-w-16 tw-h-16 tw-rounded-full tw-bg-slate-100 tw-border tw-border-slate-200 tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-text-slate-400">
+            <i class="fa fa-user tw-text-2xl"></i>
+          </div>
+        {% endif %}
+
+        <div class="tw-min-w-0">
+          <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-mb-1 tw-mt-0">
+            Militante &middot; #{{ id }}
+          </p>
+          <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
+            {{ militante.nome_completo|default:"(sem nome)" }}
+          </h1>
+
+          <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-mt-2">
+            {% if militante.estado_militante == 'A' %}
+              <span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200"><i class="fa fa-circle" style="font-size:.5rem"></i> Aprovado</span>
+            {% elif militante.estado_militante == 'P' %}
+              <span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200"><i class="fa fa-clock"></i> Pendente</span>
+            {% elif militante.estado_militante == 'R' %}
+              <span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-rose-50 tw-text-rose-700 tw-border tw-border-rose-200"><i class="fa fa-times"></i> Rejeitado</span>
+            {% else %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700">{{ militante.estado_militante|default:'—' }}</span>
+            {% endif %}
+
+            {% if militante.tp_associado %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">{{ militante.tp_associado }}</span>
+            {% endif %}
+            {% if morada.geografia.concelho %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100"><i class="fa fa-map-marker-alt tw-mr-1"></i>{{ morada.geografia.concelho }}</span>
+            {% endif %}
+            {% if militante.email_pessoal %}
+              <a href="mailto:{{ militante.email_pessoal }}" class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 hover:tw-bg-slate-200"><i class="fa fa-envelope tw-mr-1"></i>{{ militante.email_pessoal }}</a>
+            {% endif %}
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h5>Dados de Identificação</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Nome Pai</label>
-                {{ militante.nm_pai }}
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Nome Mãe</label>
-                {{ militante.nm_mae }}
-              </div>
-            </div>
 
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Data de Nascimento</label>
-                {{ militante.dt_nascimento }}
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Genero</label>
-                {{ militante.genero }}
-              </div>
-            </div>
-
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Estado Civil</label>
-                {{ militante.estado_civil }}
-              </div>
-            </div>
-
-            <div class="col-md-3">
-              <div class="form-group">
-                <label>Tipo de Documento</label>
-                {{ militante.tp_documento }}
-              </div>
-            </div>
-            <div class="col-md-6 tipo_bi">
-              <div class="form-group">
-                <label>Numero de Identificação</label>
-                {{ militante.nr_documento }}
-              </div>
-            </div>
-            <div class="col-md-6 tipo_bi">
-              <div class="form-group">
-                <label>Data emissão</label>
-                {{ militante.dt_emissao_doc }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-12">
-          <button type="submit" class="btn btn-primary">Criar</button>
-        </div>
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <a href="{% url 'militantes.update' id %}"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+          <i class="fa fa-edit"></i> Editar
+        </a>
       </div>
     </div>
   </div>
-  <!-- [ Main Content ] end -->
-  <script>
-    $(document).ready(function () {
-      $.get("{% url 'militantes.get' 1 %}",function(data){
-        console.log("data",data)
-      })
-    })
-  </script>
+
+  {# ── Body sections ──────────────────────────────── #}
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Dados profissionais</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+      {% include 'pages/militantes/_view_field.html' with label='Nome Completo'    field='nome_completo'    val=militante.nome_completo %}
+      {% include 'pages/militantes/_view_field.html' with label='Alcunha'          field='alcunha'          val=militante.alcunha %}
+      {% include 'pages/militantes/_view_field.html' with label='Tipo Associado'   field='tp_associado'     val=militante.tp_associado %}
+      {% include 'pages/militantes/_view_field.html' with label='Agregado familiar' field='agregado_familiar' val=militante.agregado_familiar %}
+      {% include 'pages/militantes/_view_field.html' with label='Local Trabalho'   field='local_trabalho'   val=militante.local_trabalho %}
+      {% include 'pages/militantes/_view_field.html' with label='Profissão atual'  field='profissao_atual'  val=militante.profissao_atual %}
+      {% include 'pages/militantes/_view_field.html' with label='Empresa'          field='empresa'          val=militante.empresa %}
+      {% include 'pages/militantes/_view_field.html' with label='Sector'           field='sector'           val=militante.sector %}
+      {% include 'pages/militantes/_view_field.html' with label='Função'           field='funcao'           val=militante.funcao %}
+      {% include 'pages/militantes/_view_field.html' with label='Área Atuação'     field='area_atuacao'     val=militante.area_atuacao %}
+      {% include 'pages/militantes/_view_field.html' with label='Grau Académica'   field='grau_academica'   val=militante.grau_academica %}
+      {% include 'pages/militantes/_view_field.html' with label='Curso'            field='curso'            val=militante.curso %}
+    </div>
+  </section>
+
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Identificação</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+      {% include 'pages/militantes/_view_field.html' with label='Nome do Pai'   field='nm_pai'         val=militante.nm_pai %}
+      {% include 'pages/militantes/_view_field.html' with label='Nome da Mãe'   field='nm_mae'         val=militante.nm_mae %}
+      {% include 'pages/militantes/_view_field.html' with label='Data Nascimento' field='dt_nascimento'  val=militante.dt_nascimento %}
+      {% include 'pages/militantes/_view_field.html' with label='Género'         field='genero'         val=militante.genero %}
+      {% include 'pages/militantes/_view_field.html' with label='Estado Civil'   field='estado_civil'   val=militante.estado_civil %}
+      {% include 'pages/militantes/_view_field.html' with label='Tipo Documento' field='tp_documento'   val=militante.tp_documento %}
+      {% include 'pages/militantes/_view_field.html' with label='Nº Documento'   field='nr_documento'   val=militante.nr_documento %}
+      {% include 'pages/militantes/_view_field.html' with label='Data Emissão'   field='dt_emissao_doc' val=militante.dt_emissao_doc %}
+      {% include 'pages/militantes/_view_field.html' with label='Data Validade'  field='dt_validade_doc' val=militante.dt_validade_doc %}
+    </div>
+  </section>
+
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Contactos</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+      {% include 'pages/militantes/_view_field.html' with label='Telemóvel 1'    field='nr_telemovel1'    val=militante.nr_telemovel1 %}
+      {% include 'pages/militantes/_view_field.html' with label='Telemóvel 2'    field='nr_telemovel2'    val=militante.nr_telemovel2 %}
+      {% include 'pages/militantes/_view_field.html' with label='Telefone Casa'  field='nr_telefone_casa' val=militante.nr_telefone_casa %}
+      {% include 'pages/militantes/_view_field.html' with label='Email pessoal'  field='email_pessoal'    val=militante.email_pessoal %}
+      {% include 'pages/militantes/_view_field.html' with label='Email trabalho' field='email_trabalho'   val=militante.email_trabalho %}
+    </div>
+  </section>
+
+  <section class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-overflow-hidden">
+    <header class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2">
+      <span class="tw-w-1.5 tw-h-5 tw-rounded tw-bg-mpd-500"></span>
+      <h2 class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-m-0">Endereço</h2>
+    </header>
+    <div class="tw-p-5 tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-5 tw-gap-y-4">
+      {% include 'pages/militantes/_view_field.html' with label='País'      field='pais'         val=morada.geografia.pais %}
+      {% include 'pages/militantes/_view_field.html' with label='Ilha'      field='regiao'       val=morada.geografia.ilha %}
+      {% include 'pages/militantes/_view_field.html' with label='Concelho'  field='concelho'     val=morada.geografia.concelho %}
+      {% include 'pages/militantes/_view_field.html' with label='Freguesia' field='localidade'   val=morada.geografia.freguesia %}
+      {% include 'pages/militantes/_view_field.html' with label='Zona'      field='zona'         val=morada.geografia.zona %}
+      {% include 'pages/militantes/_view_field.html' with label='Morada Atual' field='morada_atual' val=morada.morada_atual %}
+      <div class="lg:tw-col-span-4">
+        {% include 'pages/militantes/_view_field.html' with label='Perto de' field='perto_de' val=morada.perto_de %}
+      </div>
+    </div>
+  </section>
+
+</div>
 {% endblock %}

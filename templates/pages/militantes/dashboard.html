@@ -245,8 +245,8 @@
         let categoria = []
         for(index = 0; index < zonas.length;index ++){
           const element = zonas[index]
-          categoria.push(element.nome_norm)
-          data.push(element.values)
+          categoria.push(element.morada__geografia__zona)
+          data.push(element.value)
         }
 
         Highcharts.chart('chart-zona', {

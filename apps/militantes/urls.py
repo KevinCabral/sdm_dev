@@ -28,7 +28,8 @@ urlpatterns = [
     path("/distribuicao-zona", views.distribuicaoZona, name="militantes.distribuicaoZona"),
     path("/distribuicao-quotas", views.distribuicaoQuotas, name="militantes.distribuicaoQuotas"),
     path("/username", views.checkUsername, name="militantes.username"),
-    path("/create-user", views.createUser, name="militantes.createUser")
+    path("/create-user", views.createUser, name="militantes.createUser"),
+    path("/search", views.search, name="militantes.search")
     
     
     

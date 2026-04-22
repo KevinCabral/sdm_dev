@@ -39,44 +39,48 @@ def index(request):
     concelho = request.GET.get("concelho", "")
     regiao = request.GET.get("regiao", "")
     localidade = request.GET.get("localidade", "")
-    filtros_nome = []
-   
-    if nome:
-        filtros_nome = [
-            Q(nome_completo__icontains=nome),
-            Q(alcunha__icontains=nome)
-        ]
+
     query_nome = Q()
-    for filtro in filtros_nome:
-        query_nome |= filtro
+    if nome:
+        query_nome = Q(nome_completo__icontains=nome) | Q(alcunha__icontains=nome)
 
     filtros_outros = {}
     if estado:
         filtros_outros['estado_militante'] = estado
-
     if regiao:
         filtros_outros['morada__geografia__ilha__icontains'] = regiao
-
     if concelho:
         filtros_outros['morada__geografia__concelho__icontains'] = concelho
-
     if localidade:
         filtros_outros['morada__geografia__freguesia__icontains'] = localidade
-
     if zona:
         filtros_outros['morada__geografia__zona__icontains'] = zona
 
-    militantes = Militantes.objects.filter(query_nome, **filtros_outros)
+    from django.db.models import Exists, OuterRef
+    user_exists = User.objects.filter(militante_id=OuterRef('pk'))
+
+    militantes = (
+        Militantes.objects
+        .filter(query_nome, **filtros_outros)
+        .prefetch_related('morada_set__geografia')
+        .annotate(exist_user=Exists(user_exists))
+        .order_by('nome_completo')
+        .distinct()
+    )
     paginator = Paginator(militantes, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    print(militantes)
-    for m in page_obj:
-            m.exist_user = User.objects.filter(militante_id=m.id).exists()
-
-    breadcrumbs = [{'title': 'Pagina Inicial', 'url':'/'}, {'title': 'Militantes', }]
-    return render(request, "pages/militantes/index.html", {"militantes": militantes, "page_obj":page_obj, 'breadcrumbs': breadcrumbs})
+    breadcrumbs = [{'title': 'Pagina Inicial', 'url': '/'}, {'title': 'Militantes'}]
+    return render(request, "pages/militantes/index.html", {
+        "militantes": militantes,
+        "page_obj": page_obj,
+        "breadcrumbs": breadcrumbs,
+        "filters": {
+            "estado": estado, "nome": nome, "zona": zona,
+            "concelho": concelho, "regiao": regiao, "localidade": localidade,
+        },
+    })
 
 
 @login_required
@@ -95,8 +99,8 @@ def create(request):
             model = militantesForm.save(commit=False)
             model.save()
 
-            geografia = Geografia.objects.get(zona=militantesForm.cleaned_data["zona"], nivel_detalhe=5)
-            morada = Morada(militante=model, morada_atual=militantesForm.cleaned_data["morada_atual"], perto_de=militantesForm.cleaned_data["perto_de"], status='P', geografia=geografia.zona)
+            geografia = Geografia.objects.filter(zona=militantesForm.cleaned_data["zona"]).first()
+            morada = Morada(militante=model, morada_atual=militantesForm.cleaned_data["morada_atual"], perto_de=militantesForm.cleaned_data["perto_de"], status='P', geografia=geografia)
             morada.save()
 
             messages.success(request, f'Militante criado com sucesso')
@@ -118,12 +122,13 @@ def update(request, id):
         militantesForm.initial['morada_atual'] = morada.morada_atual
         militantesForm.initial['perto_de'] = morada.perto_de
         militantesForm.initial['perto_de'] = morada.perto_de
-        geografia = Geografia.objects.get(zona=morada.geografia.id, nivel_detalhe=5)
-        militantesForm.initial['pais'] = geografia.pais
-        militantesForm.initial['regiao'] = geografia.ilha
-        militantesForm.initial['concelho'] = geografia.concelho
-        militantesForm.initial['zona'] = geografia.zona
-        militantesForm.initial['localidade'] = geografia.freguesia
+        geografia = Geografia.objects.filter(zona=morada.geografia.id).first()
+        if geografia:
+            militantesForm.initial['pais'] = geografia.pais
+            militantesForm.initial['regiao'] = geografia.ilha
+            militantesForm.initial['concelho'] = geografia.concelho
+            militantesForm.initial['zona'] = geografia.zona
+            militantesForm.initial['localidade'] = geografia.freguesia
     except:
         morada = None
 
@@ -138,13 +143,13 @@ def update(request, id):
 
             militantesForm.save()
             
-            geografia = Geografia.objects.get(zona=militantesForm.cleaned_data["zona"], nivel_detalhe=5)
+            geografia = Geografia.objects.filter(zona=militantesForm.cleaned_data["zona"]).first()
             if morada == None:
-                morada = Morada(militante=model, morada_atual=militantesForm.cleaned_data["morada_atual"], perto_de=militantesForm.cleaned_data["perto_de"], status='P', geografia=geografia)
+                morada = Morada(militante=militante, morada_atual=militantesForm.cleaned_data["morada_atual"], perto_de=militantesForm.cleaned_data["perto_de"], status='P', geografia=geografia)
             else:
                 morada.morada_atual = militantesForm.cleaned_data["morada_atual"]
                 morada.perto_de = militantesForm.cleaned_data["perto_de"]
-                morada.geografia = geografia.zona
+                morada.geografia = geografia
             morada.save()
             messages.success(request, f'Militante atualizado')
             return redirect("militantes.index")
@@ -157,30 +162,65 @@ def update(request, id):
 @login_required
 def pedidos(request):
     email_pessoal = request.GET.get("email_pessoal", "")
-    filtros_outros = {"estado_militante":'P'}
+    nome = (request.GET.get("nome") or "").strip()
+    filtros_outros = {"estado_militante": 'P'}
 
-    if email_pessoal != "": 
-        filtros_outros = {"email_pessoal__isnull":True}
+    if email_pessoal != "":
+        filtros_outros = {"email_pessoal__isnull": True}
 
-    militantes = Militantes.objects.filter(**filtros_outros)
+    militantes = (
+        Militantes.objects
+        .filter(**filtros_outros)
+        .prefetch_related('morada_set__geografia')
+        .order_by('nome_completo')
+    )
+    if nome:
+        militantes = militantes.filter(
+            Q(nome_completo__icontains=nome) | Q(alcunha__icontains=nome)
+        )
     paginator = Paginator(militantes, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, "pages/militantes/pedidos.html", {"militantes": militantes, 'page_obj':page_obj})
+    return render(request, "pages/militantes/pedidos.html", {
+        "militantes": militantes,
+        'page_obj': page_obj,
+        'filters': {'nome': nome, 'email_pessoal': email_pessoal},
+    })
+
+
+@login_required
+def search(request):
+    """Lightweight JSON autocomplete for militantes (Select2 compatible)."""
+    q = (request.GET.get("q") or "").strip()
+    estado = request.GET.get("estado", "A")
+    qs = Militantes.objects.all()
+    if estado:
+        qs = qs.filter(estado_militante=estado)
+    if q:
+        qs = qs.filter(Q(nome_completo__icontains=q) | Q(alcunha__icontains=q))
+    qs = qs.order_by("nome_completo")[:20]
+    results = [{"id": m.pk, "text": m.nome_completo or f"Militante #{m.pk}"} for m in qs]
+    return JsonResponse({"results": results})
 
 
 @login_required
 def view(request, id):
-    url = urlApi + urlApps + "/" + id
-    response = requests.get(url, headers=auth)
-    data = response.json()
-    if response.status_code == 200:
-        
-        militante = data["results"]
-    else:
-        messages.error(request, f'Erro na visualização de militante')
-        militante = {}
-    return render(request, "pages/militantes/view.html", {"militante":militante})
+    militante = get_object_or_404(
+        Militantes.objects.prefetch_related('morada_set__geografia'),
+        pk=id,
+    )
+    morada = militante.morada_set.first()
+    breadcrumbs = [
+        {'title': 'Pagina Inicial', 'url': '/'},
+        {'title': 'Militantes', 'url': '../../'},
+        {'title': militante.nome_completo or f'Militante #{militante.pk}'},
+    ]
+    return render(request, "pages/militantes/view.html", {
+        "militante": militante,
+        "morada": morada,
+        "id": id,
+        "breadcrumbs": breadcrumbs,
+    })
 
 
 @login_required
@@ -225,26 +265,28 @@ def rejectar(request):
 
 @login_required
 def aprovados(request):
-    url = urlApi + urlApps + "?status=A"
-    response = requests.get(url, headers=auth)
-    data = response.json()
-    if response.status_code == 200:
-        militantes = data["results"]
-    else:
-        militantes = []
-    return render(request, "pages/militantes/aprovados.html", {"militantes": militantes})
+    militantes = (
+        Militantes.objects
+        .filter(estado_militante='A')
+        .prefetch_related('morada_set__geografia')
+        .order_by('nome_completo')
+    )
+    paginator = Paginator(militantes, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, "pages/militantes/aprovados.html", {"militantes": militantes, "page_obj": page_obj})
 
 
 @login_required
 def rejectados(request):
-    url = urlApi + urlApps + "?status=R"
-    response = requests.get(url, headers=auth)
-    data = response.json()
-    if response.status_code == 200:
-        militantes = data["results"]
-    else:
-        militantes = []
-    return render(request, "pages/militantes/rejectados.html", {"militantes": militantes})
+    militantes = (
+        Militantes.objects
+        .filter(estado_militante='R')
+        .prefetch_related('morada_set__geografia')
+        .order_by('nome_completo')
+    )
+    paginator = Paginator(militantes, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, "pages/militantes/rejectados.html", {"militantes": militantes, "page_obj": page_obj})
 
 
 @login_required
@@ -367,52 +409,37 @@ def notificacaoPedidos(request):
 
 @login_required
 def getPais(request):
-    pais = Geografia.objects.filter(nivel_detalhe=1).all()
-    data = []
-    for p in pais:
-        data.append({"id":p.pais, "nome":p.nome_norm})
-
+    pais = Geografia.objects.exclude(pais__isnull=True).exclude(pais='').values_list('pais', flat=True).distinct()
+    data = [{"id": p, "nome": p} for p in pais]
     return JsonResponse({"data": data})
 
     
 @login_required
 def getIlhas(request):
     id_pais = request.GET.get("id_pais", "238")
-    pais = Geografia.objects.filter(pais=id_pais, nivel_detalhe=2).all()
-    data = []
-    for p in pais:
-        data.append({"id":p.ilha, "nome":p.nome_norm})
-
+    ilhas = Geografia.objects.filter(pais=id_pais).exclude(ilha__isnull=True).exclude(ilha='').values_list('ilha', flat=True).distinct()
+    data = [{"id": i, "nome": i} for i in ilhas]
     return JsonResponse({"data": data})
     
     
 @login_required
 def getConcelho(request):
-    pais = Geografia.objects.filter(ilha=request.GET.get("id_ilha", ""), nivel_detalhe=3).all()
-    data = []
-    for p in pais:
-        data.append({"id":p.concelho, "nome":p.nome_norm})
-
+    concelhos = Geografia.objects.filter(ilha=request.GET.get("id_ilha", "")).exclude(concelho__isnull=True).exclude(concelho='').values_list('concelho', flat=True).distinct()
+    data = [{"id": c, "nome": c} for c in concelhos]
     return JsonResponse({"data": data})
     
     
 @login_required
 def getFreguesia(request):
-    pais = Geografia.objects.filter(concelho=request.GET.get("id_concelho", ""), nivel_detalhe=4).all()
-    data = []
-    for p in pais:
-        data.append({"id":p.freguesia, "nome":p.nome_norm})
-
+    freguesias = Geografia.objects.filter(concelho=request.GET.get("id_concelho", "")).exclude(freguesia__isnull=True).exclude(freguesia='').values_list('freguesia', flat=True).distinct()
+    data = [{"id": f, "nome": f} for f in freguesias]
     return JsonResponse({"data": data})
     
     
 @login_required
 def getZona(request):
-    pais = Geografia.objects.filter(freguesia=request.GET.get("id_freguesia", ""), nivel_detalhe=5).all()
-    data = []
-    for p in pais:
-        data.append({"id":p.zona, "nome":p.nome_norm})
-
+    zonas = Geografia.objects.filter(freguesia=request.GET.get("id_freguesia", "")).exclude(zona__isnull=True).exclude(zona='').values_list('zona', flat=True).distinct()
+    data = [{"id": z, "nome": z} for z in zonas]
     return JsonResponse({"data": data})
    
 
@@ -469,7 +496,7 @@ def distribuicaoIdade(request):
 
 @login_required
 def distribuicaoZona(request):
-    zonas = Militantes.objects.filter(morada__geografia__nivel_detalhe=5).values('morada__geografia__nome_norm').annotate(value=Count('id'))
+    zonas = Militantes.objects.exclude(morada__geografia__zona__isnull=True).values('morada__geografia__zona').annotate(value=Count('id'))
     total_itens = Militantes.objects.count()
     for zona in zonas:
         zona['porcentagem'] = (zona['value'] / total_itens) * 100

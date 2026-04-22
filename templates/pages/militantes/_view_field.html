@@ -1,0 +1,5 @@
+{# Single read-only field. Args: label, field, val #}
+<div>
+  <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1 tw-mt-0">{{ label }}</p>
+  <p class="tw-text-sm tw-text-slate-800 tw-font-medium tw-m-0 tw-break-words" data-field="{{ field }}">{{ val|default:'—' }}</p>
+</div>

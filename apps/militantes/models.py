@@ -46,19 +46,21 @@ class Militantes(models.Model):
     class Meta:
         db_table = 'militantes'
 
+    def __str__(self):
+        return self.nome_completo or f'Militante #{self.pk}'
+
 class Geografia(models.Model):
     id = models.CharField(primary_key=True, max_length=50)
+    pais = models.CharField(max_length=50, blank=True, null=True)
+    ilha = models.CharField(max_length=50, blank=True, null=True)
     concelho = models.CharField(max_length=50, blank=True, null=True)
     freguesia = models.CharField(max_length=50, blank=True, null=True)
-    ilha = models.CharField(max_length=50, blank=True, null=True)
-    nivel_detalhe = models.CharField(max_length=2, blank=True, null=True)
-    nome = models.CharField(max_length=300, blank=True, null=True)
-    nome_norm = models.CharField(max_length=300, blank=True, null=True)
-    pais = models.CharField(max_length=50, blank=True, null=True)
     zona = models.CharField(max_length=50, blank=True, null=True)
+    lugar = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         db_table = 'geografia'
+        managed = False
 
 class Morada(models.Model):
     id = models.BigAutoField(primary_key=True)
