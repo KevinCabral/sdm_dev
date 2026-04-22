@@ -72,11 +72,8 @@
                 <div class="img-fluid rounded-circle" id="masc-img">
                   <i class="fa fa-solid fa-edit" style="font-size: 24px;"></i>
                 </div>
-                <img src="{% if user.profile and user.profile.image %}
-                  /media/{{ user.profile.image }}
-                  {% else %}
-                    {% static 'assets/images/user/avatar-1.jpg' %}
-                  {% endif %}"
+                <img src="{% if user.profile and user.profile.image %}/media/{{ user.profile.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
+                  onerror="this.onerror=null;this.src='{% static 'assets/images/user/avatar-1.jpg' %}';"
                   alt="profile image"
                   class="img-fluid rounded-circle"
                   id="profile_image"

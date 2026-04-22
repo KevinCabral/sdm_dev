@@ -1,0 +1,250 @@
+{% extends 'layouts/base.html' %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .pcoded-content { background: #f6f7f9 !important; }
+    .pcoded-content button,
+    .pcoded-content .btn { border: 0; box-shadow: none; }
+    .pcoded-content button:focus,
+    .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+    .tbl-row:hover { background: #fafbfc; }
+    .pcoded-content button:not([disabled]),
+    .pcoded-content a { cursor: pointer; }
+
+    #filters input[type="text"] {
+      background-color: #f8fafc !important;
+      border: 1px solid transparent !important;
+      box-shadow: none !important;
+      color: #1f2937 !important;
+    }
+    #filters input[type="text"]:focus {
+      background-color: #fff !important;
+      border-color: #1a9123 !important;
+      box-shadow: 0 0 0 2px rgba(26,145,35,.15) !important;
+    }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="tw-space-y-6">
+
+  {# ── Header ───────────────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Grupos
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        {{ cl.result_count }} registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      {% if has_add_permission %}
+        {% url cl.opts|admin_urlname:'add' as add_url %}
+        <a href="{{ add_url }}"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+          <i class="fa fa-plus tw-text-xs"></i><span>Novo grupo</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Filters bar ──────────────────────────────────────────── #}
+  <form id="filters" method="get"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-w-full">
+
+      <div class="tw-relative tw-flex-1 tw-min-w-[220px]">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input name="q" type="text" value="{{ cl.query }}" autocomplete="off"
+               placeholder="Pesquisar grupos..."
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-rounded-md tw-text-sm placeholder:tw-text-slate-400 tw-transition">
+      </div>
+
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+
+      <button type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+      </button>
+
+      <a href="{{ request.path }}" title="Limpar filtros"
+         class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </a>
+    </div>
+  </form>
+
+  {# ── Results ──────────────────────────────────────────────── #}
+  <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <form id="changelist-form" method="post" novalidate>
+      {% csrf_token %}
+
+      {% if action_form and cl.show_admin_actions %}
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-px-5 tw-py-2.5 tw-bg-slate-50 tw-border-b tw-border-slate-100">
+          <label for="action-select" class="tw-text-xs tw-text-slate-500 tw-m-0">Ação em massa:</label>
+          <select name="action" id="action-select"
+                  class="tw-h-8 tw-px-2 tw-text-sm tw-bg-white tw-border tw-border-slate-200 tw-rounded-md tw-text-slate-700">
+            <option value="">---------</option>
+            {% for choice in action_form.action.field.choices %}
+              {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+            {% endfor %}
+          </select>
+          <input type="hidden" name="select_across" value="0">
+          <button type="submit" name="index" value="0"
+                  class="tw-h-8 tw-inline-flex tw-items-center tw-px-3 tw-text-xs tw-rounded-md tw-bg-slate-700 hover:tw-bg-slate-800 tw-text-white tw-transition">
+            Aplicar
+          </button>
+          <span class="tw-text-xs tw-text-slate-500" id="selection-count">0 selecionado(s)</span>
+        </div>
+      {% endif %}
+
+      <div class="tw-hidden md:tw-block tw-overflow-auto" style="max-height: calc(100vh - 360px); min-height: 320px;">
+        <table class="tw-w-full tw-text-sm tw-border-collapse">
+          <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+            <tr class="tw-text-left tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wider">
+              <th class="tw-px-5 tw-py-2.5 tw-w-10 tw-border-b tw-border-slate-200/70">
+                <input type="checkbox" id="action-toggle" class="tw-cursor-pointer">
+              </th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Grupo</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Permissões</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-right">&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody class="tw-divide-y tw-divide-slate-100">
+            {% for group in cl.result_list %}
+              <tr class="tbl-row tw-transition">
+                <td class="tw-px-5 tw-py-3">
+                  <input type="checkbox" class="action-select tw-cursor-pointer" name="_selected_action" value="{{ group.pk }}">
+                </td>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-gap-3">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-inline-flex tw-items-center tw-justify-center tw-shrink-0">
+                      <i class="fa fa-users tw-text-xs"></i>
+                    </div>
+                    <a href="{% url cl.opts|admin_urlname:'change' group.pk %}"
+                       class="tw-font-medium tw-text-slate-900 hover:tw-text-mpd-700" style="text-decoration:none;">
+                      {{ group.name }}
+                    </a>
+                  </div>
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-center">
+                  <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-700 tw-text-xs tw-font-medium tw-tabular-nums">
+                    {{ group.permissions.count }}
+                  </span>
+                </td>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                    <a href="{% url cl.opts|admin_urlname:'change' group.pk %}" title="Editar"
+                       class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-edit tw-text-xs"></i>
+                    </a>
+                    <a href="{% url cl.opts|admin_urlname:'delete' group.pk %}" title="Remover"
+                       class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-trash tw-text-xs"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">
+                <div class="tw-py-20 tw-text-center">
+                  <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+                    <i class="fa fa-search"></i>
+                  </div>
+                  <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+                  <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+                </div>
+              </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# Mobile cards #}
+      <div class="md:tw-hidden tw-divide-y tw-divide-slate-100">
+        {% for group in cl.result_list %}
+          <div class="tw-p-4 tw-flex tw-items-center tw-justify-between">
+            <a href="{% url cl.opts|admin_urlname:'change' group.pk %}"
+               class="tw-font-medium tw-text-slate-900" style="text-decoration:none;">{{ group.name }}</a>
+            <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-700 tw-text-xs tw-font-medium">
+              {{ group.permissions.count }} perms
+            </span>
+          </div>
+        {% empty %}
+          <div class="tw-py-16 tw-text-center">
+            <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Pagination #}
+      {% if cl.paginator.num_pages > 1 %}
+        <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+          <div class="tw-text-xs tw-text-slate-500">
+            Mostrando página <span class="tw-font-medium tw-text-slate-700">{{ cl.page_num }}</span>
+            de <span class="tw-font-medium tw-text-slate-700">{{ cl.paginator.num_pages }}</span>
+            · {{ cl.result_count }} registos
+          </div>
+          <div class="tw-inline-flex tw-items-center tw-gap-1">
+            {% if cl.page_num > 1 %}
+              <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'-1' }}"
+                 class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Anterior</a>
+            {% else %}
+              <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Anterior</span>
+            {% endif %}
+            {% if cl.page_num < cl.paginator.num_pages %}
+              <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'1' }}"
+                 class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Próxima</a>
+            {% else %}
+              <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Próxima</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('action-toggle');
+    var boxes = document.querySelectorAll('.action-select');
+    var counter = document.getElementById('selection-count');
+    function updateCount() {
+      if (!counter) return;
+      var n = 0;
+      boxes.forEach(function (b) { if (b.checked) n++; });
+      counter.textContent = n + ' selecionado(s)';
+    }
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        boxes.forEach(function (b) { b.checked = toggle.checked; });
+        updateCount();
+      });
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', updateCount); });
+  })();
+</script>
+{% endblock %}

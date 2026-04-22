@@ -1,0 +1,574 @@
+{% extends 'layouts/base.html' %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .pcoded-content { background: #f6f7f9 !important; }
+    .pcoded-content button,
+    .pcoded-content .btn { border: 0; box-shadow: none; }
+    .pcoded-content button:focus,
+    .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+    .tbl-row:hover { background: #fafbfc; }
+    .pcoded-content button:not([disabled]),
+    .pcoded-content a { cursor: pointer; }
+
+    /* Override admin theme on inputs/selects inside our filter bar */
+    #filters select,
+    #filters input[type="text"] {
+      background-color: #f8fafc !important;
+      border: 1px solid transparent !important;
+      box-shadow: none !important;
+      color: #1f2937 !important;
+    }
+    #filters select:focus,
+    #filters input[type="text"]:focus {
+      background-color: #fff !important;
+      border-color: #1a9123 !important;
+      box-shadow: 0 0 0 2px rgba(26,145,35,.15) !important;
+    }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="tw-space-y-6">
+
+  {# ── Header ───────────────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Utilizadores
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        {{ cl.result_count }} registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      {% if has_add_permission %}
+        <button type="button" id="btn-open-add-user"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+          <i class="fa fa-plus tw-text-xs"></i><span>Novo utilizador</span>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Filters bar ──────────────────────────────────────────── #}
+  <form id="filters" method="get"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-w-full">
+
+      <div class="tw-relative tw-flex-1 tw-min-w-[220px]">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input name="q" type="text" value="{{ cl.query }}" autocomplete="off"
+               placeholder="Pesquisar por nome, email ou utilizador..."
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-rounded-md tw-text-sm placeholder:tw-text-slate-400 tw-transition">
+      </div>
+
+      <select name="is_staff"
+              class="tw-h-9 tw-px-3 tw-rounded-md tw-text-sm tw-w-36 tw-shrink-0">
+        <option value="">Equipa: todos</option>
+        <option value="1" {% if request.GET.is_staff == '1' %}selected{% endif %}>Equipa: sim</option>
+        <option value="0" {% if request.GET.is_staff == '0' %}selected{% endif %}>Equipa: não</option>
+      </select>
+
+      <select name="is_superuser"
+              class="tw-h-9 tw-px-3 tw-rounded-md tw-text-sm tw-w-44 tw-shrink-0">
+        <option value="">Superuser: todos</option>
+        <option value="1" {% if request.GET.is_superuser == '1' %}selected{% endif %}>Superuser: sim</option>
+        <option value="0" {% if request.GET.is_superuser == '0' %}selected{% endif %}>Superuser: não</option>
+      </select>
+
+      <select name="is_active"
+              class="tw-h-9 tw-px-3 tw-rounded-md tw-text-sm tw-w-36 tw-shrink-0">
+        <option value="">Estado: todos</option>
+        <option value="1" {% if request.GET.is_active == '1' %}selected{% endif %}>Estado: ativo</option>
+        <option value="0" {% if request.GET.is_active == '0' %}selected{% endif %}>Estado: inativo</option>
+      </select>
+
+      {% for spec in cl.filter_specs %}{% if spec.lookup_kwarg == 'groups__id__exact' %}
+        <select name="groups__id__exact"
+                class="tw-h-9 tw-px-3 tw-rounded-md tw-text-sm tw-w-44 tw-shrink-0">
+          <option value="">Grupo: todos</option>
+          {% for pk, label in spec.lookup_choices %}
+            <option value="{{ pk }}" {% if spec.lookup_val.0 == pk|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}{% endfor %}
+
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+
+      <button type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+      </button>
+
+      <a href="{{ request.path }}" title="Limpar filtros"
+         class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </a>
+    </div>
+  </form>
+
+  {# ── Results ──────────────────────────────────────────────── #}
+  <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <form id="changelist-form" method="post" novalidate>
+      {% csrf_token %}
+
+      {% if action_form and cl.show_admin_actions %}
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-px-5 tw-py-2.5 tw-bg-slate-50 tw-border-b tw-border-slate-100">
+          <label for="action-select" class="tw-text-xs tw-text-slate-500 tw-m-0">Ação em massa:</label>
+          <select name="action" id="action-select"
+                  class="tw-h-8 tw-px-2 tw-text-sm tw-bg-white tw-border tw-border-slate-200 tw-rounded-md tw-text-slate-700">
+            <option value="">---------</option>
+            {% for choice in action_form.action.field.choices %}
+              {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+            {% endfor %}
+          </select>
+          <input type="hidden" name="select_across" value="0">
+          <button type="submit" name="index" value="0"
+                  class="tw-h-8 tw-inline-flex tw-items-center tw-px-3 tw-text-xs tw-rounded-md tw-bg-slate-700 hover:tw-bg-slate-800 tw-text-white tw-transition">
+            Aplicar
+          </button>
+          <span class="tw-text-xs tw-text-slate-500" id="selection-count">0 selecionado(s)</span>
+        </div>
+      {% endif %}
+
+      {# Desktop table #}
+      <div class="tw-hidden md:tw-block tw-overflow-auto" style="max-height: calc(100vh - 360px); min-height: 320px;">
+        <table class="tw-w-full tw-text-sm tw-border-collapse">
+          <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+            <tr class="tw-text-left tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wider">
+              <th class="tw-px-5 tw-py-2.5 tw-w-10 tw-border-b tw-border-slate-200/70">
+                <input type="checkbox" id="action-toggle" class="tw-cursor-pointer">
+              </th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Utilizador</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Email</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Grupos</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Equipa</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Superuser</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Estado</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-right">&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody class="tw-divide-y tw-divide-slate-100">
+            {% for user in cl.result_list %}
+              <tr class="tbl-row tw-transition">
+                <td class="tw-px-5 tw-py-3">
+                  <input type="checkbox" class="action-select tw-cursor-pointer" name="_selected_action" value="{{ user.pk }}">
+                </td>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-gap-3">
+                    <div class="tw-w-8 tw-h-8 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-inline-flex tw-items-center tw-justify-center tw-text-xs tw-font-semibold tw-shrink-0">
+                      {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div class="tw-min-w-0">
+                      <a href="{% url cl.opts|admin_urlname:'change' user.pk %}"
+                         class="tw-block tw-font-medium tw-text-slate-900 hover:tw-text-mpd-700 tw-truncate" style="text-decoration:none;">
+                        {{ user.get_full_name|default:user.username }}
+                      </a>
+                      <div class="tw-text-xs tw-text-slate-500 tw-truncate">@{{ user.username }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-slate-700 tw-truncate" style="max-width:240px;">{{ user.email|default:"—" }}</td>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-flex-wrap tw-gap-1">
+                    {% for g in user.groups.all %}
+                      <a href="?groups__id__exact={{ g.pk }}" title="Filtrar por {{ g.name }}"
+                         class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium hover:tw-bg-mpd-100 tw-transition" style="text-decoration:none;">{{ g.name }}</a>
+                    {% empty %}
+                      <span class="tw-text-xs tw-text-slate-300">—</span>
+                    {% endfor %}
+                  </div>
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-center">
+                  {% if user.is_staff %}
+                    <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium">
+                      <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-mpd-500"></span>Sim
+                    </span>
+                  {% else %}
+                    <span class="tw-text-xs tw-text-slate-300">—</span>
+                  {% endif %}
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-center">
+                  {% if user.is_superuser %}
+                    <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-amber-50 tw-text-amber-700 tw-text-xs tw-font-medium">Superuser</span>
+                  {% else %}
+                    <span class="tw-text-xs tw-text-slate-300">—</span>
+                  {% endif %}
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-center">
+                  {% if user.is_active %}
+                    <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium">Ativo</span>
+                  {% else %}
+                    <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-600 tw-text-xs tw-font-medium">Inativo</span>
+                  {% endif %}
+                </td>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                    <button type="button" data-edit-user="{{ user.pk }}" title="Editar"
+                       class="btn-edit-user tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-edit tw-text-xs"></i>
+                    </button>
+                    <a href="{% url cl.opts|admin_urlname:'delete' user.pk %}" title="Remover"
+                       class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-trash tw-text-xs"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="8">
+                <div class="tw-py-20 tw-text-center">
+                  <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+                    <i class="fa fa-search"></i>
+                  </div>
+                  <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+                  <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+                </div>
+              </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# Mobile cards #}
+      <div class="md:tw-hidden tw-divide-y tw-divide-slate-100">
+        {% for user in cl.result_list %}
+          <div class="tw-p-4">
+            <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
+              <div class="tw-min-w-0">
+                <a href="{% url cl.opts|admin_urlname:'change' user.pk %}"
+                   class="tw-font-medium tw-text-slate-900 tw-truncate" style="text-decoration:none;">
+                  {{ user.get_full_name|default:user.username }}
+                </a>
+                <div class="tw-text-xs tw-text-slate-500 tw-truncate">@{{ user.username }} · {{ user.email|default:"—" }}</div>
+              </div>
+              {% if user.is_active %}
+                <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium tw-shrink-0">Ativo</span>
+              {% else %}
+                <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-600 tw-text-xs tw-font-medium tw-shrink-0">Inativo</span>
+              {% endif %}
+            </div>
+            <div class="tw-grid tw-grid-cols-2 tw-gap-x-3 tw-gap-y-1 tw-mt-2 tw-text-xs tw-text-slate-600">
+              <div><span class="tw-text-slate-400">Equipa:</span> {{ user.is_staff|yesno:"Sim,Não" }}</div>
+              <div><span class="tw-text-slate-400">Superuser:</span> {{ user.is_superuser|yesno:"Sim,Não" }}</div>
+            </div>
+            {% if user.groups.all %}
+              <div class="tw-flex tw-flex-wrap tw-gap-1 tw-mt-2">
+                {% for g in user.groups.all %}
+                  <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium">{{ g.name }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="tw-py-16 tw-text-center">
+            <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Pagination #}
+      {% if cl.paginator.num_pages > 1 %}
+        <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+          <div class="tw-text-xs tw-text-slate-500">
+            Mostrando página <span class="tw-font-medium tw-text-slate-700">{{ cl.page_num }}</span>
+            de <span class="tw-font-medium tw-text-slate-700">{{ cl.paginator.num_pages }}</span>
+            · {{ cl.result_count }} registos
+          </div>
+          <div class="tw-inline-flex tw-items-center tw-gap-1">
+            {% if cl.page_num > 1 %}
+              <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'-1' }}"
+                 class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Anterior</a>
+            {% else %}
+              <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Anterior</span>
+            {% endif %}
+            {% if cl.page_num < cl.paginator.num_pages %}
+              <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'1' }}"
+                 class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Próxima</a>
+            {% else %}
+              <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Próxima</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('action-toggle');
+    var boxes = document.querySelectorAll('.action-select');
+    var counter = document.getElementById('selection-count');
+    function updateCount() {
+      if (!counter) return;
+      var n = 0;
+      boxes.forEach(function (b) { if (b.checked) n++; });
+      counter.textContent = n + ' selecionado(s)';
+    }
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        boxes.forEach(function (b) { b.checked = toggle.checked; });
+        updateCount();
+      });
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', updateCount); });
+  })();
+</script>
+
+{# ── User Modal (Create + Edit) ──────────────────────────── #}
+<div id="user-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-lg tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span id="user-modal-icon-wrap" class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center"><i id="user-modal-icon" class="fa fa-user-plus tw-text-xs"></i></span>
+        <span id="user-modal-title">Novo utilizador</span>
+      </h2>
+      <button type="button" id="user-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form id="user-modal-form" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="user_id" value="">
+
+      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Utilizador <span class="tw-text-rose-500">*</span></label>
+          <input type="text" name="username" required
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+          <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="username"></p>
+        </div>
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Email</label>
+          <input type="email" name="email"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+          <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="email"></p>
+        </div>
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Primeiro nome</label>
+          <input type="text" name="first_name"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+        </div>
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Último nome</label>
+          <input type="text" name="last_name"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+        </div>
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">
+            <span data-pwd-required-label>Palavra-passe <span class="tw-text-rose-500">*</span></span>
+          </label>
+          <input type="password" name="password1" autocomplete="new-password"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+          <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="password1"></p>
+          <p data-pwd-hint class="tw-text-xs tw-text-slate-400 tw-mt-1 tw-hidden">Deixe em branco para manter a atual.</p>
+        </div>
+        <div>
+          <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Confirmar palavra-passe</label>
+          <input type="password" name="password2" autocomplete="new-password"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+          <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="password2"></p>
+        </div>
+      </div>
+
+      <div class="tw-flex tw-flex-wrap tw-gap-x-5 tw-gap-y-2 tw-pt-2 tw-border-t tw-border-slate-100">
+        <label class="tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-text-sm tw-text-slate-700">
+          <input type="checkbox" name="is_active" class="tw-w-4 tw-h-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+          <span>Ativo</span>
+        </label>
+        <label class="tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-text-sm tw-text-slate-700">
+          <input type="checkbox" name="is_staff" class="tw-w-4 tw-h-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+          <span>Equipa (acesso ao admin)</span>
+        </label>
+        <label class="tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-text-sm tw-text-slate-700">
+          <input type="checkbox" name="is_superuser" class="tw-w-4 tw-h-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+          <span>Superutilizador</span>
+        </label>
+      </div>
+      <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="is_active"></p>
+
+      {% for spec in cl.filter_specs %}{% if spec.lookup_kwarg == 'groups__id__exact' %}
+      <div class="tw-pt-3 tw-border-t tw-border-slate-100">
+        <div class="tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-2">Grupos</div>
+        <div class="tw-flex tw-flex-wrap tw-gap-1.5">
+          {% for pk, label in spec.lookup_choices %}
+            <label class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-1 tw-rounded-md tw-bg-slate-50 tw-border tw-border-slate-200 tw-text-xs tw-text-slate-700 tw-cursor-pointer hover:tw-bg-slate-100 tw-transition has-[:checked]:tw-bg-mpd-50 has-[:checked]:tw-border-mpd-500 has-[:checked]:tw-text-mpd-700">
+              <input type="checkbox" name="groups" value="{{ pk }}" class="tw-w-3.5 tw-h-3.5 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+              <span>{{ label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}{% endfor %}
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="user-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="submit" id="user-modal-submit" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span data-submit-label>Criar utilizador</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var modal      = document.getElementById('user-modal');
+    var form       = document.getElementById('user-modal-form');
+    var submitBtn  = document.getElementById('user-modal-submit');
+    var titleEl    = document.getElementById('user-modal-title');
+    var iconEl     = document.getElementById('user-modal-icon');
+    var iconWrap   = document.getElementById('user-modal-icon-wrap');
+    var subLabel   = form.querySelector('[data-submit-label]');
+    var pwdLabel   = form.querySelector('[data-pwd-required-label]');
+    var pwdHint    = form.querySelector('[data-pwd-hint]');
+    var openAddBtn = document.getElementById('btn-open-add-user');
+    var closeEls   = ['user-modal-close', 'user-modal-cancel'].map(function (id) { return document.getElementById(id); });
+
+    var CREATE_URL = "{% url 'users.create_ajax' %}";
+    var currentMode = 'create';
+    var currentUrl  = CREATE_URL;
+
+    function clearErrors() {
+      form.querySelectorAll('[data-err]').forEach(function (el) { el.textContent = ''; el.classList.add('tw-hidden'); });
+      form.querySelectorAll('input').forEach(function (i) { i.classList.remove('tw-border-rose-400', 'tw-bg-rose-50'); });
+    }
+    function showErrors(errors) {
+      Object.keys(errors).forEach(function (key) {
+        var p = form.querySelector('[data-err="' + key + '"]');
+        var inp = form.querySelector('[name="' + key + '"]');
+        if (p) { p.textContent = errors[key]; p.classList.remove('tw-hidden'); }
+        if (inp) inp.classList.add('tw-border-rose-400', 'tw-bg-rose-50');
+      });
+    }
+    function show() {
+      modal.classList.remove('tw-hidden'); modal.classList.add('tw-flex');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function () { var f = form.querySelector('input[name=username]'); f && f.focus(); }, 50);
+    }
+    function hide() {
+      modal.classList.add('tw-hidden'); modal.classList.remove('tw-flex');
+      document.body.style.overflow = '';
+      clearErrors(); form.reset();
+      form.querySelector('[name=user_id]').value = '';
+    }
+
+    function configureForCreate() {
+      currentMode = 'create';
+      currentUrl  = CREATE_URL;
+      titleEl.textContent = 'Novo utilizador';
+      iconEl.className = 'fa fa-user-plus tw-text-xs';
+      iconWrap.className = 'tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center';
+      subLabel.textContent = 'Criar utilizador';
+      pwdLabel.innerHTML = 'Palavra-passe <span class="tw-text-rose-500">*</span>';
+      pwdHint.classList.add('tw-hidden');
+      form.querySelector('[name=password1]').required = true;
+      form.querySelector('[name=password2]').required = true;
+      form.querySelector('[name=is_active]').checked = true;
+      form.querySelectorAll('[name=groups]').forEach(function (cb) { cb.checked = false; });
+    }
+
+    function configureForEdit(data) {
+      currentMode = 'edit';
+      currentUrl  = '/users/' + data.id + '/update-ajax';
+      titleEl.textContent = 'Editar utilizador';
+      iconEl.className = 'fa fa-user-edit tw-text-xs';
+      iconWrap.className = 'tw-w-7 tw-h-7 tw-rounded-full tw-bg-amber-50 tw-text-amber-700 tw-flex tw-items-center tw-justify-center';
+      subLabel.textContent = 'Guardar alterações';
+      pwdLabel.textContent = 'Nova palavra-passe';
+      pwdHint.classList.remove('tw-hidden');
+      form.querySelector('[name=password1]').required = false;
+      form.querySelector('[name=password2]').required = false;
+      form.querySelector('[name=user_id]').value      = data.id;
+      form.querySelector('[name=username]').value     = data.username || '';
+      form.querySelector('[name=email]').value        = data.email || '';
+      form.querySelector('[name=first_name]').value   = data.first_name || '';
+      form.querySelector('[name=last_name]').value    = data.last_name || '';
+      form.querySelector('[name=is_active]').checked  = !!data.is_active;
+      form.querySelector('[name=is_staff]').checked   = !!data.is_staff;
+      form.querySelector('[name=is_superuser]').checked = !!data.is_superuser;
+      var gids = (data.groups || []).map(String);
+      form.querySelectorAll('[name=groups]').forEach(function (cb) { cb.checked = gids.indexOf(cb.value) !== -1; });
+    }
+
+    if (openAddBtn) openAddBtn.addEventListener('click', function () { clearErrors(); form.reset(); configureForCreate(); show(); });
+
+    document.querySelectorAll('.btn-edit-user').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-edit-user');
+        clearErrors(); form.reset();
+        var origLabel = subLabel.textContent;
+        subLabel.textContent = 'A carregar...';
+        fetch('/users/' + id + '/update-ajax', { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (r) { return r.json(); })
+          .then(function (json) {
+            if (json && json.success) { configureForEdit(json.user); show(); }
+            else if (window.toastr) toastr.error((json && json.error) || 'Não foi possível carregar o utilizador.');
+          })
+          .catch(function () { if (window.toastr) toastr.error('Erro de rede.'); })
+          .finally(function () { subLabel.textContent = origLabel; });
+      });
+    });
+
+    closeEls.forEach(function (b) { if (b) b.addEventListener('click', hide); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.classList.contains('tw-hidden')) hide(); });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearErrors();
+      submitBtn.disabled = true;
+      var orig = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin tw-text-xs"></i><span>' + (currentMode === 'edit' ? 'A guardar...' : 'A criar...') + '</span>';
+
+      fetch(currentUrl, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      }).then(function (r) {
+        return r.json().then(function (json) { return { ok: r.ok, json: json }; });
+      }).then(function (res) {
+        if (res.ok && res.json.success) {
+          if (window.toastr) toastr.success(res.json.message || 'Operação concluída.');
+          hide();
+          setTimeout(function () { window.location.reload(); }, 600);
+        } else {
+          if (res.json.errors) showErrors(res.json.errors);
+          if (window.toastr) toastr.error(res.json.error || 'Por favor corrija os erros.');
+        }
+      }).catch(function () {
+        if (window.toastr) toastr.error('Erro de rede. Tente novamente.');
+      }).finally(function () {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = orig;
+      });
+    });
+  })();
+</script>
+
+{% endblock %}

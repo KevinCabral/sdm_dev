@@ -1,0 +1,21 @@
+{% load i18n %}
+<details class="mpd-filter tw-relative">
+  <summary class="tw-list-none tw-cursor-pointer tw-inline-flex tw-items-center tw-gap-1.5 tw-h-8 tw-px-3 tw-rounded-md tw-bg-slate-50 hover:tw-bg-slate-100 tw-text-slate-700 tw-text-xs tw-font-medium tw-border tw-border-slate-200">
+    <span class="tw-text-slate-500">{{ title|capfirst }}:</span>
+    <span>
+      {% for choice in choices %}{% if choice.selected %}{{ choice.display }}{% endif %}{% endfor %}
+    </span>
+    <i class="fa fa-chevron-down tw-text-[9px] tw-text-slate-400"></i>
+  </summary>
+  <div class="tw-absolute tw-left-0 tw-mt-1 tw-z-30 tw-min-w-[180px] tw-bg-white tw-border tw-border-slate-200 tw-rounded-md tw-shadow-lg tw-py-1">
+    {% for choice in choices %}
+      <a href="{{ choice.query_string|iriencode }}"
+         class="tw-block tw-px-3 tw-py-1.5 tw-text-xs {% if choice.selected %}tw-bg-mpd-50 tw-text-mpd-700 tw-font-semibold{% else %}tw-text-slate-700 hover:tw-bg-slate-50{% endif %}" style="text-decoration:none;">
+        {{ choice.display }}
+      </a>
+    {% endfor %}
+  </div>
+</details>
+<style>
+  details.mpd-filter > summary::-webkit-details-marker { display: none; }
+</style>

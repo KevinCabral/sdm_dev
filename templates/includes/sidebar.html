@@ -43,20 +43,21 @@
           <label style="color: white;">Militantes</label>
         </li>
 
-        <li class="nav-item pcoded-hasmenu">
+        {% url 'militantes.create' as url_mil_create %}{% url 'militantes.pedidos' as url_mil_pedidos %}{% url 'militantes.index' as url_mil_index %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_mil_create or request.path == url_mil_pedidos or request.path == url_mil_index %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link "><span class="pcoded-micon"><i
                 class="fa fa-solid fa-users"></i></span><span class="pcoded-mtext">Militantes</span></a>
           <ul class="pcoded-submenu">
-            <li class="">
-              <a href="{% url 'militantes.create' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_mil_create %}active{% endif %}">
+              <a href="{{ url_mil_create }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-user-plus"></i></span><span class="pcoded-mtext">Registar</span></a>
             </li>
-            <li class="">
-              <a href="{% url 'militantes.pedidos' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_mil_pedidos %}active{% endif %}">
+              <a href="{{ url_mil_pedidos }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-clock"></i></span><span class="pcoded-mtext">Pedidos</span></a>
             </li>
-            <li>
-              <a href="{% url 'militantes.index' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_mil_index %}active{% endif %}">
+              <a href="{{ url_mil_index }}"><span class="pcoded-micon"><i
                   class="fa fa-solid fa-list-ul"></i></span><span class="pcoded-mtext">Listagem</span></a>
             </li>
           </ul>
@@ -66,11 +67,12 @@
           <label style="color: white;">Carta de Convite</label>
         </li>
 
-        <li class="nav-item pcoded-hasmenu">
+        {% url 'carta_convite.index' as url_cc_index %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_cc_index %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link" ><span class="pcoded-micon"><i class="fa fa-solid fa-envelope"></i></span><span class="pcoded-mtext">Carta Convite</span></a>
           <ul class="pcoded-submenu">
-            <li class="">
-              <a href="{% url 'carta_convite.index' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_cc_index %}active{% endif %}">
+              <a href="{{ url_cc_index }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-list-ul"></i></span><span class="pcoded-mtext">Listagem</span></a>
             </li>
           </ul>
@@ -80,18 +82,19 @@
           <label style="color: white;">Eleitores</label>
         </li>
 
-        <li class="nav-item pcoded-hasmenu">
+        {% url 'eleitores.dashboard' as url_el_dash %}{% url 'eleitores.create' as url_el_create %}{% url 'eleitores.index' as url_el_index %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_el_dash or request.path == url_el_create or request.path == url_el_index %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link" ><span class="pcoded-micon"><i class="fa fa-solid fa-user"></i></span><span class="pcoded-mtext">Eleitores</span></a>
           <ul class="pcoded-submenu">
-            <li class="">
-              <a href="{% url 'eleitores.dashboard' %}"><span class="pcoded-micon"><i class="fa fa-solid fa-chart-bar"></i></span><span class="pcoded-mtext">Dashboard</span></a>
+            <li class="{% if request.path == url_el_dash %}active{% endif %}">
+              <a href="{{ url_el_dash }}"><span class="pcoded-micon"><i class="fa fa-solid fa-chart-bar"></i></span><span class="pcoded-mtext">Dashboard</span></a>
             </li>
-            <li class="">
-              <a href="{% url 'eleitores.create' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_el_create %}active{% endif %}">
+              <a href="{{ url_el_create }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-user-plus"></i></span><span class="pcoded-mtext">Registar</span></a>
             </li>
-            <li class="">
-              <a href="{% url 'eleitores.index' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_el_index %}active{% endif %}">
+              <a href="{{ url_el_index }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-list-ul"></i></span><span class="pcoded-mtext">Listagem</span></a>
             </li>
           </ul>
@@ -101,15 +104,16 @@
           <label style="color: white;">Mesas</label>
         </li>
 
-        <li class="nav-item pcoded-hasmenu">
+        {% url 'mesa.index_mesa' as url_mesa_list %}{% url 'mesa.index' as url_mesa_assoc %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_mesa_list or request.path == url_mesa_assoc %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link" ><span class="pcoded-micon"><i class="fa fa-solid fa-table"></i></span><span class="pcoded-mtext">Mesas</span></a>
           <ul class="pcoded-submenu">
-            <li class="">
-              <a href="{% url 'mesa.index_mesa' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_mesa_list %}active{% endif %}">
+              <a href="{{ url_mesa_list }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-list-ul"></i></span><span class="pcoded-mtext">Mesa</span></a>
             </li>
-            <li class="">
-              <a href="{% url 'mesa.index' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_mesa_assoc %}active{% endif %}">
+              <a href="{{ url_mesa_assoc }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-link"></i></span><span class="pcoded-mtext">Associar Mesa</span></a>
             </li>
           </ul>
@@ -119,11 +123,12 @@
           <label style="color: white;">Quotas</label>
         </li>
 
-        <li class="nav-item pcoded-hasmenu">
+        {% url 'quotas.pagamento' as url_quot %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_quot %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link" ><span class="pcoded-micon"><i class="fa fa-solid fa-envelope"></i></span><span class="pcoded-mtext">Quotas</span></a>
           <ul class="pcoded-submenu">
-            <li class="">
-              <a href="{% url 'quotas.pagamento' %}"><span class="pcoded-micon"><i
+            <li class="{% if request.path == url_quot %}active{% endif %}">
+              <a href="{{ url_quot }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-money-bill-wave"></i></span><span class="pcoded-mtext">Pagamento</span></a>
             </li>
           </ul>
@@ -132,20 +137,22 @@
 
         
           {% if request.user.is_superuser %}
-          <li class="nav-item pcoded-hasmenu">
+          {% with is_auth=request.path|slice:':7' %}
+          <li class="nav-item pcoded-hasmenu {% if '/admin/' in request.path %}pcoded-trigger active{% endif %}">
             <a href="javascript:" class="nav-link ">
               <span class="pcoded-micon"><i class=" feather icon-lock "></i></span>
               <span class="pcoded-mtext">Autenticação</span>
             </a>
               <ul class="pcoded-submenu">
-                    <li class="nav-item ">
-                      <a class="nav-link" href="/admin/auth/group/">Grupos</a>
+                    <li class="nav-item {% if '/admin/auth/group' in request.path %}active{% endif %}">
+                      <a class="nav-link" href="/admin/auth/group/"><span class="pcoded-micon"><i class="fas fa-users"></i></span>Grupos</a>
                     </li>
-                    <li class="nav-item ">
-                      <a class="nav-link" href="/admin/auth/user/">Utilizadores</a>
+                    <li class="nav-item {% if '/admin/auth/user' in request.path %}active{% endif %}">
+                      <a class="nav-link" href="/admin/auth/user/"><span class="pcoded-micon"><i class="fa fa-solid fa-user-shield"></i></span>Utilizadores</a>
                     </li>
               </ul>
           </li>
+          {% endwith %}
           {% endif  %}
         {% endif %}
 

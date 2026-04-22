@@ -27,6 +27,11 @@ from drf_spectacular.views import (
 )
 
 from apps.militantes import views
+from apps.users.password_reset import (
+    PasswordResetCodeConfirmView,
+    PasswordResetCompleteView,
+    PasswordResetRequestView,
+)
 
 urlpatterns = [
     path('', views.dashboard),
@@ -43,8 +48,22 @@ urlpatterns = [
     path("eleitores", include('apps.eleitores.urls')),
     path("quotas", include('apps.quotas.urls')),
     path("mesas", include('apps.mesa.urls')),
+
+    # Code-based password reset (overrides admin_datta's link-based flow).
+    # Registered BEFORE admin_datta so URL resolution picks our views,
+    # and AGAIN after admin_datta so `reverse()` (which prefers the last
+    # occurrence of a name) also returns our URLs.
+    path('accounts/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('accounts/password-reset-confirm/', PasswordResetCodeConfirmView.as_view(), name='password_reset_confirm'),
+    path('accounts/password-reset-complete/', PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+
     path("", include('admin_datta.urls')),
-    path('', include('django_dyn_dt.urls')),  # <-- NEW: Dynamic_DT Routing   
+    path('', include('django_dyn_dt.urls')),  # <-- NEW: Dynamic_DT Routing
+
+    # Re-register so reverse() prefers our patterns over admin_datta's.
+    path('accounts/password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('accounts/password-reset-confirm/', PasswordResetCodeConfirmView.as_view(), name='password_reset_confirm'),
+    path('accounts/password-reset-complete/', PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Lazy-load on routing is needed

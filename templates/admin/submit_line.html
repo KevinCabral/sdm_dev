@@ -1,0 +1,47 @@
+{% load i18n admin_urls %}
+<div class="mpd-submit-row tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+  {% block submit-row %}
+    {% if show_delete_link and original %}
+      {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+      <a href="{% add_preserved_filters delete_url %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-50 hover:tw-bg-rose-100 tw-text-rose-700 tw-border tw-border-rose-200 tw-transition" style="text-decoration:none; margin-right:auto;">
+        <i class="fa fa-trash tw-text-xs"></i>{% trans "Eliminar" %}
+      </a>
+    {% endif %}
+
+    {% if show_close %}
+      <a href="{% url opts|admin_urlname:'changelist' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-600 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition" style="text-decoration:none;">
+        {% trans "Fechar" %}
+      </a>
+    {% endif %}
+
+    {% if show_save_and_add_another %}
+      <button type="submit" name="_addanother"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        <i class="fa fa-plus tw-text-xs"></i>{% trans "Guardar e adicionar outro" %}
+      </button>
+    {% endif %}
+
+    {% if show_save_and_continue %}
+      <button type="submit" name="_continue"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200 hover:tw-bg-mpd-100 tw-transition">
+        <i class="fa fa-edit tw-text-xs"></i>{% if can_change %}{% trans "Guardar e continuar" %}{% else %}{% trans "Guardar e ver" %}{% endif %}
+      </button>
+    {% endif %}
+
+    {% if show_save_as_new %}
+      <button type="submit" name="_saveasnew"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        {% trans "Guardar como novo" %}
+      </button>
+    {% endif %}
+
+    {% if show_save %}
+      <button type="submit" name="_save"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition">
+        <i class="fa fa-check tw-text-xs"></i>{% trans "Guardar" %}
+      </button>
+    {% endif %}
+  {% endblock %}
+</div>

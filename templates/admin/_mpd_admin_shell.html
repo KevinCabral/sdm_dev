@@ -1,0 +1,89 @@
+{% load static %}
+{# Shared MPD admin shell: tailwind config, base styles, header helper. #}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    prefix: 'tw-',
+    corePlugins: { preflight: false },
+    theme: {
+      extend: {
+        colors: {
+          mpd: {
+            50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+            500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+          }
+        },
+      }
+    }
+  }
+</script>
+<style>
+  .pcoded-content { background: #f6f7f9 !important; }
+  .pcoded-content button,
+  .pcoded-content .btn { border: 0; box-shadow: none; }
+  .pcoded-content button:focus,
+  .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+  .pcoded-content button:not([disabled]),
+  .pcoded-content a { cursor: pointer; }
+
+  /* MPD form field reset (used inside .mpd-admin scope) */
+  .mpd-admin .form-row { padding: 0 !important; border: 0 !important; }
+  .mpd-admin label { color: #475569 !important; font-weight: 500 !important; font-size: 12px !important; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px !important; display: block !important; }
+  .mpd-admin input[type="text"],
+  .mpd-admin input[type="email"],
+  .mpd-admin input[type="url"],
+  .mpd-admin input[type="password"],
+  .mpd-admin input[type="number"],
+  .mpd-admin input[type="date"],
+  .mpd-admin input[type="datetime-local"],
+  .mpd-admin input[type="time"],
+  .mpd-admin textarea,
+  .mpd-admin select {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+    color: #1f2937 !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .mpd-admin input:focus,
+  .mpd-admin textarea:focus,
+  .mpd-admin select:focus {
+    background: #fff !important;
+    border-color: #1a9123 !important;
+    box-shadow: 0 0 0 2px rgba(26,145,35,.15) !important;
+    outline: none !important;
+  }
+  .mpd-admin .help { color: #94a3b8 !important; font-size: 12px !important; margin-top: 4px !important; display: block; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .mpd-admin .errornote,
+  .mpd-admin .errorlist { background: #fff1f2 !important; color: #be123c !important; border: 1px solid #fecdd3 !important; border-radius: 8px !important; padding: 10px 12px !important; list-style: none; margin: 0 0 10px 0; }
+  .mpd-admin fieldset { border: 0 !important; padding: 0 !important; margin: 0 0 24px 0 !important; }
+  .mpd-admin fieldset h2 { color: #0f172a !important; font-size: 14px !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 14px 0 !important; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; background: transparent !important; }
+  .mpd-admin .submit-row { display: flex; gap: 8px; justify-content: flex-end; margin: 0; padding: 0; background: transparent !important; border: 0 !important; }
+  .mpd-admin .submit-row input,
+  .mpd-admin .submit-row button {
+    height: 38px; border-radius: 8px; border: 0; padding: 0 16px; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .mpd-admin .submit-row .default,
+  .mpd-admin .submit-row input[name="_save"] { background: #178420 !important; color: #fff !important; }
+  .mpd-admin .submit-row .default:hover,
+  .mpd-admin .submit-row input[name="_save"]:hover { background: #0e7716 !important; }
+  .mpd-admin .submit-row input[name="_addanother"],
+  .mpd-admin .submit-row input[name="_continue"] { background: #f1f5f9 !important; color: #334155 !important; }
+  .mpd-admin .submit-row input[name="_addanother"]:hover,
+  .mpd-admin .submit-row input[name="_continue"]:hover { background: #e2e8f0 !important; }
+  .mpd-admin .submit-row .deletelink { background: #fff1f2 !important; color: #be123c !important; padding: 9px 16px; border-radius: 8px; text-decoration: none; }
+  .mpd-admin .submit-row .deletelink:hover { background: #fecdd3 !important; }
+
+  /* Object tools as buttons */
+  .mpd-admin .object-tools { list-style: none; padding: 0; margin: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .mpd-admin .object-tools a { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; color: #334155 !important; text-decoration: none; font-size: 13px; font-weight: 500; transition: background .15s, border-color .15s; }
+  .mpd-admin .object-tools a:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a !important; }
+
+  /* Cancel/back link */
+  .mpd-admin .cancel-link { color: #64748b !important; text-decoration: none; }
+  .mpd-admin .cancel-link:hover { color: #0f172a !important; }
+</style>

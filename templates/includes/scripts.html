@@ -6,3 +6,28 @@
 <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
 <script src="{% static 'assets/js/pcoded.min.js' %}"></script>
 <script src="{% static 'assets/js/dark-mode.js' %}"></script>
+
+<!-- Toastr (notifications) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+<script>
+  if (window.toastr) {
+    toastr.options = {
+      closeButton: true,
+      progressBar: true,
+      positionClass: 'toast-top-right',
+      timeOut: 4000,
+      newestOnTop: true,
+      preventDuplicates: true,
+    };
+  }
+  {% if messages %}
+    {% for message in messages %}
+      (function () {
+        var t = "{{ message.tags|default:'info' }}";
+        var fn = (toastr[t] || toastr.info);
+        fn("{{ message|escapejs }}");
+      })();
+    {% endfor %}
+  {% endif %}
+</script>

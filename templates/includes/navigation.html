@@ -52,7 +52,10 @@
           </a>
           <div class="dropdown-menu dropdown-menu-right profile-notification">
             <div class="pro-head">
-              <img src="{% if user.profile and user.profile.image%} /media/{{user.profile.image}} {% else %} {% static 'assets/images/user/avatar-1.jpg' %} {% endif%}" class="img-radius" alt="User-Profile-Image">
+                  <img src="{% if user.profile and user.profile.image %}/media/{{ user.profile.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
+                    onerror="this.onerror=null;this.src='{% static 'assets/images/user/avatar-1.jpg' %}';"
+                    class="img-radius"
+                    alt="User-Profile-Image">
               <span>{{user}}</span>
               {% if request.user.is_authenticated %}
                 {% if request.user.is_superuser %}

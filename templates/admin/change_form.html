@@ -1,158 +1,265 @@
 {% extends 'layouts/base.html' %}
-{% load static %}
-
-
 {% load i18n admin_urls static admin_modify %}
 
-{% block extrahead %}{{ block.super }}
-<script src="{% url 'admin:jsi18n' %}"></script>
-{{ media }}
+{% block extrahead %}
+  {% include 'admin/_mpd_admin_shell.html' %}
+  <script src="{% url 'admin:jsi18n' %}"></script>
+  {{ media }}
+  <style>
+    /* Hide admin_datta's submit_btn card wrapper if it leaks through */
+    .mpd-admin .card.submit_btn { background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
+    .mpd-admin .card.submit_btn .card-body { padding: 0 !important; }
+    /* Fix Django's filter_horizontal / filter_vertical select widgets */
+    .mpd-admin .selector {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      width: 100%;
+    }
+    .mpd-admin .selector-available,
+    .mpd-admin .selector-chosen {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .mpd-admin .selector select {
+      width: 100% !important;
+      flex: 1 1 auto;
+      height: 260px !important;
+      min-height: 260px;
+      max-height: 260px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 4px;
+      background: #fafbfc;
+      font-size: 13px;
+    }
+    .mpd-admin .selector select option { padding: 4px 8px; border-radius: 4px; }
+    .mpd-admin .selector select option:checked { background: #e8f5ec; color: #0e7716; }
+    .mpd-admin .selector-available h2,
+    .mpd-admin .selector-chosen h2 {
+      font-size: 11px !important; font-weight: 700 !important;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: #64748b !important; padding: 0 0 6px;
+      border-bottom: 1px solid #f1f5f9; margin: 0 0 8px;
+      background: transparent !important;
+    }
+    /* Filter input under "Disponíveis" */
+    .mpd-admin .selector-filter {
+      padding: 6px 0 8px !important;
+      border: 0 !important;
+      background: transparent !important;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .mpd-admin .selector-filter label { margin: 0; color: #94a3b8; }
+    .mpd-admin .selector-filter input {
+      flex: 1; height: 32px; padding: 0 10px;
+      border: 1px solid #e2e8f0 !important; border-radius: 6px;
+      background: #fafbfc; font-size: 13px;
+    }
+    .mpd-admin .selector-filter input:focus { outline: none; border-color: #1a9123 !important; background: #fff; box-shadow: 0 0 0 2px rgba(26,145,35,.15); }
+
+    /* Chooser column (the arrow buttons in the middle) */
+    .mpd-admin .selector-chooser {
+      display: flex !important;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: center;
+      align-self: center;
+      background: transparent;
+      padding: 0;
+      border: 0;
+      margin: 0 2px;
+      width: auto;
+    }
+    .mpd-admin .selector-chooser li { list-style: none; margin: 0; }
+    .mpd-admin .selector-chooser a {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      width: 36px; height: 36px;
+      padding: 0; border-radius: 8px;
+      background: #f1f5f9; color: #475569;
+      font-size: 0; text-decoration: none;
+      transition: background .15s, color .15s, transform .15s;
+      background-image: none !important;
+    }
+    .mpd-admin .selector-chooser a::before {
+      font-family: 'Font Awesome 5 Free', 'FontAwesome'; font-weight: 900; font-size: 13px; line-height: 1;
+    }
+    .mpd-admin .selector-chooser a.selector-add::before    { content: '\f061'; }  /* arrow-right */
+    .mpd-admin .selector-chooser a.selector-remove::before { content: '\f060'; }  /* arrow-left */
+    .mpd-admin .selector-chooser a:hover { background: #178420; color: #fff; transform: translateX(0); }
+    .mpd-admin .selector-chooser a.active.selector-add:hover { transform: translateX(2px); }
+    .mpd-admin .selector-chooser a.active.selector-remove:hover { transform: translateX(-2px); }
+
+    /* "Choose all" / "Remove all" links under the boxes */
+    .mpd-admin .selector-chosen .selector-clearall,
+    .mpd-admin .selector-available .selector-chooseall {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 8px; padding: 6px 10px;
+      font-size: 12px; font-weight: 600;
+      color: #475569; background: #f1f5f9;
+      border-radius: 6px; text-decoration: none;
+      background-image: none !important;
+    }
+    .mpd-admin .selector-chosen .selector-clearall:hover,
+    .mpd-admin .selector-available .selector-chooseall:hover { background: #178420; color: #fff; }
+    .mpd-admin .selector-available .selector-chooseall::before,
+    .mpd-admin .selector-chosen .selector-clearall::before {
+      font-family: 'Font Awesome 5 Free', 'FontAwesome'; font-weight: 900; font-size: 11px;
+    }
+    .mpd-admin .selector-available .selector-chooseall::before { content: '\f101'; }  /* angle-double-right */
+    .mpd-admin .selector-chosen .selector-clearall::before     { content: '\f100'; }  /* angle-double-left */
+
+    /* Help block under the widget */
+    .mpd-admin .help, .mpd-admin .help-block { color: #94a3b8; font-size: 12px; margin-top: 6px; }
+
+    /* Stack on small screens to avoid overlap */
+    @media (max-width: 768px) {
+      .mpd-admin .selector { flex-direction: column; }
+      .mpd-admin .selector-chooser { flex-direction: row; align-self: stretch; justify-content: center; }
+      .mpd-admin .selector-chooser a.selector-add::before    { content: '\f063'; }  /* arrow-down */
+      .mpd-admin .selector-chooser a.selector-remove::before { content: '\f062'; }  /* arrow-up */
+    }
+    /* Readonly badge */
+    .mpd-admin .readonly {
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 14px; color: #1f2937; min-height: 38px;
+    }
+    /* fieldset separator */
+    .mpd-admin fieldset + fieldset { margin-top: 28px !important; padding-top: 24px !important; border-top: 1px solid #f1f5f9 !important; }
+    /* error */
+    .mpd-admin .errorlist { list-style: none; padding: 0; margin: 0 0 4px 0; }
+    .mpd-admin .errorlist li { color: #be123c; font-size: 12px; font-weight: 500; }
+  </style>
 {% endblock %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/forms.css" %}">{% endblock %}
+{% block breadcrumbs %}{% endblock %}
 
-{% block coltype %}colM{% endblock %}
+{% block content %}
+<div class="mpd-admin tw-space-y-5">
 
-{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-form{% endblock %}
+  {# ── Header ──────────────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-3">
+    <div class="tw-min-w-0">
+      <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-xs tw-text-slate-400 tw-mb-1.5">
+        <a href="/admin/" class="hover:tw-text-mpd-700 tw-transition" style="text-decoration:none;">Administração</a>
+        <i class="fa fa-chevron-right" style="font-size:8px;"></i>
+        {% if has_view_permission %}
+          <a href="{% url opts|admin_urlname:'changelist' %}" class="hover:tw-text-mpd-700 tw-transition" style="text-decoration:none;">{{ opts.verbose_name_plural|capfirst }}</a>
+        {% else %}
+          <span>{{ opts.verbose_name_plural|capfirst }}</span>
+        {% endif %}
+        <i class="fa fa-chevron-right" style="font-size:8px;"></i>
+        <span class="tw-text-slate-600">{% if add %}Adicionar{% else %}Editar{% endif %}</span>
+      </div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
+        {% if add %}
+          {% blocktrans with name=opts.verbose_name %}Adicionar {{ name }}{% endblocktrans %}
+        {% else %}
+          {{ original|truncatewords:"18" }}
+        {% endif %}
+      </h1>
+    </div>
 
-{% if not is_popup %}
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-<a href="/">{% translate 'Home' %}</a>
-&rsaquo; {% if has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %}
-&rsaquo; {% if add %}{% blocktranslate with name=opts.verbose_name %}Add {{ name }}{% endblocktranslate %}{% else %}{{ original|truncatewords:"18" }}{% endif %}
-</div>
-{% endblock %}
-{% endif %}
-
-{% block content %}<div id="content-main">
-{% block object-tools %}
-{% if change %}{% if not is_popup %}
-  <ul class="object-tools" style="display: flex;justify-content: end;">
-    {% if original.password %}
-    <a data-href="{% url 'users.generantePassword' original.id %}" style="color: #1a9123;" class="btn btn-outline-gray-600 d-inline-flex align-items-center" id="gerar-password"> Gerar Palavra-Passe</a>
+    {% if change and not is_popup %}
+      <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-shrink-0">
+        {% if original.password %}
+          <a data-href="{% url 'users.generantePassword' original.id %}" id="gerar-password"
+             class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-text-slate-700 tw-rounded-lg tw-text-sm tw-font-medium tw-shadow-sm tw-transition" style="text-decoration:none;">
+            <i class="fa fa-key tw-text-amber-500 tw-text-xs"></i><span>Gerar palavra-passe</span>
+          </a>
+        {% endif %}
+        {% block object-tools-items %}
+          {% change_form_object_tools %}
+        {% endblock %}
+      </div>
     {% endif %}
-    {% block object-tools-items %}
-      {% change_form_object_tools %}
-    {% endblock %}
-  </ul>
-{% endif %}{% endif %}
-{% endblock %}
+  </div>
 
-<div class="row">
-  <div class="col-md-12">
-    <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" novalidate>{% csrf_token %}{% block form_top %}{% endblock %}
-    <div>
-    {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
-    {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
-    {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
+  {# ── Form card ───────────────────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-200/70 tw-shadow-[0_1px_3px_rgba(15,23,42,0.06)] tw-overflow-hidden">
+
     {% if errors %}
-        <p class="errornote">
-        {% if errors|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
-        </p>
-        {{ adminform.form.non_field_errors }}
+      <div class="tw-bg-red-50 tw-border-b tw-border-red-100 tw-px-6 tw-py-3 tw-flex tw-items-start tw-gap-3">
+        <div class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-red-100 tw-flex tw-items-center tw-justify-center tw-shrink-0 tw-mt-0.5">
+          <i class="fa fa-exclamation tw-text-red-600 tw-text-xs"></i>
+        </div>
+        <div>
+          <div class="tw-text-sm tw-font-semibold tw-text-red-700 tw-mb-0.5">
+            {% if errors|length == 1 %}Corrija o erro abaixo{% else %}Corrija os erros abaixo{% endif %}
+          </div>
+          <div class="tw-text-xs tw-text-red-500">{{ adminform.form.non_field_errors }}</div>
+        </div>
+      </div>
     {% endif %}
 
-    {% block field_sets %}
-    {% for fieldset in adminform %}
-      {% include "admin/includes/fieldset.html" %}
-    {% endfor %}
-    {% endblock %}
+    <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" novalidate>
+      {% csrf_token %}
+      {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+      {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
 
-    {% block after_field_sets %}{% endblock %}
+      <div class="tw-px-6 tw-pt-6 tw-pb-2">
+        {% block field_sets %}
+          {% for fieldset in adminform %}
+            {% include "admin/includes/fieldset.html" %}
+          {% endfor %}
+        {% endblock %}
+        {% block after_field_sets %}{% endblock %}
+        {% block inline_field_sets %}
+          {% for inline_admin_formset in inline_admin_formsets %}
+            {% include inline_admin_formset.opts.template %}
+          {% endfor %}
+        {% endblock %}
+        {% block after_related_objects %}{% endblock %}
+      </div>
 
-    {% block inline_field_sets %}
-    {% for inline_admin_formset in inline_admin_formsets %}
-        {% include inline_admin_formset.opts.template %}
-    {% endfor %}
-    {% endblock %}
+      {# ── Submit bar ──────────────────────────────────────── #}
+      <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-px-6 tw-py-4 tw-bg-slate-50 tw-border-t tw-border-slate-100">
+        {# Cancel link on the left #}
+        <a href="{% if has_view_permission %}{% url opts|admin_urlname:'changelist' %}{% else %}/admin/{% endif %}"
+           class="tw-inline-flex tw-items-center tw-gap-1.5 tw-text-sm tw-text-slate-500 hover:tw-text-slate-800 tw-transition" style="text-decoration:none;">
+          <i class="fa fa-arrow-left tw-text-xs"></i>Voltar
+        </a>
+        {# Action buttons on the right #}
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+          {% block submit_buttons_bottom %}{% submit_row %}{% endblock %}
+        </div>
+      </div>
 
-    {% block after_related_objects %}{% endblock %}
-
-    <div style="display: flex;justify-content: end;">
-
-      {% block submit_buttons_bottom %}{% submit_row %}{% endblock %}
-    </div>
-
-    {% block admin_change_form_document_ready %}
-        <script id="django-admin-form-add-constants"
-                src="{% static 'admin/js/change_form.js' %}"
-                {% if adminform and add %}
-                    data-model-name="{{ opts.model_name }}"
-                {% endif %}
-                async>
-        </script>
-    {% endblock %}
-
-    {# JavaScript for prepopulated fields #}
-    {% prepopulated_fields_js %}
-
-    </div>
-    </form></div>
+      {% prepopulated_fields_js %}
+    </form>
   </div>
 </div>
 
-
-
 <script>
-  $(document).ready(function(){
-    
-    let url = window.location.href
-
-    let links = $(".navbar-content li a")
-    
-    for(let i=0;i < links.length; i++){
-      let item = links[i]
-      if(url.endsWith($(item).attr("href"))){
-        $(item).parent("li").addClass("active")
-
-        if($(item).parents(".pcoded-hasmenu").length > 0){
-          $($(item).parents(".pcoded-hasmenu")[0]).addClass("pcoded-trigger")
-          $($(item).parents(".pcoded-submenu")[0]).css({
-            "display":"block"
-          })
+  $(document).ready(function () {
+    var url = window.location.href;
+    var links = $(".navbar-content li a");
+    for (var i = 0; i < links.length; i++) {
+      var item = links[i];
+      if (url.endsWith($(item).attr("href"))) {
+        $(item).parent("li").addClass("active");
+        if ($(item).parents(".pcoded-hasmenu").length > 0) {
+          $($(item).parents(".pcoded-hasmenu")[0]).addClass("pcoded-trigger");
+          $($(item).parents(".pcoded-submenu")[0]).css({ "display": "block" });
         }
-        break 
+        break;
       }
     }
-    
-  })
-
-  $(document).on("click","#gerar-password",function(){
-    if(confirm("Deseja gerar a palavra-passe e enviar por email")){
-        window.location=$(this).attr("data-href")
+  });
+  $(document).on("click", "#gerar-password", function () {
+    if (confirm("Deseja gerar a palavra-passe e enviar por email?")) {
+      window.location = $(this).attr("data-href");
     }
-  })
+  });
 </script>
-
-
-<style>
-
-  a{
-    color: #1a9123;
-  }
-
-  input{
-    background: #f4f7fa !important;
-    padding: 10px 20px;
-    font-size: 14px;
-    display: block;
-    width: 100%;
-    padding: .375rem .75rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    color: #495057;
-    background-clip: padding-box;
-    border: 1px solid #ced4da;
-    border-radius: .25rem;
-    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-      
-  }
-
-  label{
-    color: #1a9123 !important;
-    font-weight: 700;
-  }
-</style>
 {% endblock %}
-

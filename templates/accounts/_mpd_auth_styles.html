@@ -1,0 +1,134 @@
+{# Shared MPD auth styles (used by login + password reset screens) #}
+<style>
+    .auth-wrapper.mpd-auth {
+        background: linear-gradient(135deg, #0b3d2e 0%, #145a3d 45%, #1f8f5b 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow: hidden;
+    }
+    .auth-wrapper.mpd-auth::before,
+    .auth-wrapper.mpd-auth::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        z-index: 0;
+    }
+    .auth-wrapper.mpd-auth::before {
+        width: 520px; height: 520px;
+        top: -160px; right: -160px;
+    }
+    .auth-wrapper.mpd-auth::after {
+        width: 380px; height: 380px;
+        bottom: -120px; left: -120px;
+    }
+    .mpd-auth .auth-content {
+        position: relative;
+        z-index: 1;
+        max-width: 420px;
+        width: 100%;
+    }
+    .mpd-auth .card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        backdrop-filter: blur(6px);
+        background: #ffffff;
+    }
+    .mpd-auth .card-body {
+        padding: 2.5rem 2.25rem;
+    }
+    .mpd-auth .auth-logo {
+        text-align: center;
+        margin-bottom: 1.25rem;
+    }
+    .mpd-auth .auth-logo img {
+        width: 72px;
+        height: auto;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+    }
+    .mpd-auth .auth-title {
+        text-align: center;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+        color: #0b3d2e;
+        letter-spacing: 0.5px;
+    }
+    .mpd-auth .auth-subtitle {
+        text-align: center;
+        color: #6c757d;
+        margin-bottom: 1.75rem;
+        font-size: 0.9rem;
+    }
+    .mpd-auth .input-group {
+        margin-bottom: 1rem;
+    }
+    .mpd-auth .input-group input,
+    .mpd-auth .input-group .form-control {
+        border-radius: 10px !important;
+        height: 48px;
+        border: 1px solid #e3e6ea;
+        padding-left: 1rem;
+        background: #f8f9fb;
+        transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .mpd-auth .input-group input:focus,
+    .mpd-auth .input-group .form-control:focus {
+        background: #fff;
+        border-color: #1f8f5b;
+        box-shadow: 0 0 0 3px rgba(31, 143, 91, 0.15);
+    }
+    .mpd-auth .btn-login {
+        width: 100%;
+        height: 48px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #145a3d, #1f8f5b);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+        box-shadow: 0 8px 18px rgba(20, 90, 61, 0.35);
+    }
+    .mpd-auth .btn-login:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+        color: #fff;
+    }
+    .mpd-auth .auth-links {
+        text-align: center;
+        margin-top: 1.25rem;
+    }
+    .mpd-auth .auth-links a {
+        color: #1f8f5b;
+        font-weight: 500;
+    }
+    .mpd-auth .auth-links a:hover {
+        color: #0b3d2e;
+        text-decoration: underline;
+    }
+    .mpd-auth .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.8rem;
+        position: relative;
+        z-index: 1;
+    }
+    .mpd-auth .alert-error,
+    .mpd-auth .alert {
+        border-radius: 10px;
+        font-size: 0.9rem;
+    }
+    .mpd-auth .form-check {
+        text-align: left;
+        margin: 0.25rem 0 1.25rem;
+    }
+    .mpd-auth .code-input {
+        text-align: center;
+        letter-spacing: 0.5em;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+</style>

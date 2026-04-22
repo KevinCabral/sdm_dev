@@ -1,0 +1,74 @@
+{% extends 'layouts/base.html' %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+  {% include 'admin/_mpd_admin_shell.html' %}
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="mpd-admin tw-space-y-6">
+
+  <div>
+    <div class="tw-text-xs tw-text-slate-500 tw-mb-1">
+      <a href="/admin/" class="hover:tw-text-mpd-700" style="text-decoration:none;">Administração</a>
+      <span class="tw-mx-1">/</span>
+      <a href="{% url opts|admin_urlname:'changelist' %}" class="hover:tw-text-mpd-700" style="text-decoration:none;">{{ opts.verbose_name_plural|capfirst }}</a>
+      <span class="tw-mx-1">/</span>
+      <a href="{% url opts|admin_urlname:'change' object.pk %}" class="hover:tw-text-mpd-700" style="text-decoration:none;">{{ object|truncatewords:"12" }}</a>
+      <span class="tw-mx-1">/</span>
+      <span>{% trans 'Histórico' %}</span>
+    </div>
+    <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+      {% trans 'Histórico de alterações' %}
+    </h1>
+  </div>
+
+  <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    {% if action_list %}
+      <div class="tw-overflow-auto">
+        <table class="tw-w-full tw-text-sm tw-border-collapse">
+          <thead class="tw-bg-slate-50/80">
+            <tr class="tw-text-left tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wider">
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">{% trans 'Utilizador' %}</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">{% trans 'Ação' %}</th>
+              <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">{% trans 'Data / hora' %}</th>
+            </tr>
+          </thead>
+          <tbody class="tw-divide-y tw-divide-slate-100">
+            {% for action in action_list %}
+              <tr>
+                <td class="tw-px-5 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-gap-2">
+                    <div class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-inline-flex tw-items-center tw-justify-center tw-text-xs tw-font-semibold">
+                      {{ action.user.get_username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <div class="tw-font-medium tw-text-slate-900">{{ action.user.get_username }}</div>
+                      {% if action.user.get_full_name %}
+                        <div class="tw-text-xs tw-text-slate-500">{{ action.user.get_full_name }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td class="tw-px-5 tw-py-3 tw-text-slate-700">{{ action.get_change_message }}</td>
+                <td class="tw-px-5 tw-py-3 tw-text-slate-500 tw-tabular-nums">{{ action.action_time|date:"DATETIME_FORMAT" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="tw-py-16 tw-text-center">
+        <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+          <i class="fa fa-history"></i>
+        </div>
+        <div class="tw-text-slate-700 tw-font-medium tw-text-sm">
+          {% trans "Este objeto não tem histórico de alterações." %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

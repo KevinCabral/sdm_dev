@@ -1,0 +1,89 @@
+{% extends 'layouts/base.html' %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+  {% include 'admin/_mpd_admin_shell.html' %}
+  {{ media }}
+  <script type="text/javascript" src="{% static 'admin/js/cancel.js' %}"></script>
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="mpd-admin tw-space-y-6">
+
+  <div>
+    <div class="tw-text-xs tw-text-slate-500 tw-mb-1">
+      <a href="/admin/" class="hover:tw-text-mpd-700" style="text-decoration:none;">Administração</a>
+      <span class="tw-mx-1">/</span>
+      <a href="{% url opts|admin_urlname:'changelist' %}" class="hover:tw-text-mpd-700" style="text-decoration:none;">{{ opts.verbose_name_plural|capfirst }}</a>
+      <span class="tw-mx-1">/</span>
+      <span>{% trans 'Eliminar' %}</span>
+    </div>
+    <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+      {% trans 'Confirmar eliminação' %}
+    </h1>
+  </div>
+
+  <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <div class="tw-p-5 md:tw-p-6">
+      {% if perms_lacking %}
+        <div class="errornote tw-mb-4">
+          {% blocktrans with escaped_object=object %}
+            A eliminação de {{ object_name }} '{{ escaped_object }}' implicaria eliminar
+            objetos relacionados, mas a sua conta não tem permissão para os tipos seguintes:
+          {% endblocktrans %}
+        </div>
+        <ul class="tw-list-disc tw-pl-6 tw-text-sm tw-text-slate-700 tw-space-y-1">
+          {% for obj in perms_lacking %}<li>{{ obj }}</li>{% endfor %}
+        </ul>
+      {% elif protected %}
+        <div class="errornote tw-mb-4">
+          {% blocktrans with escaped_object=object %}
+            A eliminação de {{ object_name }} '{{ escaped_object }}' obrigaria a eliminar
+            os seguintes objetos protegidos:
+          {% endblocktrans %}
+        </div>
+        <ul class="tw-list-disc tw-pl-6 tw-text-sm tw-text-slate-700 tw-space-y-1">
+          {% for obj in protected %}<li>{{ obj }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <div class="tw-flex tw-items-start tw-gap-3 tw-p-4 tw-rounded-md tw-bg-rose-50 tw-border tw-border-rose-100 tw-mb-4">
+          <i class="fa fa-exclamation-triangle tw-text-rose-600 tw-mt-0.5"></i>
+          <div class="tw-text-sm tw-text-rose-700">
+            {% blocktrans with escaped_object=object %}
+              Tem a certeza que pretende eliminar o {{ object_name }} <b>"{{ escaped_object }}"</b>?
+              Os seguintes itens relacionados também serão eliminados:
+            {% endblocktrans %}
+          </div>
+        </div>
+
+        {% include "admin/includes/object_delete_summary.html" %}
+
+        <div class="tw-mt-4">
+          <h3 class="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-2">{% trans "Objetos" %}</h3>
+          <div class="tw-text-sm tw-text-slate-700 tw-bg-slate-50 tw-border tw-border-slate-100 tw-rounded-md tw-p-3 tw-max-h-72 tw-overflow-auto">
+            <ul class="tw-pl-4 tw-list-disc tw-space-y-1">{{ deleted_objects|unordered_list }}</ul>
+          </div>
+        </div>
+
+        <form method="post" class="tw-mt-6 tw-flex tw-gap-2 tw-justify-end">
+          {% csrf_token %}
+          <input type="hidden" name="post" value="yes">
+          {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+          {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+
+          <a href="{% url opts|admin_urlname:'change' object.pk|admin_urlquote %}"
+             class="tw-h-9 tw-inline-flex tw-items-center tw-px-4 tw-rounded-md tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 tw-text-sm tw-font-medium" style="text-decoration:none;">
+            {% trans "Cancelar" %}
+          </a>
+          <button type="submit"
+                  class="tw-h-9 tw-inline-flex tw-items-center tw-px-4 tw-rounded-md tw-bg-rose-600 hover:tw-bg-rose-700 tw-text-white tw-text-sm tw-font-semibold">
+            <i class="fa fa-trash tw-mr-2 tw-text-xs"></i>{% trans "Sim, eliminar" %}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

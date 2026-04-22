@@ -1,371 +1,469 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
-{% block content %}
-  <div>
-    <div class="row">
-      <div class="col-md-12">
-        <div class="" style="padding-left: 0;display: flex;justify-content: end;">
-          {% comment %} <h5>Mesas</h5> {% endcomment %}
-          <div class="col-md-4" style="padding-top: 27px;transform: translateY(-30px);display: flex;justify-content: end;">
-            <button class="btn btn-primary" id="criar" style="background-color:#1a9123;border:none;"><i class="fa fa-plus" style='font-size: 15px;'></i>Criar</button>
-            <button class="btn btn-primary" id="exportar" style="background-color:#1a9123;border:none;"><i class="fa fa-download" style='font-size: 15px;'></i>Exportar </button>
-          </div>
-         
-        </div>
-      </div>
-      
-    </div>
-    <div class="card card-body">
-    <div class="row" style="padding-top: 10px;">
-      <div class="col-md-2">
-        <div class="form-group">
-          <label for="nome">Utlizador</label>
-          <input type="text" name="nome" maxlength="200" class="form-control" id="nome" />
-        </div>
-      </div>
-      <div class="col-md-2">
-        <div class="form-group">
-          <label for="nr_mesa">Numero de Mesa</label>
-          <input type="text" name="nr_mesa" maxlength="200" class="form-control" id="nr_mesa" />
-        </div>
-      </div>
-      <div class="col-md-2">
-        <button id="btn-search" type="button" class="btn btn-primary" style="margin-top: 27px;"><i class="fa fa-solid fa-search"></i>Pesquisar</button>
-      </div>
-    </div>
-    <div class="content-data">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card-block px-0 py-3">
-            <div class="table-responsive">
-              <table class="table table-hover" id="table-data">
-                <thead>
-                  <tr style="font-weight: 800;color: #0e7716;border-bottom: 3px solid #dbd1d1;">
-                    <th>Utilizador</th>
-                    <th>Numero de Mesa</th>
-                    <th>Criado em</th>
-                    <th style="display: flex;justify-content: center;">Acção</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for mesa in page_obj %}
-                    <tr class="">
-                      <td>
-                          <h6 class="mb-1">{{ mesa.user.username }}</h6>
-                      </td>
-                      <td>
-                        <p class="m-0"> {{mesa.mesa.nr_mesa}}</p>
-                      </td>
-                      <td>
-                        <p class="m-0"> {{mesa.createdAt}}</p>
-                      </td>
-                      <td style="display: flex;justify-content: center;">
-                        <a href="javascript:void(0)" class="label f-12 view" id-mesa="{{ mesa.id }}">
-                          <i class="fa fa-solid fa-eye" style="font-size: 24px;color:#1a9123;"></i>
-                        </a>
-                        <a href="javascript:void(0)" class="label f-12 edit" id-mesa="{{ mesa.id }}">
-                          <i class="fa fa-solid fa-edit" style="font-size: 24px;color:#1a9123;"></i>
-                        </a>
-                        <a href="javascript:void(0)" class="label text-danger f-12 remover" id-mesa="{{ mesa.id }}">
-                            <i class="fa fa-solid fa-trash" style="font-size: 24px;"></i>
-                          </a>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-        
-      <div class="row">
-        <div class="col-md-12">
-          <div class="pagination" style="display: flex;justify-content: center;">
-          {% if page_obj.has_previous %}
-              <a href="javascript:void(0)" class="page-item page-link" data-href="1">Primeira</a>
-              <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.previous_page_number }}">Anterior</a>
-          {% endif %}
-
-          <span style="margin: 10px;">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-
-          {% if page_obj.has_next %}
-              <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.next_page_number }}">Próxima</a>
-              <a href="javascript:void(0)" class="page-item page-link" data-href="{{ page_obj.paginator.num_pages }}">Última</a>
-          {% endif %}
-        </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5>Detalhes de Mesa</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <div class="card" style="margin-bottom: 0;">
-              <div class="card-header">
-                <h5>Mesa</h5>
-              </div>
-              <div class="card-body" style="padding-bottom: 10px;">
-                <div class="row">
-                  <div class="col-md-6">
-                      <label for="" style="font-weight: 700;color: black;">Numero de Mesa:</label>
-                      <span id="id_nr_mesa_view"></span>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="" style="font-weight: 700;color: black;">Username:</label>
-                    <span id="id_user_view"></span>
-                </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
-  </div>
-  
-
-  <div class="modal fade" id="create-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-      <form action="{% url 'mesa.create_update' %}" method="post" id="add-form" enctype="multipart/form-data">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="hearder">Criar Mesa</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <div class="card">
-              <div class="card-body">
-                <div class="form-group">
-                  {{ form.mesa.label_tag }}
-                  {{ form.mesa }}
-                  {{ form.mesa.errors }}
-                  <span class="errors"></span>
-                </div>
-                <div class="form-group">
-                  {{ form.user.label_tag }}
-                  {{ form.user }}
-                  {{ form.user.errors }}
-                  <span class="errors"></span>
-                </div>
-                <input type="hidden" id="id" name="id">
-              </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" id="save"> Criar</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+          keyframes: {
+            'slide-in': {
+              '0%':   { transform: 'translateY(-12px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)',     opacity: '1' },
+            },
+            'fade-out': {
+              '0%':   { opacity: '1' },
+              '100%': { opacity: '0', transform: 'translateY(-8px)' },
+            },
+          },
+          animation: {
+            'slide-in': 'slide-in .25s ease-out',
+            'fade-out': 'fade-out .25s ease-in forwards',
+          },
+        }
+      }
+    }
+  </script>
 
   <style>
-    .page-link.active{
-      background-color: #0e7716;
+    .pcoded-content { background: #f6f7f9 !important; }
+
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08);
+      border-left: 3px solid #1a9123;
+      padding-left: 17px;
     }
 
-    .card .card-header h5::after{
-      background-color: #1a9123;
+    #toast-container {
+      position: fixed; top: 1rem; right: 1rem; z-index: 1080;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+
+    .pcoded-content button,
+    .pcoded-content .btn {
+      border: 0;
+      box-shadow: none;
+    }
+    .pcoded-content button:focus,
+    .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+
+    #filters label { margin: 0 !important; font-weight: 400; }
+    #filters input[type="text"] { margin: 0 !important; box-shadow: none !important; }
+
+    .tbl-row:hover { background: #fafbfc; }
+
+    .pcoded-content button:not([disabled]),
+    .pcoded-content a,
+    .pcoded-content label.tw-cursor-pointer { cursor: pointer; }
+
+    .modal .errors {
+      display: block;
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .modal .invalid {
+      border-color: #dc2626 !important;
     }
   </style>
+{% endblock extrahead %}
 
-  <script>
-    let offset = 0
-    function getCookie(name) {
-        let cookieValue = null
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';')
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim()
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === name + '=') {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-              break
-            }
-          }
+{% block content %}
+<div id="toast-container"></div>
+
+<div class="tw-space-y-6">
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Mesas Associadas
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        <span id="total-count">{{ page_obj.paginator.count }}</span> registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      <button id="exportar"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-download tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Exportar</span>
+      </button>
+
+      <button id="criar"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+        <i class="fa fa-plus tw-text-xs"></i><span>Criar</span>
+      </button>
+    </div>
+  </div>
+
+  <form id="filters" onsubmit="return false"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-w-full">
+      <div class="tw-relative tw-flex-1 tw-min-w-0">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input id="nome" type="text" placeholder="Pesquisar por utilizador..." autocomplete="off"
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
+      </div>
+
+      <input id="nr_mesa" type="text" placeholder="Nº Mesa"
+             class="tw-w-32 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+
+      <button id="btn-search" type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+      </button>
+
+      <button id="btn-clear" type="button" title="Limpar filtros"
+              class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </button>
+    </div>
+  </form>
+
+  <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <div class="tw-overflow-x-auto">
+      <table class="tw-min-w-full tw-text-sm tw-text-left">
+        <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+          <tr class="tw-border-b tw-border-slate-200/70">
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Utilizador</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Número de Mesa</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Criado em</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500 tw-text-center">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mesa in page_obj %}
+            <tr class="tbl-row tw-border-b tw-border-slate-100 last:tw-border-0">
+              <td class="tw-px-4 tw-py-3 tw-text-slate-700">{{ mesa.user.username }}</td>
+              <td class="tw-px-4 tw-py-3 tw-text-slate-700">{{ mesa.mesa.nr_mesa }}</td>
+              <td class="tw-px-4 tw-py-3 tw-text-slate-600">{{ mesa.createdAt }}</td>
+              <td class="tw-px-4 tw-py-3">
+                <div class="tw-flex tw-items-center tw-justify-center tw-gap-1.5">
+                  <button type="button" class="view tw-inline-flex tw-items-center tw-justify-center tw-w-7 tw-h-7 tw-rounded-md tw-bg-sky-50 tw-text-sky-600 hover:tw-bg-sky-100 hover:tw-text-sky-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-mesa="{{ mesa.id }}" title="Ver">
+                    <i class="fa fa-eye"></i>
+                  </button>
+                  <button type="button" class="edit tw-inline-flex tw-items-center tw-justify-center tw-w-7 tw-h-7 tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-mesa="{{ mesa.id }}" title="Editar">
+                    <i class="fa fa-edit"></i>
+                  </button>
+                  <button type="button" class="remover tw-inline-flex tw-items-center tw-justify-center tw-w-7 tw-h-7 tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-mesa="{{ mesa.id }}" title="Remover">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="tw-py-10 tw-text-center tw-text-slate-400">Sem registos</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-4 tw-py-3 tw-border-t tw-border-slate-100">
+      {% if page_obj.has_previous %}
+        <button class="page-item tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-gap-1 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 tw-px-2.5 tw-rounded-md tw-text-xs tw-transition" data-href="{{ page_obj.previous_page_number }}">Anterior</button>
+      {% endif %}
+      <span class="tw-text-xs tw-text-slate-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <button class="page-item tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-gap-1 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 tw-px-2.5 tw-rounded-md tw-text-xs tw-transition" data-href="{{ page_obj.next_page_number }}">Próxima</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5>Detalhes de Mesa</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <h5>Mesa</h5>
+          </div>
+          <div class="card-body" style="padding-bottom: 10px;">
+            <div class="row">
+              <div class="col-md-6">
+                <label style="font-weight: 700;color: black;">Numero de Mesa:</label>
+                <span id="id_nr_mesa_view"></span>
+              </div>
+              <div class="col-md-6">
+                <label style="font-weight: 700;color: black;">Username:</label>
+                <span id="id_user_view"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="create-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <form action="{% url 'mesa.create_update' %}" method="post" id="add-form" enctype="multipart/form-data">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="hearder">Criar Mesa</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="card">
+            <div class="card-body">
+              <div class="form-group">
+                {{ form.mesa.label_tag }}
+                {{ form.mesa }}
+                {{ form.mesa.errors }}
+                <span class="errors"></span>
+              </div>
+              <div class="form-group">
+                {{ form.user.label_tag }}
+                {{ form.user }}
+                {{ form.user.errors }}
+                <span class="errors"></span>
+              </div>
+              <input type="hidden" id="id" name="id">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="save">Criar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + '=') {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
-        return cookieValue
       }
-  
-      function updateContent(data){
-        $(".content-data").html($(data).find(".content-data").children())
-        $("#message-div").html($(data).find("#message-div").children())
-        setTimeout(function(){
-            $(".alert").fadeOut()
-        },6000)
+    }
+    return cookieValue;
+  }
+
+  function toast(message, type) {
+    type = type || 'success';
+    var styles = {
+      success: 'tw-bg-mpd-500 tw-text-white',
+      error: 'tw-bg-red-500 tw-text-white',
+      info: 'tw-bg-slate-800 tw-text-white'
+    }[type];
+    var icon = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' }[type];
+    var t = $('<div class="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2.5 tw-rounded-lg tw-shadow-soft tw-text-sm tw-animate-slide-in ' + styles + '">' +
+      '<i class="fa ' + icon + '"></i><span>' + message + '</span></div>');
+    $('#toast-container').append(t);
+    setTimeout(function () { t.addClass('tw-animate-fade-out'); setTimeout(function () { t.remove(); }, 250); }, 2800);
+  }
+
+  function currentFilters(extra) {
+    return Object.assign({
+      nome: $('#nome').val(),
+      nr_mesa: $('#nr_mesa').val()
+    }, extra || {});
+  }
+
+  function updateContent(data) {
+    var fragment = $('<div>').append(data);
+    $('.content-data').html(fragment.find('.content-data').html());
+    var total = fragment.find('#total-count').text();
+    if (total) $('#total-count').text(total);
+  }
+
+  function downloadBlob(content, filename, contentType) {
+    var blob = new Blob([content], { type: contentType });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', filename);
+    a.click();
+  }
+
+  function search(page) {
+    var data = currentFilters(page ? { page: page } : null);
+    $('.content-data').html(
+      '<div class="tw-flex tw-flex-col tw-justify-center tw-items-center tw-py-16 tw-text-slate-400 tw-gap-2">' +
+      '<i class="fa fa-spinner fa-spin tw-text-2xl tw-text-mpd-600"></i>' +
+      '<span class="tw-text-xs">A carregar...</span>' +
+      '</div>'
+    );
+    $.get('', data, function (res) {
+      updateContent(res);
+    }).fail(function () {
+      toast('Erro ao carregar resultados', 'error');
+    });
+  }
+
+  $(document).on('click', '#save', function () {
+    $(this).append("<i class='fa fa-spinner tw-ml-2'></i>");
+    $(this).prop('disabled', true);
+    $('#add-form').submit();
+  });
+
+  $(document).on('click', '.edit', function () {
+    var id = $(this).attr('id-mesa');
+    $.get('mesa/view', { id: id }, function (data) {
+      $('#create-modal').find('#hearder').text('Atualizar Mesa');
+      $('#create-modal').find('#id_mesa').val(data.mesa.id).trigger('change');
+      $('#create-modal').find('#id_user').val(data.user.id).trigger('change');
+      $('#create-modal').find('#id').val(id);
+      $('#create-modal').find('#save').text('Atualizar');
+      $('#create-modal').modal('show');
+    });
+  });
+
+  $(document).on('click', '.remover', function () {
+    var id = $(this).attr('id-mesa');
+    if (!confirm('Desejar apagar esta mesa?')) return;
+    $.post("{% url 'mesa.remover'%}", { id: id, csrfmiddlewaretoken: getCookie('csrftoken') }, function (data) {
+      updateContent(data);
+      toast('Mesa removida', 'success');
+    }).fail(function () {
+      toast('Erro ao remover mesa', 'error');
+    });
+  });
+
+  $(document).on('click', '.view', function () {
+    var id = $(this).attr('id-mesa');
+    $.get('mesa/view', { id: id }, function (data) {
+      $('#view-modal').find('#id_nr_mesa_view').text(data.mesa.nr_mesa);
+      $('#view-modal').find('#id_user_view').text(data.user.username);
+      $('#view-modal').modal('show');
+    });
+  });
+
+  $(document).on('click', '#criar', function () {
+    $('#create-modal').find('#hearder').text('Criar Mesa');
+    $('#create-modal').find('#id').val('');
+    $('#create-modal').find('input,select,file').val('');
+    $('#create-modal').find('input,select,file').trigger('change');
+    $('#create-modal').find('#save').text('Criar');
+    $('#create-modal').modal('show');
+  });
+
+  $(document).ready(function () {
+    $('#add-form').submit(function (event) {
+      event.preventDefault();
+      var formData = new FormData(this);
+      formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+      var isError = false;
+      if ($('#id_mesa').val() == '') {
+        $('#id_mesa').addClass('invalid');
+        $('#id_mesa').parent('.form-group').find('.errors').text('Este campo deve ser preenchido!');
+        isError = true;
       }
-  
-      $(document).on("click","#save",function(){
-        $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
-        $(this).prop("disabled",true)
-        $("#add-form").submit()
-      })
+      if ($('#id_user').val() == '') {
+        $('#id_user').addClass('invalid');
+        $('#id_user').parent('.form-group').find('.errors').text('Este campo deve ser preenchido!');
+        isError = true;
+      }
 
-      $(document).on("click",".edit",function(){
-        let id = $(this).attr("id-mesa")
-  
-        $.get("mesa/view",{id:id},function(data){
-          $("#create-modal").find("#hearder").text("Atualizar Mesa")
-          $("#create-modal").find("#id_mesa").val(data.mesa.id).trigger("change")
-          $("#create-modal").find("#id_user").val(data.user.id).trigger("change")
-          $("#create-modal").find("#id").val(id)
-          $("#create-modal").find("#save").text("Atualizar")
-          $("#create-modal").modal("show")
-        })
-        
-      })
+      if (isError) {
+        $('#save').find('i').remove();
+        $('#save').prop('disabled', false);
+        return;
+      }
 
-      $(document).on('click', '.remover', function () {
-        const csrftoken = getCookie('csrftoken')
-        let id = $(this).attr("id-mesa")
-        if (confirm('Desejar apagar esta mesa?')) {
-          $.post("{% url 'mesa.remover'%}", { 'id': id, csrfmiddlewaretoken: csrftoken }, function (data) {
-            updateContent(data)
-          })
+      $.ajax({
+        url: $(this).attr('action'),
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (data) {
+          $('#create-modal').modal('hide');
+          updateContent(data);
+          $('#create-modal').find('input,select').val('');
+          $('#create-modal').find('input,select').trigger('change');
+          $('#save').find('i').remove();
+          $('#save').prop('disabled', false);
+          toast('Operação concluída', 'success');
+        },
+        error: function () {
+          $('#save').find('i').remove();
+          $('#save').prop('disabled', false);
+          toast('Erro na criação de mesa', 'error');
         }
-      })
-
-      $(document).on("click",".view",function(){
-        let id = $(this).attr("id-mesa")
-  
-        $.get("mesa/view",{id:id},function(data){
-          $("#view-modal").find("#id_nr_mesa_view").text(data.mesa.nr_mesa)
-          $("#view-modal").find("#id_user_view").text(data.user.username)          
-          $("#view-modal").modal("show")
-        })
-        
-      })
-
-
-      $(document).on('click','#criar',function(){
-        $("#create-modal").find("#hearder").text("Criar Mesa")
-        $("#create-modal").find("#id").val("")
-        $("#create-modal").find("input,select,file").val("")
-        $("#create-modal").find("input,select,file").trigger("change")
-        $("#create-modal").find("#save").text("Criar")
-        $('#create-modal').modal('show')
-      })
-
-      $(document).ready(function(){
-        $('#add-form').submit(function(event) {
-          event.preventDefault();
-          var formData = new FormData(this);
-          formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-  
-          let isError = false
-  
-          if($("#id_nr_mesa").val() == ""){
-            $("#id_nr_mesa").addClass("invalid")
-            $("#id_nr_mesa").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
-            isError = true
-          }
-          
-          if($("#id_user").val() == ""){
-            $("#id_user").addClass("invalid")
-            $("#id_user").parent('.form-group').find(".errors").text("Este campo deve ser preenchido!")
-            isError = true
-          }
-  
-          if(isError){
-            $("#save").find("i").remove()
-            $("#save").prop("disabled",false)
-            return
-          }
-          
-          $.ajax({
-              url: $(this).attr("action"),
-              type: 'POST',
-              data: formData,
-              processData: false,
-              contentType: false,
-              success: function(data) {
-                $("#create-modal").modal("hide")
-                updateContent(data)
-                $("#create-modal").find("input,select").val("")
-                $("#create-modal").find("input,select").trigger("change")
-                $("#save").find("i").remove()
-                $("#save").prop("disabled",false)
-              },
-              error: function(xhr, status, error) {
-                  alert("Erro na criação de mesa")
-              }
-          });
       });
-      })
+    });
+  });
 
-      function search(page = null){
+  $(document).on('click', '.page-item', function () {
+    search($(this).attr('data-href'));
+  });
 
-        $('#table-data').html("<div style='display: flex;justify-content: center;'><i class='fa fa-solid fa-spinner' style='font-size: 48px;'></i></div>")
-        let nome = $("#nome").val()
-        let nr_mesa = $("#nr_mesa").val()
-  
-        let data = {nome,nr_mesa}
-  
-        if(page){
-          data["page"] = page 
-        }
-  
-        $.get('',data , function (data) {
-          updateContent(data)
-        })
-      }
+  $(document).on('change', '.invalid', function () {
+    $(this).removeClass('invalid');
+    $(this).parent('.form-group').find('.errors').text('');
+  });
 
-      $(document).on("click",".page-item",function(event){
-        let page = $(this).attr("data-href")
-        search(page)
-      })
-  
-      $(document).on("change",".invalid",function(){
-        $(this).removeClass("invalid")
-        $(this).parent(".form-group").find(".errors").text("")
-      })
-  
-      $(document).on("click","#btn-search",function(){
-        search()
-      })
-  
-      $(document).on("change","#nome,#nr_mesa",function(){
-        search()
-      })
-  
-      $(document).on("click","#exportar",function(){
-        $(this).append("<i class='fa fa-solid fa-spinner' style='font-size: 15px;'></i>")
-        $(this).prop("disabled",true)
-        let nome = $("#nome").val()
-        let nr_mesa = $("#nr_mesa").val()
-  
-        let button = $(this)
-        $.get("{% url 'mesa.exportExcel' %}",{nome,nr_mesa},function(data){
-          downloadBlob(data, 'utilizador_mesa.csv', 'text/csv;charset=utf-8;')
-          $(button).find("i").remove()
-          $(button).prop("disabled",false)
-        })
-      })
-  
-      function downloadBlob(content, filename, contentType) {
-        // Create a blob
-        var blob = new Blob([content], { type: contentType });
-        var url = URL.createObjectURL(blob);
-      
-        // Create a link to download it
-        var pom = document.createElement('a');
-        pom.href = url;
-        pom.setAttribute('download', filename);
-        pom.click();
-      }
+  let debounce;
+  $(document).on('input', '#nome,#nr_mesa', function () {
+    clearTimeout(debounce);
+    debounce = setTimeout(function () { search(); }, 350);
+  });
 
-  </script>
+  $(document).on('keydown', '#nome,#nr_mesa', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(debounce);
+      search();
+    }
+  });
+
+  $(document).on('click', '#btn-search', function (e) {
+    e.preventDefault();
+    search();
+  });
+
+  $(document).on('click', '#btn-clear', function () {
+    $('#nome,#nr_mesa').val('');
+    search();
+  });
+
+  $(document).on('click', '#exportar', function () {
+    var button = $(this);
+    var original = button.html();
+    button.prop('disabled', true);
+    button.html('<i class="fa fa-spinner fa-spin"></i><span class="tw-hidden sm:tw-inline">A exportar...</span>');
+    $.get("{% url 'mesa.exportExcel' %}", currentFilters(), function (data) {
+      downloadBlob(data, 'utilizador_mesa.csv', 'text/csv;charset=utf-8;');
+      toast('Ficheiro CSV gerado', 'success');
+    }).fail(function () {
+      toast('Erro ao exportar', 'error');
+    }).always(function () {
+      button.prop('disabled', false);
+      button.html(original);
+    });
+  });
+</script>
 {% endblock %}

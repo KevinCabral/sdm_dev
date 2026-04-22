@@ -1,0 +1,83 @@
+{% extends 'layouts/base.html' %}
+{% load i18n static %}
+
+{% block extrahead %}
+  {% include 'admin/_mpd_admin_shell.html' %}
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="tw-space-y-6">
+
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Administração
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        Gestão de aplicações e modelos da plataforma
+      </p>
+    </div>
+  </div>
+
+  {% if app_list %}
+    <div class="tw-grid tw-gap-4 md:tw-grid-cols-2 xl:tw-grid-cols-3">
+      {% for app in app_list %}
+        <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+          <div class="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3 tw-border-b tw-border-slate-100 tw-bg-slate-50/60">
+            <div class="tw-flex tw-items-center tw-gap-2 tw-min-w-0">
+              <div class="tw-w-8 tw-h-8 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-inline-flex tw-items-center tw-justify-center tw-shrink-0">
+                <i class="fa fa-cubes tw-text-xs"></i>
+              </div>
+              <h2 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0 tw-truncate">{{ app.name }}</h2>
+            </div>
+            {% if app.app_url %}
+              <a href="{{ app.app_url }}" class="tw-text-xs tw-text-slate-500 hover:tw-text-mpd-700" style="text-decoration:none;">Abrir</a>
+            {% endif %}
+          </div>
+          <ul class="tw-divide-y tw-divide-slate-100 tw-list-none tw-p-0 tw-m-0">
+            {% for model in app.models %}
+              <li class="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-2.5">
+                <div class="tw-min-w-0">
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" class="tw-text-sm tw-text-slate-900 hover:tw-text-mpd-700 tw-font-medium tw-truncate" style="text-decoration:none;">
+                      {{ model.name }}
+                    </a>
+                  {% else %}
+                    <span class="tw-text-sm tw-text-slate-700">{{ model.name }}</span>
+                  {% endif %}
+                  <div class="tw-text-xs tw-text-slate-400 tw-mt-0.5">
+                    {% if model.object_name %}{{ model.object_name }}{% endif %}
+                  </div>
+                </div>
+                <div class="tw-flex tw-items-center tw-gap-1">
+                  {% if model.add_url %}
+                    <a href="{{ model.add_url }}" title="{% trans 'Add' %}"
+                       class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 hover:tw-bg-mpd-100 tw-transition" style="text-decoration:none;">
+                      <i class="fa fa-plus tw-text-xs"></i>
+                    </a>
+                  {% endif %}
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" title="{% trans 'Open' %}"
+                       class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-slate-50 tw-text-slate-600 hover:tw-bg-slate-100 hover:tw-text-slate-900 tw-transition" style="text-decoration:none;">
+                      <i class="fa fa-arrow-right tw-text-xs"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-py-16 tw-text-center">
+      <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+        <i class="fa fa-lock"></i>
+      </div>
+      <div class="tw-text-slate-700 tw-font-medium tw-text-sm">{% trans "You don't have permission to view or edit anything." %}</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

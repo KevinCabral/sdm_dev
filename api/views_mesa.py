@@ -14,10 +14,12 @@ from django.db.models import Q
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.eleitores.models import Eleitores
+from apps.eleitores.models import Votacao
 from apps.mesa.models import Mesa, UserMesa
 
 from .permissions import (
@@ -37,6 +39,9 @@ from .serializers_mesa import (
     UserMesaBulkAssignSerializer,
     UserMesaSerializer,
     UserMiniSerializer,
+    VotacaoRegisterSerializer,
+    VotacaoSerializer,
+    VotacaoUnregisterSerializer,
 )
 
 
@@ -257,3 +262,212 @@ class EleitorViewSet(viewsets.ModelViewSet):
         else:
             mesas = Mesa.objects.filter(id__in=user_mesa_ids(user))
         return Response(MesaSerializer(mesas.order_by("nr_mesa"), many=True).data)
+
+
+# ---------- Votacao ----------
+
+class VotacaoPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
+class VotacaoViewSet(viewsets.ModelViewSet):
+    """
+    /api/votacoes/
+
+    Votação records linked to eleitores via `nr_eleitor` (no FK on the legacy table).
+
+    - List/Detail: admin → all; delegado → only votações in their mesas.
+    - Create/Update/Delete: admin → any; delegado → only on their mesas.
+
+    Custom actions
+    --------------
+    - POST   /api/votacoes/register-vote/         → register a vote for an eleitor
+    - POST   /api/votacoes/unregister-vote/       → cancel/anular a vote
+    - GET    /api/votacoes/by-eleitor/<nr>/       → fetch the vote(s) of an eleitor
+    - GET    /api/votacoes/by-mesa/<nr_mesa>/     → list votes for a given mesa
+    - GET    /api/votacoes/stats/                 → aggregated counts (per mesa, total)
+    """
+
+    permission_classes = [IsAdminOrDelegado]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["datetime", "nr_eleitor", "nr_mesa"]
+    ordering = ["-datetime"]
+    pagination_class = VotacaoPagination
+
+    def get_serializer_class(self):
+        if self.action == "register_vote":
+            return VotacaoRegisterSerializer
+        if self.action == "unregister_vote":
+            return VotacaoUnregisterSerializer
+        return VotacaoSerializer
+
+    def get_queryset(self):
+        qs = Votacao.objects.all()
+        user = self.request.user
+
+        if is_admin(user):
+            pass
+        elif is_delegado(user):
+            mesas = user_mesa_numbers(user)
+            if not mesas:
+                return qs.none()
+            qs = qs.filter(nr_mesa__in=mesas)
+        else:
+            return qs.none()
+
+        params = self.request.query_params
+        for field in ("nr_mesa", "nr_eleitor", "assembleia_voto_nr", "nr_bi_eleitor"):
+            value = params.get(field)
+            if value:
+                qs = qs.filter(**{field: value})
+        anulado = params.get("anulado")
+        if anulado is not None and anulado != "":
+            qs = qs.filter(anulado=1 if anulado.lower() in ("1", "true", "yes") else 0)
+        votou = params.get("votou")
+        if votou is not None and votou != "":
+            qs = qs.filter(votou=1 if votou.lower() in ("1", "true", "yes") else 0)
+        return qs
+
+    def _object_belongs_to_user(self, obj, user):
+        return obj.nr_mesa in user_mesa_numbers(user)
+
+    def _check_mesa_allowed(self, nr_mesa):
+        user = self.request.user
+        if is_admin(user):
+            return
+        if nr_mesa not in user_mesa_numbers(user):
+            raise PermissionDenied(
+                "Sem permissão para registar votos nesta mesa."
+            )
+
+    @action(detail=False, methods=["post"], url_path="register-vote")
+    def register_vote(self, request):
+        """Register (or re-register) a vote for an eleitor.
+
+        Also marks the eleitor as `descarga=True` so the changelist reflects it.
+        Idempotent: if a non-anulado vote already exists for the same
+        (nr_eleitor, nr_mesa), it is returned instead of duplicated.
+        """
+        serializer = VotacaoRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        eleitor = serializer.validated_data["eleitor"]
+        self._check_mesa_allowed(eleitor.nr_mesa)
+
+        existing = Votacao.objects.filter(
+            nr_eleitor=eleitor.nr_eleitor,
+            nr_mesa=eleitor.nr_mesa,
+        ).exclude(anulado=1).first()
+
+        if existing:
+            return Response(
+                VotacaoSerializer(existing).data,
+                status=status.HTTP_200_OK,
+            )
+
+        from django.utils import timezone
+        anulado = 1 if serializer.validated_data.get("anulado") else 0
+        votou = 0 if anulado else 1
+        votacao = Votacao.objects.create(
+            assembleia_voto_nr=serializer.validated_data.get("assembleia_voto_nr") or None,
+            nr_eleitor=eleitor.nr_eleitor,
+            nr_bi_eleitor=serializer.validated_data.get("nr_bi_eleitor") or None,
+            nr_mesa=eleitor.nr_mesa,
+            votou=votou,
+            anulado=anulado,
+            motivo_n_votou=serializer.validated_data.get("motivo_n_votou") or None,
+            datetime=timezone.now(),
+        )
+
+        if not anulado:
+            eleitor.descarga = True
+            eleitor.save(update_fields=["descarga", "datahora_atualizacao"])
+
+        return Response(
+            VotacaoSerializer(votacao).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"], url_path="unregister-vote")
+    def unregister_vote(self, request):
+        """Anular a previously registered vote.
+
+        Either `votacao_id` or `nr_eleitor` (+ optional `nr_mesa`) must be provided.
+        Marks `anulado=1`, `votou=0`, sets `motivo_n_votou`, and resets the
+        eleitor's `descarga` flag if no other valid vote exists.
+        """
+        serializer = VotacaoUnregisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        qs = self.get_queryset()
+        if data.get("votacao_id"):
+            votacao = qs.filter(pk=data["votacao_id"]).first()
+        else:
+            inner = qs.filter(nr_eleitor=data["nr_eleitor"])
+            if data.get("nr_mesa"):
+                inner = inner.filter(nr_mesa=data["nr_mesa"])
+            votacao = inner.exclude(anulado=1).order_by("-datetime").first()
+
+        if not votacao:
+            return Response(
+                {"detail": "Votação não encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        self._check_mesa_allowed(votacao.nr_mesa)
+
+        votacao.anulado = 1
+        votacao.votou = 0
+        if data.get("motivo"):
+            votacao.motivo_n_votou = data["motivo"]
+        votacao.save(update_fields=["anulado", "votou", "motivo_n_votou"])
+
+        # Reset eleitor.descarga if no more valid votes remain
+        still_valid = Votacao.objects.filter(
+            nr_eleitor=votacao.nr_eleitor, nr_mesa=votacao.nr_mesa
+        ).exclude(anulado=1).exists()
+        if not still_valid:
+            eleitor = Eleitores.objects.filter(
+                nr_eleitor=votacao.nr_eleitor, nr_mesa=votacao.nr_mesa
+            ).first()
+            if eleitor and eleitor.descarga:
+                eleitor.descarga = False
+                eleitor.save(update_fields=["descarga", "datahora_atualizacao"])
+
+        return Response(VotacaoSerializer(votacao).data)
+
+    @action(detail=False, methods=["get"], url_path=r"by-eleitor/(?P<nr_eleitor>\d+)")
+    def by_eleitor(self, request, nr_eleitor=None):
+        """Return all votação records for a given nr_eleitor (most recent first)."""
+        qs = self.get_queryset().filter(nr_eleitor=nr_eleitor).order_by("-datetime")
+        return Response(VotacaoSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path=r"by-mesa/(?P<nr_mesa>[^/]+)")
+    def by_mesa(self, request, nr_mesa=None):
+        """Return all votação records for a given mesa."""
+        self._check_mesa_allowed(nr_mesa)
+        qs = self.get_queryset().filter(nr_mesa=nr_mesa).order_by("-datetime")
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            return self.get_paginated_response(VotacaoSerializer(page, many=True).data)
+        return Response(VotacaoSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="stats")
+    def stats(self, request):
+        """Aggregated counts: votes/anuladas per mesa + grand totals (scoped by role)."""
+        from django.db.models import Count, Q
+        qs = self.get_queryset()
+        per_mesa = list(
+            qs.values("nr_mesa").annotate(
+                total=Count("id"),
+                votos_validos=Count("id", filter=Q(anulado=0) | Q(anulado__isnull=True)),
+                anuladas=Count("id", filter=Q(anulado=1)),
+            ).order_by("nr_mesa")
+        )
+        totals = qs.aggregate(
+            total=Count("id"),
+            votos_validos=Count("id", filter=Q(anulado=0) | Q(anulado__isnull=True)),
+            anuladas=Count("id", filter=Q(anulado=1)),
+        )
+        return Response({"totals": totals, "per_mesa": per_mesa})

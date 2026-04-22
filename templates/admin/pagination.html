@@ -1,0 +1,23 @@
+{% load i18n admin_urls %}
+{% if cl.paginator.num_pages > 1 %}
+  <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+    <div class="tw-text-xs tw-text-slate-500">
+      {% blocktrans with start=cl.result_list|length total=cl.result_count %}A mostrar <b>{{ start }}</b> de <b>{{ total }}</b>{% endblocktrans %}
+      · {% trans "página" %} <b class="tw-text-slate-700">{{ cl.page_num }}</b> {% trans "de" %} <b class="tw-text-slate-700">{{ cl.paginator.num_pages }}</b>
+    </div>
+    <div class="tw-inline-flex tw-items-center tw-gap-1">
+      {% if cl.page_num > 1 %}
+        <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'-1' }}"
+           class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50" style="text-decoration:none;">{% trans "Anterior" %}</a>
+      {% else %}
+        <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">{% trans "Anterior" %}</span>
+      {% endif %}
+      {% if cl.page_num < cl.paginator.num_pages %}
+        <a href="?{% for k, v in request.GET.items %}{% if k != 'p' %}{{ k }}={{ v }}&{% endif %}{% endfor %}p={{ cl.page_num|add:'1' }}"
+           class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50" style="text-decoration:none;">{% trans "Próxima" %}</a>
+      {% else %}
+        <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">{% trans "Próxima" %}</span>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

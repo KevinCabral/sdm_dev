@@ -82,7 +82,9 @@
         <div class="card-block">
           <div class="d-flex align-items-center justify-content-center flex-column">
             <div class="w-50 p-3" id="img-contrainer">
-              <img src="{% if user.profile and user.profile.image%} /media/{{user.profile.image}} {% else %} {% static 'assets/images/user/avatar-1.jpg' %} {% endif%}" alt="profile image" class="img-fluid rounded-circle" id="profile_image" style="width: 150px;height: 137px;transform: translateX(20px);" />
+                  <img src="{% if user.profile and user.profile.image %}/media/{{ user.profile.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
+                    onerror="this.onerror=null;this.src='{% static 'assets/images/user/avatar-1.jpg' %}';"
+                    alt="profile image" class="img-fluid rounded-circle" id="profile_image" style="width: 150px;height: 137px;transform: translateX(20px);" />
             </div>
             <div class="text-center">
               <h4 class="font-weight-bold h6">{{ user.username }}</h4>

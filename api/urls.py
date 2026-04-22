@@ -12,12 +12,13 @@ from .views import (
     PasswordResetRequestView,
     UserRegistration,
 )
-from .views_mesa import EleitorViewSet, MesaViewSet, UserMesaViewSet
+from .views_mesa import EleitorViewSet, MesaViewSet, UserMesaViewSet, VotacaoViewSet
 
 router = DefaultRouter()
 router.register(r"mesas", MesaViewSet, basename="api-mesa")
 router.register(r"user-mesas", UserMesaViewSet, basename="api-user-mesa")
 router.register(r"eleitores", EleitorViewSet, basename="api-eleitor")
+router.register(r"votacoes", VotacaoViewSet, basename="api-votacao")
 
 urlpatterns = [
     # Auth (Bearer JWT)
