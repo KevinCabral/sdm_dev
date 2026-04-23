@@ -66,13 +66,99 @@
     if (validateForm()) $('#form-militantes').submit();
   });
 
-  // ── Image preview
-  document.getElementById('masc-img').addEventListener('click', function (e) {
-    e.preventDefault();
-    document.getElementById('id_image').click();
-  });
-  document.getElementById('id_image').addEventListener('change', function (event) {
-    var file = event.target.files[0];
-    if (file) document.getElementById('profile_image').src = URL.createObjectURL(file);
-  });
+  // ── Image preview + drag & drop
+  (function () {
+    var input       = document.getElementById('id_image');
+    var img         = document.getElementById('profile_image');
+    var placeholder = document.getElementById('profile_placeholder');
+    var btnPick     = document.getElementById('masc-img');
+    var dz          = document.getElementById('image-dropzone');
+    var dzText      = document.getElementById('image-dropzone-text');
+    var dzHint      = document.getElementById('image-dropzone-hint');
+    var btnRemove   = document.getElementById('image-remove');
+    if (!input) return;
+
+    var MAX_BYTES = 5 * 1024 * 1024;
+    var DEFAULT_TEXT = 'Clique para escolher ou arraste uma imagem';
+    var DEFAULT_HINT = 'PNG ou JPG · até 5\u00a0MB · recomendado 400×400';
+
+    function showImage(src, name, size) {
+      img.src = src;
+      img.classList.remove('tw-hidden');
+      placeholder && placeholder.classList.add('tw-hidden');
+      if (name) dzText.textContent = name;
+      if (size != null) dzHint.textContent = (size / 1024).toFixed(0) + ' KB · clique para substituir';
+      btnRemove && btnRemove.classList.remove('tw-hidden');
+    }
+
+    function clearImage() {
+      img.src = '';
+      img.classList.add('tw-hidden');
+      placeholder && placeholder.classList.remove('tw-hidden');
+      dzText.textContent = DEFAULT_TEXT;
+      dzHint.textContent = DEFAULT_HINT;
+      btnRemove && btnRemove.classList.add('tw-hidden');
+      try { input.value = ''; } catch (e) {}
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!/^image\//.test(file.type)) {
+        alert('Por favor selecione uma imagem (PNG ou JPG).');
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        alert('Imagem demasiado grande. Máximo 5 MB.');
+        return;
+      }
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+      } catch (e) {}
+      showImage(URL.createObjectURL(file), file.name, file.size);
+    }
+
+    btnPick && btnPick.addEventListener('click', function (e) {
+      e.preventDefault();
+      input.click();
+    });
+
+    input.addEventListener('change', function (event) {
+      var file = event.target.files[0];
+      if (file) showImage(URL.createObjectURL(file), file.name, file.size);
+    });
+
+    btnRemove && btnRemove.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearImage();
+    });
+
+    if (dz) {
+      ['dragenter','dragover'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dz.classList.add('tw-border-mpd-500','tw-bg-mpd-50/60');
+        });
+      });
+      ['dragleave','drop'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dz.classList.remove('tw-border-mpd-500','tw-bg-mpd-50/60');
+        });
+      });
+      dz.addEventListener('drop', function (e) {
+        var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) handleFile(f);
+      });
+    }
+
+    // If a server-side image was loaded, expose a remove control too
+    if (img && img.src && !img.classList.contains('tw-hidden')) {
+      dzText.textContent = 'Imagem atual';
+      dzHint.textContent = 'Clique para substituir';
+      btnRemove && btnRemove.classList.remove('tw-hidden');
+    }
+  })();
 </script>

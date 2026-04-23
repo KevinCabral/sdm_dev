@@ -1,69 +1,197 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+          keyframes: {
+            'slide-in': {
+              '0%':   { transform: 'translateY(-12px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)',     opacity: '1' },
+            },
+            'fade-out': {
+              '0%':   { opacity: '1' },
+              '100%': { opacity: '0', transform: 'translateY(-8px)' },
+            },
+          },
+          animation: {
+            'slide-in': 'slide-in .25s ease-out',
+            'fade-out': 'fade-out .25s ease-in forwards',
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .pcoded-content { background: #f6f7f9 !important; }
+
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08);
+      border-left: 3px solid #1a9123;
+      padding-left: 17px;
+    }
+
+    .tbl-row:hover { background: #fafbfc; }
+    .col-conteudo { max-width: 520px; }
+    .col-conteudo .content-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .pcoded-content button:not([disabled]),
+    .pcoded-content a { cursor: pointer; }
+
+    /* Toast container */
+    #toast-container {
+      position: fixed; top: 1rem; right: 1rem; z-index: 1080;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+
+    /* Title accent */
+    .title-accent {
+      display: inline-block;
+      width: 4px; height: 22px; border-radius: 3px;
+      background: #1a9123;
+      margin-right: 10px; vertical-align: -4px;
+    }
+
+    input.invalid, textarea.invalid, select.invalid { border: 1px solid #fecaca !important; }
+    .errors { color: rgb(223, 73, 73); }
+  </style>
+{% endblock extrahead %}
+
 {% block content %}
-  <div class="">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="" style="padding-left: 0;display: flex;justify-content: end;">
-          {% comment %} <h5>Carta de Convite</h5> {% endcomment %}
-          <div class="col-md-2" style="padding-top: 27px;transform: translateY(-30px);display: flex;justify-content: end;">
-            <button class="btn btn-primary" id="add" style="background-color:#1a9123;border:none;"><i class="fa fa-plus" style='font-size: 15px;'></i>Criar </button>
-          </div>
-        </div>
+  <div id="toast-container"></div>
+
+  <div class="tw-space-y-6">
+    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+      <div>
+        <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+          <span class="title-accent"></span>Cartas de Convite
+        </h1>
+        <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+          <span id="total-count">{{ cartas|length }}</span> registos
+        </p>
       </div>
-      
+      <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+        <button id="add"
+                class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+          <i class="fa fa-plus tw-text-xs"></i><span>Criar</span>
+        </button>
+      </div>
     </div>
-  
-     
-    </div>
-    <div class="card row content-data">
-      <div class="col-md-12">
-        <div class="card-block px-0 py-3">
-          <div class="table-responsive">
-            <table class="table table-hover" id="table-data">
-              <thead>
-                <tr style="font-weight: 800;color: #0e7716;border-bottom: 3px solid #dbd1d1;">
-                  <th>Tipo</th>
-                  <th>Conteudo</th>
-                  <th>Estado</th>
-                  <th style="display: flex;justify-content: center;">Acção</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for carta in cartas %}
-                  <tr class=""  data-id = "{{carta.documentId}}" data-tipo = "{{carta.tipo}}"  data-conteudo = "{{carta.conteudo}}" data-imagem="{% if carta.imagem %}{{urlImage}}{{carta.imagem}}{% endif %}">
-                    <td>
-                      {{carta.tipo}}
-                    </td>
-                    <td>
-                      <p>{{ carta.conteudo|slice:":150" }} {% if carta.conteudo|length > 150 %} ... {% endif%}</p>
-                    </td>
-                    <td >{% if carta.active == True %} <span style="color: #1a9123;">Publicado</span>{% else %} <span style="color: #d70101;">Despublicado</span> {% endif %}</td>
-                    <td class="table-actions" style="display: flex;justify-content: center;">
-                      <a href="javascript:void(0)" class="label f-12 view" id-carta="{{ carta.documentId }}">
-                        <i class="fa fa-solid fa-eye" style="font-size: 24px;color:#1a9123;"></i>
-                      </a>
-                      <a href="javascript:void(0)" class="label f-12 edit">
-                        <i class="fa fa-solid fa-edit" style="font-size: 24px;color:#1a9123;"></i>
-                      </a>
-                      <!--
-                      <a href="javascript:void(0)" class="label text-danger f-12 apagar" id-carta="{{ carta.documentId }}">
-                        <i class="fa fa-solid fa-trash" style="font-size: 24px;"></i>
-                      </a>
-                      -->
-                      {% if carta.active == True %}
-                        <a href="javascript:void(0)" style="border-radius: 5px;padding-top: 7px;text-align: center;" class="label btn-danger text-white f-12 despublicar" id-carta="{{ carta.documentId }}">Despublicar</a>
-                        {% else %}
-                        <a href="javascript:void(0)"  class="label theme-bg f-12 publicar" style="background:#1a9123;color: white;border-radius: 5px;padding-top: 7px;width: 83px;text-align: center;" id-carta="{{ carta.documentId }}">Publicar</a>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+
+    <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+      <div class="tw-hidden md:tw-block tw-overflow-x-auto">
+        <table class="tw-min-w-full tw-text-sm tw-text-left" id="table-data">
+          <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-mpd-50/70 tw-backdrop-blur tw-border-b-2 tw-border-mpd-200">
+            <tr>
+              <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-mpd-800">Tipo</th>
+              <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-mpd-800 col-conteudo">Conteúdo</th>
+              <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-mpd-800">Estado</th>
+              <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-mpd-800 tw-text-center">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for carta in cartas %}
+              <tr class="tbl-row tw-border-b tw-border-slate-100 last:tw-border-0"
+                  data-id="{{carta.documentId}}"
+                  data-tipo="{{carta.tipo}}"
+                  data-conteudo="{{carta.conteudo}}"
+                  data-imagem="{% if carta.imagem %}{{urlImage}}{{carta.imagem}}{% endif %}">
+                <td class="tw-px-4 tw-py-3 tw-text-slate-800 tw-font-medium">{{ carta.tipo }}</td>
+                <td class="tw-px-4 tw-py-3 tw-text-slate-600 col-conteudo">
+                  <div class="content-text">{{ carta.conteudo }}</div>
+                </td>
+                <td class="tw-px-4 tw-py-3">
+                  {% if carta.active == True %}
+                    <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-emerald-50 tw-text-emerald-700 tw-text-xs tw-font-medium">
+                      <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-emerald-500"></span>Publicado
+                    </span>
+                  {% else %}
+                    <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-rose-50 tw-text-rose-700 tw-text-xs tw-font-medium">
+                      <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-rose-500"></span>Despublicado
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="tw-px-4 tw-py-3">
+                  <div class="tw-flex tw-items-center tw-justify-center tw-gap-1 tw-flex-wrap">
+                    <button type="button" class="view tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-sky-50 tw-text-sky-600 hover:tw-bg-sky-100 hover:tw-text-sky-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-carta="{{ carta.documentId }}" title="Ver">
+                      <i class="fa fa-eye tw-text-xs"></i>
+                    </button>
+                    <button type="button" class="edit tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" title="Editar">
+                      <i class="fa fa-edit tw-text-xs"></i>
+                    </button>
+                    {% if carta.active == True %}
+                      <button type="button" class="despublicar tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-carta="{{ carta.documentId }}" title="Despublicar">
+                        <i class="fa fa-eye-slash tw-text-xs"></i>
+                      </button>
+                    {% else %}
+                      <button type="button" class="publicar tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 hover:tw-bg-mpd-100 hover:tw-text-mpd-800 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150" id-carta="{{ carta.documentId }}" title="Publicar">
+                        <i class="fa fa-paper-plane tw-text-xs"></i>
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="tw-py-16 tw-text-center tw-text-slate-400">Sem registos</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="md:tw-hidden tw-divide-y tw-divide-slate-100">
+        {% for carta in cartas %}
+          <div class="tw-p-4"
+               data-id="{{carta.documentId}}"
+               data-tipo="{{carta.tipo}}"
+               data-conteudo="{{carta.conteudo}}"
+               data-imagem="{% if carta.imagem %}{{urlImage}}{{carta.imagem}}{% endif %}">
+            <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
+              <div class="tw-min-w-0">
+                <div class="tw-font-medium tw-text-slate-900 tw-truncate">{{ carta.tipo }}</div>
+                <div class="tw-text-xs tw-text-slate-500 tw-mt-1 tw-line-clamp-3">{{ carta.conteudo|slice:":140" }}{% if carta.conteudo|length > 140 %}...{% endif %}</div>
+              </div>
+              {% if carta.active == True %}
+                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-emerald-50 tw-text-emerald-700 tw-text-xs tw-font-medium tw-shrink-0">Publicado</span>
+              {% else %}
+                <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-rose-50 tw-text-rose-700 tw-text-xs tw-font-medium tw-shrink-0">Despublicado</span>
+              {% endif %}
+            </div>
+            <div class="tw-flex tw-justify-end tw-gap-1 tw-mt-3 tw-flex-wrap">
+              <button type="button" class="view tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-sky-700 tw-bg-sky-50" id-carta="{{ carta.documentId }}" title="Ver"><i class="fa fa-eye tw-text-xs"></i></button>
+              <button type="button" class="edit tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-amber-700 tw-bg-amber-50" title="Editar"><i class="fa fa-edit tw-text-xs"></i></button>
+              {% if carta.active == True %}
+                <button type="button" class="despublicar tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-rose-700 tw-bg-rose-50" id-carta="{{ carta.documentId }}" title="Despublicar"><i class="fa fa-eye-slash tw-text-xs"></i></button>
+              {% else %}
+                <button type="button" class="publicar tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-mpd-700 tw-bg-mpd-50" id-carta="{{ carta.documentId }}" title="Publicar"><i class="fa fa-paper-plane tw-text-xs"></i></button>
+              {% endif %}
+            </div>
           </div>
-        </div>
+        {% empty %}
+          <div class="tw-py-16 tw-text-center tw-text-slate-400">Sem registos</div>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -109,81 +237,94 @@
       </div>
   </div>
 
-  <div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label >Tipo: </label>
-              <p id="tipo-view"></p>
-            </div>
-            <div class="form-group">
-              <label for="conteudo">Conteudo:</label>
-              <p id="conteudo-view"></p>
-            </div>
-            <div>
-              <label for="">Imagem</label>
-              <img src="" alt="" id="imagem-view" style="width: 100%;">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          </div>
+  <div class="modal fade" id="view-modal-bs-placeholder" style="display:none"></div>
+
+  <div id="view-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+    <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-2xl tw-overflow-hidden">
+      <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+        <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+          <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center">
+            <i class="fa fa-eye tw-text-xs"></i>
+          </span>
+          <span>Detalhes da Carta</span>
+        </h2>
+        <button type="button" class="js-modal-close tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" data-target="#view-modal" aria-label="Fechar">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+
+      <div class="tw-p-5 tw-space-y-4 tw-max-h-[80vh] tw-overflow-y-auto">
+        <div>
+          <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-1">Tipo</div>
+          <div id="tipo-view" class="tw-text-sm tw-text-slate-800"></div>
+        </div>
+        <div>
+          <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-1">Conteúdo</div>
+          <div id="conteudo-view" class="tw-text-sm tw-text-slate-800 tw-whitespace-pre-wrap"></div>
+        </div>
+        <div id="imagem-view-wrap">
+          <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-1">Imagem</div>
+          <img src="" alt="" id="imagem-view" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200">
         </div>
       </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+        <button type="button" class="js-modal-close tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition" data-target="#view-modal">Fechar</button>
+      </div>
+    </div>
   </div>
 
-  <div class="modal fade" id="edit-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelEdit" aria-hidden="true">
-    <form action="" method="post" id="edit-form">
-      <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabelEdit">Atualizar Carta de Convite</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  {# ── Editar — Tailwind modal ─────────────────────────── #}
+  <div id="edit-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+    <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-2xl tw-overflow-hidden">
+      <form action="" method="post" id="edit-form">
+        <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+          <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+            <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-amber-50 tw-text-amber-600 tw-flex tw-items-center tw-justify-center">
+              <i class="fa fa-edit tw-text-xs"></i>
+            </span>
+            <span>Atualizar Carta de Convite</span>
+          </h2>
+          <button type="button" class="js-modal-close tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" data-target="#edit-modal" aria-label="Fechar">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+
+        <div class="tw-p-5 tw-space-y-4 tw-max-h-[80vh] tw-overflow-y-auto">
+          <div class="form-group tw-m-0">
+            <label for="edit-tipo" class="tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1 tw-block">Tipo</label>
+            <select name="tipo" id="edit-tipo" class="form-control tw-w-full tw-h-10 tw-rounded-md tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500" required>
+              <option value="">Seleciona o tipo</option>
+              <option value="Aniversário">Aniversário</option>
+              <option value="Jantar">Jantar</option>
+            </select>
+            <span class="errors tw-text-xs"></span>
           </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="edit-tipo">Tipo</label>
-              <select name="tipo" id="edit-tipo" class="form-control"  required="">
-                <option value="">Seleciona o tipo</option>
-                <option value="Aniversário">Aniversário</option>
-                <option value="Jantar">Jantar</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <input type="file" name="imagem" id="edit-imagem" class="form-control" accept="image/*">
-              <span class="errors"></span>
-            </div>
-            <img src="" alt="" id="imagem-edit" style="width: 100%;margin-bottom: 10px;height: 250px;">
-            <input type="hidden" name="id" id="edit-id">
-            <div class="form-group"><label for="edit-conteudo">Conteudo:</label>
-              <textarea name="conteudo" id="edit-conteudo" cols="30" rows="10"  class="form-control"  required="" ></textarea>
-              <span class="errors"></span>
-            </div>
+
+          <div class="form-group tw-m-0">
+            <label for="edit-imagem" class="tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1 tw-block">Imagem</label>
+            <input type="file" name="imagem" id="edit-imagem" class="form-control tw-w-full tw-text-sm" accept="image/*">
+            <span class="errors tw-text-xs"></span>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" id="edit" data-id="">Atualizar</button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+          <img src="" alt="" id="imagem-edit" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200" style="max-height: 280px; object-fit: cover;">
+
+          <input type="hidden" name="id" id="edit-id">
+
+          <div class="form-group tw-m-0">
+            <label for="edit-conteudo" class="tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1 tw-block">Conteúdo</label>
+            <textarea name="conteudo" id="edit-conteudo" rows="8" class="form-control tw-w-full tw-rounded-md tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500" required></textarea>
+            <span class="errors tw-text-xs"></span>
           </div>
         </div>
-      </div>
-    </form>
+
+        <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+          <button type="button" class="js-modal-close tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition" data-target="#edit-modal">Cancelar</button>
+          <button type="button" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-transition tw-shadow-soft" id="edit" data-id=""><i class="fa fa-check tw-text-xs"></i> Atualizar</button>
+        </div>
+      </form>
+    </div>
   </div>
-
-  <style>
-    input.invalid, textarea.invalid{
-      border: 1px solid #ffdddd;
-    }
-
-    .errors{
-      color: rgb(223, 73, 73);
-    }
-  </style>
-
-
   <script>
     
     function getCookie(name) {
@@ -201,6 +342,46 @@
       }
       return cookieValue
     }
+
+    function toast(message, type) {
+      type = type || 'success';
+      const styles = {
+        success: 'tw-bg-mpd-500 tw-text-white',
+        error:   'tw-bg-red-500 tw-text-white',
+        info:    'tw-bg-slate-800 tw-text-white',
+      }[type];
+      const icon = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' }[type];
+      const $t = $(
+        '<div class="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2.5 tw-rounded-lg tw-shadow-soft tw-text-sm tw-animate-slide-in ' + styles + '">' +
+        '<i class="fa ' + icon + '"></i><span>' + message + '</span></div>'
+      );
+      $('#toast-container').append($t);
+      setTimeout(() => { $t.addClass('tw-animate-fade-out'); setTimeout(() => $t.remove(), 250); }, 2800);
+    }
+
+    /* Tailwind modal show/hide helpers (for #view-modal and #edit-modal) */
+    function openTwModal(sel){
+      const $m = $(sel);
+      $m.removeClass('tw-hidden').addClass('tw-flex');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeTwModal(sel){
+      const $m = $(sel);
+      $m.addClass('tw-hidden').removeClass('tw-flex');
+      document.body.style.overflow = '';
+    }
+    $(document).on('click', '.js-modal-close', function(){
+      closeTwModal($(this).data('target'));
+    });
+    $(document).on('click', '#view-modal, #edit-modal', function(e){
+      if (e.target === this) closeTwModal('#' + this.id);
+    });
+    $(document).on('keydown', function(e){
+      if (e.key === 'Escape'){
+        if (!$('#view-modal').hasClass('tw-hidden')) closeTwModal('#view-modal');
+        if (!$('#edit-modal').hasClass('tw-hidden')) closeTwModal('#edit-modal');
+      }
+    });
 
     var loadFileAdd = function (event) {
       var image = document.getElementById('add-image')
@@ -321,43 +502,56 @@
     $(document).on("click",".publicar",function(){
       let self = this
       let id = $(this).attr("id-carta")
+      if(!confirm("Deseja publicar esta carta?")) return
       $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
       $(this).prop("disabled",true)
       csrftoken = getCookie('csrftoken')
-      
-      if(confirm("Deseja publicar esta carta?")){
-        $.post("{% url 'carta_convite.publications' %}",{csrfmiddlewaretoken: csrftoken,id},function(data){
+
+      $.post("{% url 'carta_convite.publications' %}",{csrfmiddlewaretoken: csrftoken,id})
+        .done(function(data){
           updateContent(data)
+          toast('Carta publicada')
+        })
+        .fail(function(){ toast('Erro ao publicar carta', 'error') })
+        .always(function(){
           $(self).find("i").remove()
           $(self).prop("disabled",false)
         })
-      }
     })
 
     $(document).on("click",".despublicar",function(){
       let self = this
       let id = $(this).attr("id-carta")
+      if(!confirm("Deseja despublicar esta carta?")) return
       $(this).append("<i class='fa fa-solid fa-spinner' style='margin-left:10px'></i>")
       $(this).prop("disabled",true)
       csrftoken = getCookie('csrftoken')
-      
-      if(confirm("Deseja despublicar esta carta?")){
-        $.post("{% url 'carta_convite.notPublications' %}",{csrfmiddlewaretoken: csrftoken,id},function(data){
+
+      $.post("{% url 'carta_convite.notPublications' %}",{csrfmiddlewaretoken: csrftoken,id})
+        .done(function(data){
           updateContent(data)
+          toast('Carta despublicada', 'info')
+        })
+        .fail(function(){ toast('Erro ao despublicar carta', 'error') })
+        .always(function(){
           $(self).find("i").remove()
           $(self).prop("disabled",false)
         })
-      }
     })
 
     $(document).on("click",".view",function(){
       let parent = $(this).parents("tr")[0]
       $("#view-modal").find("#tipo-view").text($(parent).attr("data-tipo"))
       $("#view-modal").find("#conteudo-view").text($(parent).attr("data-conteudo"))
-      let link = $(parent).attr("data-imagem")
+      let link = $(parent).attr("data-imagem") || ""
       link = link.replace("/uploads/","")
-      $("#view-modal").find("#imagem-view").attr("src",link)
-      $("#view-modal").modal("show")
+      if (link && link !== "{{urlImage}}") {
+        $("#imagem-view-wrap").show()
+        $("#view-modal").find("#imagem-view").attr("src",link)
+      } else {
+        $("#imagem-view-wrap").hide()
+      }
+      openTwModal("#view-modal")
     })
 
     $(document).on("click",".edit",function(){
@@ -376,7 +570,7 @@
       }
       $("#edit-modal").find("#imagem-edit").attr("src",link)
 
-      $("#edit-modal").modal("show")
+      openTwModal("#edit-modal")
     })
 
     $(document).ready(function() {
@@ -400,9 +594,11 @@
                 $("#save").find("i").remove()
                 $("#save").prop("disabled",false)
                 $("#add-image").hide()
+                toast('Carta criada com sucesso')
               },
               error: function(xhr, status, error) {
                   console.error("Erro no envio da imagem:", error);
+                  toast('Erro ao criar carta', 'error')
               }
           });
       });
@@ -421,13 +617,15 @@
               processData: false,
               contentType: false,
               success: function(data) {
-                $("#edit-modal").modal("hide")
+                closeTwModal("#edit-modal")
                 updateContent(data)
                 $("#edit").find("i").remove()
                 $("#edit").prop("disabled",false)
+                toast('Carta atualizada')
               },
               error: function(xhr, status, error) {
                   console.error("Erro no envio da imagem:", error);
+                  toast('Erro ao atualizar carta', 'error')
               }
           });
       });

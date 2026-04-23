@@ -110,6 +110,32 @@ def view(request, id):
 
 
 @login_required
+def detail_json(request, id):
+    eleitor = get_object_or_404(Eleitores, pk=id)
+    return JsonResponse({
+        'id': eleitor.id,
+        'nome': eleitor.nome,
+        'nominho': eleitor.nominho,
+        'filiacao': eleitor.filiacao,
+        'data_nascimento': eleitor.data_nascimento.isoformat() if eleitor.data_nascimento else None,
+        'idade_eleitor': eleitor.idade_eleitor,
+        'contato': eleitor.contato,
+        'nacionalidade': eleitor.nacionalidade,
+        'concelho': eleitor.concelho,
+        'zona': eleitor.zona,
+        'nr_mesa': eleitor.nr_mesa,
+        'nr_eleitor': eleitor.nr_eleitor,
+        'falecido': bool(eleitor.falecido),
+        'ausente': bool(eleitor.ausente),
+        'indeciso': bool(eleitor.indeciso),
+        'nao_vai_votar': bool(eleitor.nao_vai_votar),
+        'mpd': bool(eleitor.mpd),
+        'descarga': bool(eleitor.descarga),
+        'militante': eleitor.militante_id.nome_completo if eleitor.militante_id_id else None,
+    })
+
+
+@login_required
 def remover(request):
     if request.method != "POST":
         raise ObjectDoesNotExist()

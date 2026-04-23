@@ -7,6 +7,7 @@ urlpatterns = [
     path("/dashboard", views.dashboard, name="eleitores.dashboard"), 
     path("/create", views.create, name="eleitores.create"),
     path("/remover", views.remover, name="eleitores.remover"),
+    path("/<int:id>/detail-json", views.detail_json, name="eleitores.detail_json"),
     path("/update/<int:id>", views.update, name="eleitores.update"),
     path("/<int:id>", views.view, name="eleitores.view"), 
     path("/export/excel", views.exportExcel, name="eleitores.exportExcel"),

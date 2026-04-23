@@ -3,6 +3,7 @@
 
 {% block extrahead %}
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script>
     tailwind.config = {
       prefix: 'tw-',
@@ -77,6 +78,37 @@
     }
     .modal .invalid {
       border-color: #dc2626 !important;
+    }
+
+    /* Select2 v4 — match input look inside Tailwind modal */
+    .select2-container { width: 100% !important; z-index: 1100; }
+    .select2-container--default .select2-selection--single {
+      height: 2.5rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: .5rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 2.5rem;
+      padding-left: .75rem;
+      color: #0f172a;
+      font-size: .875rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 2.5rem;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--single {
+      background: #fff;
+      border-color: #1a9123;
+      box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+    }
+    .select2-dropdown { border-color: #e2e8f0; border-radius: .5rem; box-shadow: 0 8px 24px -8px rgba(15,23,42,.18); }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+      background-color: #1a9123;
+    }
+    .select2-search--dropdown .select2-search__field {
+      border: 1px solid #e2e8f0; border-radius: .375rem; padding: .35rem .5rem; font-size: .85rem;
     }
   </style>
 {% endblock extrahead %}
@@ -185,74 +217,83 @@
   </div>
 </div>
 
-<div class="modal fade" id="view-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5>Detalhes de Mesa</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <div class="card" style="margin-bottom: 0;">
-          <div class="card-header">
-            <h5>Mesa</h5>
-          </div>
-          <div class="card-body" style="padding-bottom: 10px;">
-            <div class="row">
-              <div class="col-md-6">
-                <label style="font-weight: 700;color: black;">Numero de Mesa:</label>
-                <span id="id_nr_mesa_view"></span>
-              </div>
-              <div class="col-md-6">
-                <label style="font-weight: 700;color: black;">Username:</label>
-                <span id="id_user_view"></span>
-              </div>
-            </div>
-          </div>
+<div id="view-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-lg tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-eye tw-text-xs"></i>
+        </span>
+        <span>Detalhes de Mesa</span>
+      </h2>
+      <button type="button" id="view-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tw-p-5 tw-space-y-4">
+      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3">
+          <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Número de Mesa</div>
+          <div id="id_nr_mesa_view" class="tw-text-sm tw-text-slate-900 tw-font-medium tw-mt-1"></div>
+        </div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3">
+          <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Utilizador</div>
+          <div id="id_user_view" class="tw-text-sm tw-text-slate-900 tw-font-medium tw-mt-1"></div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-pt-2 tw-border-t tw-border-slate-100">
+        <button type="button" id="view-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Fechar</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="create-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <form action="{% url 'mesa.create_update' %}" method="post" id="add-form" enctype="multipart/form-data">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 id="hearder">Criar Mesa</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="card">
-            <div class="card-body">
-              <div class="form-group">
-                {{ form.mesa.label_tag }}
-                {{ form.mesa }}
-                {{ form.mesa.errors }}
-                <span class="errors"></span>
-              </div>
-              <div class="form-group">
-                {{ form.user.label_tag }}
-                {{ form.user }}
-                {{ form.user.errors }}
-                <span class="errors"></span>
-              </div>
-              <input type="hidden" id="id" name="id">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="save">Criar</button>
-        </div>
+<div id="create-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-lg tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-table tw-text-xs"></i>
+        </span>
+        <span id="hearder">Criar Mesa</span>
+      </h2>
+      <button type="button" id="create-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'mesa.create_update' %}" method="post" id="add-form" enctype="multipart/form-data" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_mesa" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Mesa <span class="tw-text-rose-500">*</span></label>
+        {{ form.mesa }}
+        {{ form.mesa.errors }}
+        <span class="errors"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="id_user" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Utilizador <span class="tw-text-rose-500">*</span></label>
+        {{ form.user }}
+        {{ form.user.errors }}
+        <span class="errors"></span>
+      </div>
+
+      <input type="hidden" id="id" name="id">
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="create-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="save" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span>Criar</span>
+        </button>
       </div>
     </form>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
   function getCookie(name) {
@@ -323,21 +364,33 @@
   }
 
   $(document).on('click', '#save', function () {
-    $(this).append("<i class='fa fa-spinner tw-ml-2'></i>");
+    $(this).append("<i class='fa fa-spinner fa-spin tw-ml-2'></i>");
     $(this).prop('disabled', true);
     $('#add-form').submit();
   });
 
   $(document).on('click', '.edit', function () {
     var id = $(this).attr('id-mesa');
-    $.get('mesa/view', { id: id }, function (data) {
+    $.get("{% url 'mesa.view' %}", { id: id }, function (data) {
       $('#create-modal').find('#hearder').text('Atualizar Mesa');
-      $('#create-modal').find('#id_mesa').val(data.mesa.id).trigger('change');
-      $('#create-modal').find('#id_user').val(data.user.id).trigger('change');
+
+      // AJAX-backed Select2 has no preloaded options — inject the current ones.
+      var $mesa = $('#create-modal').find('#id_mesa').empty();
+      if (data.mesa) {
+        $mesa.append(new Option(data.mesa.nr_mesa, data.mesa.id, true, true));
+      }
+      $mesa.trigger('change');
+
+      var $user = $('#create-modal').find('#id_user').empty();
+      if (data.user) {
+        $user.append(new Option(data.user.username, data.user.id, true, true));
+      }
+      $user.trigger('change');
+
       $('#create-modal').find('#id').val(id);
-      $('#create-modal').find('#save').text('Atualizar');
-      $('#create-modal').modal('show');
-    });
+      $('#create-modal').find('#save span').text('Atualizar');
+      showCreateModal();
+    }).fail(function () { toast('Falha ao carregar registo', 'error'); });
   });
 
   $(document).on('click', '.remover', function () {
@@ -353,20 +406,83 @@
 
   $(document).on('click', '.view', function () {
     var id = $(this).attr('id-mesa');
-    $.get('mesa/view', { id: id }, function (data) {
-      $('#view-modal').find('#id_nr_mesa_view').text(data.mesa.nr_mesa);
-      $('#view-modal').find('#id_user_view').text(data.user.username);
-      $('#view-modal').modal('show');
-    });
+    $.get("{% url 'mesa.view' %}", { id: id }, function (data) {
+      $('#view-modal').find('#id_nr_mesa_view').text(data.mesa ? data.mesa.nr_mesa : '—');
+      $('#view-modal').find('#id_user_view').text(data.user ? data.user.username : '—');
+      showViewModal();
+    }).fail(function () { toast('Falha ao carregar registo', 'error'); });
   });
 
   $(document).on('click', '#criar', function () {
     $('#create-modal').find('#hearder').text('Criar Mesa');
     $('#create-modal').find('#id').val('');
-    $('#create-modal').find('input,select,file').val('');
-    $('#create-modal').find('input,select,file').trigger('change');
-    $('#create-modal').find('#save').text('Criar');
-    $('#create-modal').modal('show');
+    $('#create-modal').find('#id_mesa').empty().trigger('change');
+    $('#create-modal').find('#id_user').empty().trigger('change');
+    $('#create-modal').find('#save span').text('Criar');
+    showCreateModal();
+  });
+
+  // ---- Tailwind modal helpers ----
+  function showCreateModal() {
+    $('#create-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function hideCreateModal() {
+    $('#create-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+  function showViewModal() {
+    $('#view-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function hideViewModal() {
+    $('#view-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+  $(document).on('click', '#create-modal-close,#create-modal-cancel', function () { hideCreateModal(); });
+  $(document).on('click', '#view-modal-close,#view-modal-cancel', function () { hideViewModal(); });
+  $(document).on('click', '#create-modal', function (e) { if (e.target === this) hideCreateModal(); });
+  $(document).on('click', '#view-modal', function (e) { if (e.target === this) hideViewModal(); });
+  $(document).on('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!$('#create-modal').hasClass('tw-hidden')) hideCreateModal();
+    if (!$('#view-modal').hasClass('tw-hidden')) hideViewModal();
+  });
+
+  $(function () {
+    if (!$.fn.select2) return;
+
+    $('#id_mesa').select2({
+      placeholder: 'Procure pelo número da mesa...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0,
+      dropdownParent: $('#create-modal'),
+      ajax: {
+        url: "{% url 'mesa.search_mesas' %}",
+        dataType: 'json',
+        delay: 200,
+        data: function (params) { return { q: params.term }; },
+        processResults: function (data) { return { results: data.results || [] }; },
+        cache: true
+      }
+    });
+
+    $('#id_user').select2({
+      placeholder: 'Procure pelo nome de utilizador...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0,
+      dropdownParent: $('#create-modal'),
+      ajax: {
+        url: "{% url 'mesa.search_users' %}",
+        dataType: 'json',
+        delay: 200,
+        data: function (params) { return { q: params.term }; },
+        processResults: function (data) { return { results: data.results || [] }; },
+        cache: true
+      }
+    });
   });
 
   $(document).ready(function () {
@@ -400,16 +516,16 @@
         processData: false,
         contentType: false,
         success: function (data) {
-          $('#create-modal').modal('hide');
+          hideCreateModal();
           updateContent(data);
-          $('#create-modal').find('input,select').val('');
-          $('#create-modal').find('input,select').trigger('change');
-          $('#save').find('i').remove();
+          $('#create-modal').find('#id_mesa').empty().trigger('change');
+          $('#create-modal').find('#id_user').empty().trigger('change');
+          $('#save').find('i.fa-spinner').remove();
           $('#save').prop('disabled', false);
           toast('Operação concluída', 'success');
         },
         error: function () {
-          $('#save').find('i').remove();
+          $('#save').find('i.fa-spinner').remove();
           $('#save').prop('disabled', false);
           toast('Erro na criação de mesa', 'error');
         }

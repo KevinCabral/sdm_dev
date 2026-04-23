@@ -28,8 +28,20 @@ def createOrUpdate(request):
             if id != "":
                 messages.success(request, f'Pagamento Atualizado')
             else:
-                email = SendComprovativo(request=request,email=pagamento.militante.email_pessoal, nome=pagamento.militante.nome_completo ,text="O seu pagamento foi confirmado, no valor: "+str(pagamento.valor.valor) +".", anexo=pagamento.anexo_id.path,)
-                email.send()
+                try:
+                    if pagamento.militante and pagamento.militante.email_pessoal and pagamento.anexo_id:
+                        email = SendComprovativo(
+                            request=request,
+                            email=pagamento.militante.email_pessoal,
+                            nome=pagamento.militante.nome_completo,
+                            text="O seu pagamento foi confirmado, no valor: " + str(pagamento.valor.valor) + ".",
+                            anexo=pagamento.anexo_id.path,
+                        )
+                        email.send()
+                except Exception as exc:
+                    # Don't fail the whole transaction just because the SMTP server
+                    # isn't reachable in dev / has bad credentials.
+                    print(f"[quotas] Falha ao enviar comprovativo: {exc}")
                 messages.success(request, f'Pagamento feito')
             return redirect("quotas.pagamento")
         else:
@@ -90,10 +102,19 @@ def get(request):
         messages.error(request, f'Erro na visualização de Pagamento')
         data = {}
     else:
+        militante_dict = model_to_dict(pagamento.militante)
+        # Convert any FieldFile / ImageFieldFile to its URL (or None) so JsonResponse can serialize it.
+        from django.db.models.fields.files import FieldFile
+        for k, v in list(militante_dict.items()):
+            if isinstance(v, FieldFile):
+                militante_dict[k] = v.url if v else None
+
+        valor_dict = model_to_dict(pagamento.valor) if pagamento.valor else {}
+
         data = {
-            "militante":model_to_dict(pagamento.militante),
-            "valor":model_to_dict(pagamento.valor),
-            "data_pagamento":pagamento.data_pagamento
+            "militante": militante_dict,
+            "valor": valor_dict,
+            "data_pagamento": pagamento.data_pagamento,
         }
 
         if  pagamento.anexo_id:

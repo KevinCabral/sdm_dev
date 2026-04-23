@@ -3,6 +3,7 @@
 
 {% block extrahead %}
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script>
     tailwind.config = {
       prefix: 'tw-',
@@ -79,6 +80,43 @@
     .modal .invalid {
       border-color: #dc2626 !important;
     }
+
+    /* Tailwind-styled modal (matches /admin user modal) */
+    .errors { display: block; color: #ef4444; font-size: .75rem; margin-top: .25rem; }
+    .invalid { border-color: #ef4444 !important; }
+
+    /* Select2 v4 — match input look inside modal */
+    .select2-container { width: 100% !important; }
+    .select2-container--default .select2-selection--single {
+      height: 2.5rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: .5rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 2.5rem;
+      padding-left: .75rem;
+      color: #0f172a;
+      font-size: .875rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 2.5rem;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--single {
+      background: #fff;
+      border-color: #1a9123;
+      box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+    }
+    .select2-dropdown { border-color: #e2e8f0; border-radius: .5rem; box-shadow: 0 8px 24px -8px rgba(15,23,42,.18); }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+      background-color: #1a9123;
+    }
+    .select2-search--dropdown .select2-search__field {
+      border: 1px solid #e2e8f0; border-radius: .375rem; padding: .35rem .5rem; font-size: .85rem;
+    }
+    /* Above Bootstrap modal backdrop */
+    .select2-container { z-index: 1100; }
   </style>
 {% endblock extrahead %}
 
@@ -219,9 +257,16 @@
         </div>
 
         <div class="card" style="margin-bottom: 0;">
-          <div class="card-header"><h5>Anexos</h5></div>
+          <div class="card-header tw-flex tw-items-center tw-justify-between">
+            <h5 class="tw-m-0">Anexo</h5>
+            <a id="anexo" target="_blank" rel="noopener noreferrer" class="tw-text-sm tw-text-mpd-700 hover:tw-text-mpd-800">
+              <i class="fa fa-download"></i> Baixar
+            </a>
+          </div>
           <div class="card-body" style="padding-bottom: 10px;">
-            <a id="anexo" target="_blank" rel="noopener noreferrer"><i class="fa fa-download"></i> Baixar</a>
+            <div id="anexo-preview" class="tw-w-full tw-min-h-[120px] tw-flex tw-items-center tw-justify-center tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-overflow-hidden">
+              <span class="tw-text-xs tw-text-slate-400">Sem pré-visualização</span>
+            </div>
           </div>
         </div>
       </div>
@@ -232,54 +277,64 @@
   </div>
 </div>
 
-<div class="modal fade" id="create-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelView" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <form action="{% url 'quotas.fazer_pagamento' %}" method="post" id="add-form" enctype="multipart/form-data">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 id="hearder">Fazer Pagamento</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="card">
-            <div class="card-body">
-              <div class="form-group">
-                {{ form.valor.label_tag }}
-                {{ form.valor }}
-                {{ form.valor.errors }}
-                <span class="errors"></span>
-              </div>
-              <div class="form-group">
-                {{ form.militante.label_tag }}
-                {{ form.militante }}
-                {{ form.militante.errors }}
-                <span class="errors"></span>
-              </div>
-              <div class="form-group">
-                {{ form.data_pagamento.label_tag }}
-                {{ form.data_pagamento }}
-                {{ form.data_pagamento.errors }}
-                <span class="errors"></span>
-              </div>
-              <div class="form-group">
-                {{ form.anexo_id.label_tag }}
-                {{ form.anexo_id }}
-                {{ form.anexo_id.errors }}
-                <span class="errors"></span>
-              </div>
-              <input type="hidden" id="id" name="id">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="save">Fazer Pagamento</button>
-        </div>
+<div id="create-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-lg tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-money tw-text-xs"></i>
+        </span>
+        <span id="hearder">Fazer Pagamento</span>
+      </h2>
+      <button type="button" id="create-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'quotas.fazer_pagamento' %}" method="post" id="add-form" enctype="multipart/form-data" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_valor" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Valor <span class="tw-text-rose-500">*</span></label>
+        {{ form.valor }}
+        {{ form.valor.errors }}
+        <span class="errors"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="id_militante" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Militante <span class="tw-text-rose-500">*</span></label>
+        {{ form.militante }}
+        {{ form.militante.errors }}
+        <span class="errors"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="id_data_pagamento" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Data de Pagamento <span class="tw-text-rose-500">*</span></label>
+        <input type="date" name="data_pagamento" id="id_data_pagamento" required
+               class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+        <span class="errors"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="id_anexo_id" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Anexos</label>
+        <input type="file" name="anexo_id" id="id_anexo_id"
+               class="tw-block tw-w-full tw-text-sm tw-text-slate-700 file:tw-mr-3 file:tw-py-2 file:tw-px-3 file:tw-rounded-md file:tw-border-0 file:tw-text-xs file:tw-font-semibold file:tw-bg-mpd-50 file:tw-text-mpd-700 hover:file:tw-bg-mpd-100">
+        <span class="errors"></span>
+      </div>
+
+      <input type="hidden" id="id" name="id">
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="create-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="save" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span>Fazer Pagamento</span>
+        </button>
       </div>
     </form>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
   function getCookie(name) {
     let cookieValue = null;
@@ -326,6 +381,46 @@
     a.click();
   }
 
+  // Render preview for image (jpg/png/gif/webp/svg) or PDF; otherwise show a generic icon.
+  function renderAnexoPreview(url) {
+    const $box = $('#anexo-preview').empty();
+    if (!url) {
+      $box.html('<span class="tw-text-xs tw-text-slate-400">Sem pré-visualização</span>');
+      return;
+    }
+    const ext = (url.split('?')[0].split('#')[0].split('.').pop() || '').toLowerCase();
+    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+    if (imageExts.indexOf(ext) !== -1) {
+      $box.removeClass('tw-min-h-[120px]').addClass('tw-min-h-[200px]');
+      $box.html(
+        '<img src="' + url + '" alt="Anexo" class="tw-max-h-[420px] tw-w-auto tw-object-contain tw-cursor-zoom-in" ' +
+        'onclick="window.open(this.src, \'_blank\')">'
+      );
+      return;
+    }
+    if (ext === 'pdf') {
+      $box.removeClass('tw-min-h-[120px]').addClass('tw-min-h-[480px]');
+      $box.html(
+        '<object data="' + url + '#toolbar=1&navpanes=0" type="application/pdf" class="tw-w-full tw-h-[480px]">' +
+        '<div class="tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-2 tw-p-6 tw-text-slate-500">' +
+        '<i class="fa fa-file-pdf-o tw-text-4xl tw-text-rose-500"></i>' +
+        '<span class="tw-text-sm">Não foi possível pré-visualizar o PDF.</span>' +
+        '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="tw-text-sm tw-text-mpd-700">Abrir em nova aba</a>' +
+        '</div></object>'
+      );
+      return;
+    }
+    // Unknown type — show icon + link.
+    $box.removeClass('tw-min-h-[480px]').addClass('tw-min-h-[120px]');
+    $box.html(
+      '<div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5 tw-text-slate-500 tw-py-4">' +
+      '<i class="fa fa-file-o tw-text-3xl"></i>' +
+      '<span class="tw-text-xs">Pré-visualização não suportada (.<span class="tw-uppercase">' + ext + '</span>)</span>' +
+      '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="tw-text-xs tw-text-mpd-700"><i class="fa fa-external-link"></i> Abrir</a>' +
+      '</div>'
+    );
+  }
+
   function currentFilters(extra) {
     return Object.assign({
       nome: $('#nome').val(),
@@ -352,7 +447,8 @@
   }
 
   $(document).on('click', '#save', function () {
-    $(this).append("<i class='fa fa-spinner tw-ml-2'></i>");
+    $(this).find('i.fa-spinner').remove();
+    $(this).append("<i class='fa fa-spinner fa-spin tw-ml-2'></i>");
     $(this).prop('disabled', true);
     $('#add-form').submit();
   });
@@ -360,10 +456,11 @@
   $(document).on('click', '#pagar', function () {
     $('#create-modal').find('#hearder').text('Fazer Pagamento');
     $('#create-modal').find('#id').val('');
-    $('#create-modal').find('input,select,file').val('');
-    $('#create-modal').find('input,select,file').trigger('change');
-    $('#create-modal').find('#id_anexo_id').prop('required', false);
-    $('#create-modal').modal('show');
+    $('#create-modal').find('input[type="text"],input[type="date"],input[type="file"]').val('');
+    $('#id_anexo_id').prop('required', true);
+    $('#id_valor').val('').trigger('change.select2');
+    $('#id_militante').val('').trigger('change.select2');
+    showCreateModal();
   });
 
   $(document).on('click', '.view', function () {
@@ -379,6 +476,7 @@
       $('#view-modal').find('#nr_telemovel1').text(data.militante.nr_telemovel1);
       $('#view-modal').find('#email_pessoal').text(data.militante.email_pessoal);
       $('#view-modal').find('#anexo').attr('href', data.anexo);
+      renderAnexoPreview(data.anexo);
 
       if (data.anexo) {
         $('#view-modal').find('#anexo').show();
@@ -395,12 +493,20 @@
 
     $.get('pagamento/view', { id: id }, function (data) {
       $('#create-modal').find('#hearder').text('Atualizar Pagamento');
-      $('#create-modal').find('#id_valor').val(data.valor.id).trigger('change');
-      $('#create-modal').find('#id_militante').val(data.militante.id).trigger('change');
+      $('#id_valor').val(data.valor.id).trigger('change.select2');
+
+      // For Select2 AJAX-backed militante: inject the option before selecting.
+      var $mil = $('#id_militante');
+      var label = (data.militante && (data.militante.nome_completo || data.militante.id)) || '';
+      if ($mil.find("option[value='" + data.militante.id + "']").length === 0) {
+        $mil.append(new Option(label, data.militante.id, true, true));
+      }
+      $mil.val(data.militante.id).trigger('change.select2');
+
       $('#create-modal').find('#id_data_pagamento').val(data.data_pagamento);
       $('#create-modal').find('#id').val(id);
       $('#create-modal').find('#id_anexo_id').prop('required', false);
-      $('#create-modal').modal('show');
+      showCreateModal();
     });
   });
 
@@ -449,16 +555,16 @@
         processData: false,
         contentType: false,
         success: function (data) {
-          $('#create-modal').modal('hide');
+          hideCreateModal();
           updateContent(data);
-          $('#create-modal').find('input,select').val('');
-          $('#create-modal').find('input,select').trigger('change');
-          $('#save').find('i').remove();
+          $('#id_valor').val('').trigger('change.select2');
+          $('#id_militante').val('').trigger('change.select2');
+          $('#save').find('i.fa-spinner').remove();
           $('#save').prop('disabled', false);
           toast('Operação concluída', 'success');
         },
         error: function () {
-          $('#save').find('i').remove();
+          $('#save').find('i.fa-spinner').remove();
           $('#save').prop('disabled', false);
           toast('Erro em fazer pagamento', 'error');
         }
@@ -501,6 +607,55 @@
   $(document).on('click', '#btn-clear', function () {
     $('#nome,#data_inicio,#data_fim').val('');
     search();
+  });
+
+  // ---- Tailwind modal helpers + Select2 init ----
+  function showCreateModal() {
+    $('#create-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function hideCreateModal() {
+    $('#create-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+
+  $(document).on('click', '#create-modal-close,#create-modal-cancel', function () {
+    hideCreateModal();
+  });
+
+  $(document).on('click', '#create-modal', function (e) {
+    if (e.target === this) hideCreateModal();
+  });
+
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape' && !$('#create-modal').hasClass('tw-hidden')) hideCreateModal();
+  });
+
+  $(function () {
+    if (!$.fn.select2) return;
+
+    $('#id_valor').select2({
+      placeholder: 'Selecione um valor',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('#create-modal')
+    });
+
+    $('#id_militante').select2({
+      placeholder: 'Procure pelo nome do militante...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 2,
+      dropdownParent: $('#create-modal'),
+      ajax: {
+        url: '/militantes/search',
+        dataType: 'json',
+        delay: 200,
+        data: function (params) { return { q: params.term, estado: 'A' }; },
+        processResults: function (data) { return { results: data.results || [] }; },
+        cache: true
+      }
+    });
   });
 
   $(document).on('click', '#exportar', function () {

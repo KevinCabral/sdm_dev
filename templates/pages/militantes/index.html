@@ -92,28 +92,33 @@
 
 {# ── Modal: Detalhes ─────────────────────────────── #}
 <div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="militante-modal">
-  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/50" data-close></div>
-  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-overflow-hidden tw-mx-4 tw-flex tw-flex-col">
-    <div class="tw-flex tw-items-start tw-justify-between tw-px-6 tw-py-4 tw-border-b tw-border-slate-100">
-      <div class="tw-min-w-0">
-        <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-m-0">Detalhes do militante</p>
-        <h3 class="tw-text-lg tw-font-semibold tw-text-slate-900 tw-m-0 tw-truncate" id="modal-title"></h3>
-      </div>
-      <button type="button" data-close class="tw-w-9 tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-500 hover:tw-bg-slate-100">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/55" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-overflow-hidden tw-mx-4 tw-flex tw-flex-col">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2 tw-min-w-0">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center tw-shrink-0">
+          <i class="fa fa-eye tw-text-xs"></i>
+        </span>
+        <span class="tw-truncate" id="modal-title">Detalhes do militante</span>
+      </h2>
+      <button type="button" data-close class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition tw-shrink-0" aria-label="Fechar">
         <i class="fa fa-times"></i>
       </button>
     </div>
-    <div class="tw-px-6 tw-py-5 tw-overflow-y-auto tw-space-y-5" id="modal-body">
+    <div class="tw-px-5 tw-py-5 tw-overflow-y-auto tw-space-y-5 tw-bg-slate-50/40" id="modal-body">
       {# Sections injected by JS via data-field bindings #}
       {% include 'pages/militantes/_view_sections.html' %}
     </div>
-    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-6 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
-      <button type="button" id="modal-aprovar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition aprovar">
-        <i class="fa fa-check"></i> Aprovar
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" id="modal-aprovar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft aprovar">
+        <i class="fa fa-check tw-text-xs"></i> Aprovar
       </button>
-      <button type="button" id="modal-rejectar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition rejectar">
-        <i class="fa fa-times"></i> Rejeitar
+      <button type="button" id="modal-rejectar" class="tw-hidden tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition tw-shadow-soft rejectar">
+        <i class="fa fa-times tw-text-xs"></i> Rejeitar
       </button>
+      <a id="modal-edit" href="#" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200 hover:tw-bg-amber-100 tw-transition">
+        <i class="fa fa-edit tw-text-xs"></i> Editar
+      </a>
       <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Fechar</button>
     </div>
   </div>
@@ -246,6 +251,7 @@
         $('#militante-modal').find('[data-field="' + k + '"]').text(obj[k] == null ? '—' : obj[k]);
       });
       $('#modal-title').text(obj['nome_completo'] || 'Militante');
+      $('#modal-edit').attr('href', '/militantes/update/' + id + '/');
       if (isPedido) {
         $('#modal-aprovar, #modal-rejectar').removeClass('tw-hidden').attr('id-militante', id);
         $('#modal-aprovar').attr('email-militante', obj['email_pessoal'] || '');

@@ -38,27 +38,29 @@
                 {% if not militante.exist_user and militante.estado_militante != 'P' %}
                   <button type="button"
                           class="create-user tw-inline-flex tw-items-center tw-gap-1.5 tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-transition"
-                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">
+                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal|default_if_none:'' }}">
                     <i class="fa fa-user-plus tw-text-[10px]"></i> Criar utilizador
                   </button>
                 {% endif %}
                 {% if militante.estado_militante == 'P' %}
                   <button type="button"
-                          class="rejectar tw-inline-flex tw-items-center tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-text-slate-600 hover:tw-text-rose-600 hover:tw-bg-rose-50 tw-transition"
-                          id-militante="{{ militante.id }}">Rejeitar</button>
+                          class="rejectar tw-inline-flex tw-items-center tw-gap-1.5 tw-h-7 tw-px-3 tw-mr-1 tw-rounded-md tw-text-xs tw-font-semibold tw-text-rose-700 tw-bg-rose-50 tw-border tw-border-rose-200 hover:tw-bg-rose-100 hover:tw-border-rose-300 hover:tw-text-rose-800 tw-transition"
+                          id-militante="{{ militante.id }}"><i class="fa fa-times tw-text-[10px]"></i> Rejeitar</button>
                   <button type="button"
-                          class="aprovar tw-inline-flex tw-items-center tw-h-7 tw-px-2.5 tw-mr-1 tw-rounded-md tw-text-xs tw-font-medium tw-text-white tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-transition"
-                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">Aprovar</button>
+                          class="aprovar tw-inline-flex tw-items-center tw-gap-1.5 tw-h-7 tw-px-3 tw-mr-1 tw-rounded-md tw-text-xs tw-font-semibold tw-text-mpd-700 tw-bg-mpd-50 tw-border tw-border-mpd-200 hover:tw-bg-mpd-100 hover:tw-border-mpd-300 hover:tw-text-mpd-800 tw-transition"
+                          id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal|default_if_none:'' }}"><i class="fa fa-check tw-text-[10px]"></i> Aprovar</button>
                 {% endif %}
 
                 <button type="button" class="view tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-sky-50 tw-text-sky-600 hover:tw-bg-sky-100 hover:tw-text-sky-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150"
                         data-id="{{ militante.id }}" id-militante="{{ militante.id }}" title="Ver">
                   <i class="fa fa-eye tw-text-xs"></i>
                 </button>
+                {% if militante.estado_militante != 'P' and not filters.email_pessoal %}
                 <a href="{% url 'militantes.update' militante.id %}" title="Editar"
                    class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
                   <i class="fa fa-edit tw-text-xs"></i>
                 </a>
+                {% endif %}
                 <button type="button" class="apagar tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150"
                         data-id="{{ militante.id }}" id-militante="{{ militante.id }}" title="Apagar">
                   <i class="fa fa-trash tw-text-xs"></i>
@@ -101,14 +103,16 @@
             </div>
           </div>
         </div>
-        <div class="tw-flex tw-items-center tw-justify-end tw-gap-1 tw-mt-3">
+        <div class="tw-flex tw-items-center tw-justify-end tw-gap-1 tw-mt-3 tw-flex-wrap">
           {% if militante.estado_militante == 'P' %}
-            <button type="button" class="rejectar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-rose-600 tw-bg-rose-50" id-militante="{{ militante.id }}">Rejeitar</button>
-            <button type="button" class="aprovar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-white tw-bg-mpd-600" id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal }}">Aprovar</button>
+            <button type="button" class="rejectar tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-md tw-text-rose-700 tw-bg-rose-50 tw-border tw-border-rose-200" id-militante="{{ militante.id }}"><i class="fa fa-times tw-text-[10px]"></i> Rejeitar</button>
+            <button type="button" class="aprovar tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-rounded-md tw-text-mpd-700 tw-bg-mpd-50 tw-border tw-border-mpd-200" id-militante="{{ militante.id }}" email-militante="{{ militante.email_pessoal|default_if_none:'' }}"><i class="fa fa-check tw-text-[10px]"></i> Aprovar</button>
           {% endif %}
           <button type="button" class="view tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100"
                   data-id="{{ militante.id }}" id-militante="{{ militante.id }}">Ver</button>
+          {% if militante.estado_militante != 'P' and not filters.email_pessoal %}
           <a href="{% url 'militantes.update' militante.id %}" class="tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100">Editar</a>
+          {% endif %}
           <button type="button" class="apagar tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-red-600 tw-bg-red-50"
                   data-id="{{ militante.id }}" id-militante="{{ militante.id }}">Apagar</button>
         </div>

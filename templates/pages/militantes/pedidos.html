@@ -60,24 +60,160 @@
 </section>
 
 {# Reuse modals + JS from index for aprovar/rejeitar/view? Keep simpler here. #}
-<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="reject-modal">
-  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/50" data-close></div>
-  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-md tw-mx-4">
-    <div class="tw-flex tw-items-start tw-justify-between tw-px-5 tw-py-4 tw-border-b tw-border-slate-100">
-      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0">Rejeitar militante</h3>
-      <button type="button" data-close class="tw-w-9 tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-text-slate-500 hover:tw-bg-slate-100"><i class="fa fa-times"></i></button>
+
+{# ── Modal: Detalhes ─────────────────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="militante-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/55" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-overflow-hidden tw-mx-4 tw-flex tw-flex-col">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2 tw-min-w-0">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center tw-shrink-0">
+          <i class="fa fa-eye tw-text-xs"></i>
+        </span>
+        <span class="tw-truncate" id="modal-title">Detalhes do pedido</span>
+      </h2>
+      <button type="button" data-close class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition tw-shrink-0" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
     </div>
+    <div class="tw-px-5 tw-py-5 tw-overflow-y-auto tw-space-y-5 tw-bg-slate-50/40" id="modal-body">
+      {% include 'pages/militantes/_view_sections.html' %}
+    </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Fechar</button>
+      <button type="button" id="modal-rejectar"
+              class="rejectar tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-text-rose-700 tw-bg-rose-50 tw-border tw-border-rose-200 hover:tw-bg-rose-100 hover:tw-border-rose-300 tw-transition" id-militante="">
+        <i class="fa fa-times tw-text-xs"></i> Rejeitar
+      </button>
+      <button type="button" id="modal-aprovar"
+              class="aprovar tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft" id-militante="" email-militante="">
+        <i class="fa fa-check tw-text-xs"></i> Aprovar
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── Modal: Confirmar aprovação ─────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="aprovar-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/55" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-mx-4 tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-check tw-text-xs"></i>
+        </span>
+        Aprovar militante
+      </h3>
+      <button type="button" data-close class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+
     <div class="tw-px-5 tw-py-4">
-      <label class="tw-block tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Motivo</label>
-      <textarea id="motivoRejeicao" rows="6"
-                class="tw-w-full tw-p-3 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/30 focus:tw-border-mpd-500"
-                placeholder="Indique o motivo…"></textarea>
+      <p class="tw-text-sm tw-text-slate-600 tw-mt-0 tw-mb-3">
+        Tem a certeza que pretende aprovar este pedido de filiação?
+      </p>
+      <div class="tw-rounded-lg tw-border tw-border-mpd-200 tw-bg-mpd-50/40 tw-p-3 tw-text-sm">
+        <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-mpd-700 tw-font-semibold tw-mb-1 tw-flex tw-items-center tw-gap-1.5">
+          <i class="fa fa-info-circle tw-text-[10px]"></i> Militante
+        </div>
+        <div class="tw-font-medium tw-text-slate-900" id="aprovar-modal-name">—</div>
+        <div class="tw-text-xs tw-text-slate-500 tw-mt-0.5" id="aprovar-modal-email">—</div>
+      </div>
+
+      {# email input shown only when militante has no email #}
+      <div id="aprovar-email-wrap" class="tw-hidden tw-mt-3 tw-rounded-lg tw-border tw-border-amber-200 tw-bg-amber-50/50 tw-p-3">
+        <label for="aprovar-email-input" class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-amber-800 tw-font-semibold tw-mb-1.5 tw-flex tw-items-center tw-gap-1.5">
+          <i class="fa fa-exclamation-triangle tw-text-[10px]"></i> Email em falta — indique um para aprovar
+        </label>
+        <input id="aprovar-email-input" type="email" placeholder="email@exemplo.com"
+               class="tw-w-full tw-h-10 tw-px-3 tw-border tw-border-amber-200 tw-bg-white tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-amber-500/20 focus:tw-border-amber-500 tw-transition" />
+        <p class="tw-text-[11px] tw-text-amber-700 tw-mt-1 tw-mb-0">Este email será associado ao militante e usado para notificações.</p>
+      </div>
+
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-3 tw-mb-0">
+        Será enviada uma notificação por email ao militante após a aprovação.
+      </p>
+    </div>
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+      <button type="button" id="aprovarConfirmButton" id-militante="" email-militante=""
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-check tw-text-xs"></i> Confirmar aprovação
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── Modal: Criar utilizador ─────────────────────── #}
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="create-user-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/55" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-mx-4 tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-user-plus tw-text-xs"></i>
+        </span>
+        Criar utilizador
+      </h3>
+      <button type="button" data-close class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="tw-px-5 tw-py-4 tw-space-y-3">
+      <div>
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Username</label>
+        <input id="militante-username" readonly type="text"
+               class="tw-w-full tw-h-10 tw-px-3 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm tw-bg-slate-50 tw-text-slate-700" />
+      </div>
+      <div>
+        <label class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1">Email</label>
+        <input id="militante-email" type="email" required
+               placeholder="email@exemplo.com"
+               class="tw-w-full tw-h-10 tw-px-3 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm tw-bg-white tw-text-slate-700 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-mpd-500/20 focus:tw-border-mpd-500 tw-transition" />
+        <p class="tw-text-[11px] tw-text-slate-400 tw-mt-1">Pode editar caso o militante não tenha email registado.</p>
+      </div>
     </div>
     <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
       <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+      <button type="button" id="createButton" id-militante=""
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-user-plus tw-text-xs"></i> Criar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="tw-fixed tw-inset-0 tw-z-[1070] tw-hidden tw-items-center tw-justify-center" id="reject-modal">
+  <div class="tw-absolute tw-inset-0 tw-bg-slate-900/55" data-close></div>
+  <div class="tw-relative tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-mx-4 tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-rose-50 tw-text-rose-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-times tw-text-xs"></i>
+        </span>
+        Rejeitar militante
+      </h3>
+      <button type="button" data-close class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+
+    <div class="tw-px-5 tw-py-4">
+      <p class="tw-text-xs tw-text-slate-500 tw-mb-3 tw-mt-0">
+        Indique o motivo da rejeição. Esta mensagem será enviada ao militante.
+      </p>
+
+      <div class="tw-rounded-lg tw-border tw-border-rose-200 tw-bg-rose-50/40 tw-p-3">
+        <label for="motivoRejeicao" class="tw-block tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-rose-700 tw-font-semibold tw-mb-1.5 tw-flex tw-items-center tw-gap-1.5">
+          <i class="fa fa-exclamation-circle tw-text-[10px]"></i> Motivo da rejeição
+        </label>
+        <textarea id="motivoRejeicao" rows="6"
+                  class="tw-w-full tw-p-3 tw-border tw-border-rose-200 tw-bg-white tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-rose-500/20 focus:tw-border-rose-500 tw-transition tw-resize-y"
+                  placeholder="Ex.: Documento ilegível, dados incompletos, …"></textarea>
+      </div>
+    </div>
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" data-close class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
       <button type="button" id="rejectarButton" id-militante=""
-              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition">
-        <i class="fa fa-times"></i> Confirmar
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-500 hover:tw-bg-rose-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-times tw-text-xs"></i> Confirmar rejeição
       </button>
     </div>
   </div>
@@ -91,14 +227,88 @@
   $(document).on('click','[data-close]',function(){ closeModal($(this).closest('.tw-fixed')); });
   $(document).on('keyup',function(e){ if(e.key==='Escape') $('.tw-fixed').addClass('tw-hidden').removeClass('tw-flex'); });
 
-  $(document).on('click', '.aprovar', function () {
-    var id = $(this).attr('id-militante'); var email = $(this).attr('email-militante');
-    if (!confirm('Aprovar este militante?')) return;
-    $.post("{% url 'militantes.aprovar' %}", { 'id-militante': id, csrfmiddlewaretoken: getCookie('csrftoken'), email: email }, function (data) {
-      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+  // ── Criar utilizador
+  $(document).on('click', '.create-user', function (e) {
+    e.preventDefault();
+    var id = $(this).attr('id-militante');
+    var email = $(this).attr('email-militante') || '';
+    if (email === 'None') email = '';
+    $.get("{% url 'militantes.username' %}", { id: id }, function (data) {
+      if (data && data.error) { alert('Militante não encontrado'); return; }
+      $('#createButton').attr('id-militante', id);
+      $('#militante-username').val((data && data.username) || '');
+      $('#militante-email').val(email);
+      openModal('create-user-modal');
     });
   });
-  $(document).on('click', '.rejectar', function () { $('#rejectarButton').attr('id-militante', $(this).attr('id-militante')); openModal('reject-modal'); });
+  $(document).on('click', '#createButton', function () {
+    var $btn = $(this);
+    var email = ($('#militante-email').val() || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      $('#militante-email').focus().addClass('tw-border-rose-400 tw-ring-2 tw-ring-rose-500/20');
+      setTimeout(function(){ $('#militante-email').removeClass('tw-border-rose-400 tw-ring-2 tw-ring-rose-500/20'); }, 1500);
+      return;
+    }
+    $btn.prop('disabled', true).addClass('tw-opacity-60');
+    $.post("{% url 'militantes.createUser' %}", {
+      'id-militante': $btn.attr('id-militante'),
+      email: email,
+      username: $('#militante-username').val(),
+      csrfmiddlewaretoken: getCookie('csrftoken'),
+    }, function (data) {
+      closeModal($('#create-user-modal'));
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+    }).always(function(){ $btn.prop('disabled', false).removeClass('tw-opacity-60'); });
+  });
+
+  $(document).on('click', '.aprovar', function () {
+    var $b = $(this);
+    var id = $b.attr('id-militante');
+    var email = ($b.attr('email-militante') || '').trim();
+    if (email === 'None') email = '';
+    // Try to derive a friendly name (from row, view modal title, or fallback)
+    var name = $b.closest('tr').find('td:first .tw-font-medium').text().trim()
+            || $('#modal-title').text().trim()
+            || 'Militante #' + id;
+    $('#aprovar-modal-name').text(name);
+    $('#aprovar-modal-email').text(email || '— sem email registado —');
+
+    // Show inline email input when missing
+    if (!email) {
+      $('#aprovar-email-wrap').removeClass('tw-hidden');
+      $('#aprovar-email-input').val('');
+    } else {
+      $('#aprovar-email-wrap').addClass('tw-hidden');
+      $('#aprovar-email-input').val('');
+    }
+
+    $('#aprovarConfirmButton').attr('id-militante', id).attr('email-militante', email);
+    closeModal($('#militante-modal'));
+    openModal('aprovar-modal');
+    if (!email) setTimeout(function(){ $('#aprovar-email-input').focus(); }, 50);
+  });
+  $(document).on('click', '#aprovarConfirmButton', function () {
+    var $b = $(this);
+    var id = $b.attr('id-militante');
+    var email = ($b.attr('email-militante') || '').trim();
+
+    // If no original email, require user to enter one
+    if (!email) {
+      email = ($('#aprovar-email-input').val() || '').trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        $('#aprovar-email-input').focus().addClass('tw-border-rose-400 tw-ring-2 tw-ring-rose-500/20');
+        setTimeout(function(){ $('#aprovar-email-input').removeClass('tw-border-rose-400 tw-ring-2 tw-ring-rose-500/20'); }, 1500);
+        return;
+      }
+    }
+
+    $b.prop('disabled', true).addClass('tw-opacity-60');
+    $.post("{% url 'militantes.aprovar' %}", { 'id-militante': id, csrfmiddlewaretoken: getCookie('csrftoken'), email: email }, function (data) {
+      closeModal($('#aprovar-modal'));
+      $('.list-militantes').replaceWith($(data).find('.list-militantes'));
+    }).always(function(){ $b.prop('disabled', false).removeClass('tw-opacity-60'); });
+  });
+  $(document).on('click', '.rejectar', function () { $('#rejectarButton').attr('id-militante', $(this).attr('id-militante')); closeModal($('#militante-modal')); openModal('reject-modal'); });
   $(document).on('click', '#rejectarButton', function () {
     $.post("{% url 'militantes.rejectar' %}", { 'id-militante': $(this).attr('id-militante'), reason: $('#motivoRejeicao').val(), csrfmiddlewaretoken: getCookie('csrftoken') }, function (data) {
       closeModal($('#reject-modal'));
@@ -111,7 +321,18 @@
       $('.list-militantes').replaceWith($(data).find('.list-militantes'));
     });
   });
-  $(document).on('click', '.view', function () { window.location.href = "{% url 'militantes.view' 0 %}".replace('/0/', '/' + $(this).attr('id-militante') + '/'); });
+  $(document).on('click', '.view', function () {
+    var id = $(this).attr('id-militante');
+    $.get("{% url 'militantes.get' 0 %}".replace('/0', '/' + id), function (obj) {
+      Object.keys(obj).forEach(function (k) {
+        $('#militante-modal').find('[data-field="' + k + '"]').text(obj[k] == null ? '—' : obj[k]);
+      });
+      $('#modal-title').text(obj['nome_completo'] || 'Pedido de aprovação');
+      $('#modal-aprovar').attr('id-militante', id).attr('email-militante', obj['email_pessoal'] || '');
+      $('#modal-rejectar').attr('id-militante', id);
+      openModal('militante-modal');
+    });
+  });
 
   /* ── Filters (AJAX) ─────────────────────────────────── */
   function currentFilters(extra) {

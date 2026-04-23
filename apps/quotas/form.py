@@ -1,44 +1,65 @@
 from django import forms
-from .models import PagamentoQuotas,ValorPagamento
+from .models import PagamentoQuotas, ValorPagamento
 from apps.militantes.models import Militantes
+
 
 class PagamentoQuotasForm(forms.ModelForm):
     data_pagamento = forms.CharField(max_length=20, required=True, label="Data de Pagamento")
-    anexo_id = forms.FileField(widget=forms.FileInput(attrs={'class': 'form-control-file'}),label="Anexos")
-    militantes_all = [(militantes.id, militantes.nome_completo) for militantes in Militantes.objects.filter(estado_militante='A').all()]
-    militantes_all.insert(0, (None, 'Selecione um Militante')) 
-    militante =  forms.ChoiceField(choices=militantes_all,required=True, label="Militante",initial=None)
+    anexo_id = forms.FileField(
+        widget=forms.FileInput(attrs={'class': 'form-control-file'}),
+        label="Anexos",
+    )
 
-    valor_all = [(valores.id, valores.valor) for valores in ValorPagamento.objects.all()]
-    valor_all.insert(0, (None, 'Selecione um VAlor a pagar')) 
-    valor =  forms.ChoiceField(choices=valor_all,required=True, label="Valor",initial=None)
+    # Militante: no preloaded choices (89k+ rows). The widget is a plain <select>
+    # populated client-side by Select2 via AJAX (/militantes/search).
+    militante = forms.IntegerField(
+        required=True,
+        label="Militante",
+        widget=forms.Select(attrs={'class': 'form-control', 'data-ajax': 'militante'}),
+    )
+
+    valor_all = [(v.id, v.valor) for v in ValorPagamento.objects.all()]
+    valor_all.insert(0, (None, 'Selecione um valor a pagar'))
+    valor = forms.ChoiceField(
+        choices=valor_all,
+        required=True,
+        label="Valor",
+        initial=None,
+    )
 
     def __init__(self, *args, **kwargs):
         super(PagamentoQuotasForm, self).__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields['anexo_id'].required = True
         for visible in self.visible_fields():
-            visible.field.widget.attrs['class'] = 'form-control'
+            visible.field.widget.attrs.setdefault('class', 'form-control')
         self.fields['data_pagamento'].widget = forms.widgets.DateInput(
-            # format="yyyy-mm-dd",
-            
             attrs={
-                'type': 'date', 'placeholder': 'yyyy-mm-dd',
+                'type': 'date',
+                'placeholder': 'yyyy-mm-dd',
                 'class': 'form-control',
-                }
-            )
-    
-    def clean_militante(self):
-        militante = self.cleaned_data['militante']
+            }
+        )
+        # When editing, render the currently selected militante as the only
+        # initial option so Select2 can display it before AJAX kicks in.
+        if self.instance and self.instance.pk and self.instance.militante_id:
+            m = self.instance.militante
+            self.fields['militante'].widget.choices = [
+                (m.id, m.nome_completo or f'Militante #{m.id}')
+            ]
+            self.fields['militante'].initial = m.id
+        else:
+            self.fields['militante'].widget.choices = [('', 'Selecione um militante')]
 
-        if militante == "":
-            return None
+    def clean_militante(self):
+        militante = self.cleaned_data.get('militante')
+        if not militante:
+            raise forms.ValidationError("Militante é obrigatório.")
         try:
-            militante = Militantes.objects.get(id=militante)
+            return Militantes.objects.get(id=militante)
         except Militantes.DoesNotExist:
             raise forms.ValidationError("Militante não encontrado.")
-        return militante
-    
+
     def clean_valor(self):
         valor = self.cleaned_data['valor']
 

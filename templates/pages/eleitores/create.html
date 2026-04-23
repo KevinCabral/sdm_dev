@@ -1,26 +1,103 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
-{% block content %}
-  <div class="row">
-    <div class="col-md-12" style="display: flex;">
-      <a href="{% url 'eleitores.index' %}" style="margin-right: 10px;color: #1a9123;">
-        <i class="fa fa-solid fa-arrow-left"></i> Voltar
-      </a>
-      <h5>Registrar Eleitor</h5>
-    </div>
-    <div class="col-md-12">
-      <form action="{% url 'eleitores.create' %}" method="post">
-        {% csrf_token %}
-        {% include 'pages/eleitores/_form_fields.html' %}
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+        }
+      }
+    }
+  </script>
 
-        <div class="row">
-          <div class="col-md-12" style="text-align: end;">
-            <a href="{% url 'eleitores.index' %}" class="btn btn-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-          </div>
-        </div>
-      </form>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <style>
+    .pcoded-content { background: #f7f8fa !important; }
+
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08);
+      border-left: 3px solid #1a9123;
+      padding-left: 17px;
+    }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="tw-space-y-5">
+
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
+    <div class="tw-min-w-0">
+      <div class="tw-min-w-0">
+        <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0">
+          Registrar Eleitor
+        </h1>
+        <p class="tw-text-sm tw-text-slate-500 tw-mt-2 tw-mb-0">
+          Preencha os dados principais e associe o eleitor a um militante, se aplicável.
+        </p>
+      </div>
     </div>
   </div>
+
+  <form action="{% url 'eleitores.create' %}" method="post" id="eleitor-form" class="tw-space-y-5">
+    {% csrf_token %}
+    {% include 'pages/eleitores/_form_fields.html' %}
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
+      <a href="{% url 'eleitores.index' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-amber-50 tw-text-amber-800 tw-border tw-border-amber-200 hover:tw-bg-amber-100 hover:tw-border-amber-300 tw-transition">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-save"></i> Guardar eleitor
+      </button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  (function () {
+    var $ = window.jQuery;
+    if (!$ || !$.fn.select2) return;
+
+    var $select = $('select.militante-select, select[name="militante_id"]');
+    if (!$select.length) return;
+
+    $select.select2({
+      placeholder: 'Pesquisar militante por nome…',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 2,
+      ajax: {
+        url: $select.data('search-url') || '/militantes/search',
+        dataType: 'json',
+        delay: 200,
+        data: function (params) { return { q: params.term, estado: 'A' }; },
+        processResults: function (data) { return { results: data.results || [] }; },
+        cache: true
+      },
+      language: {
+        inputTooShort: function () { return 'Digite pelo menos 2 caracteres'; },
+        searching: function () { return 'A pesquisar…'; },
+        noResults: function () { return 'Nenhum militante encontrado'; }
+      }
+    });
+  })();
+</script>
 {% endblock %}

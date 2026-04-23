@@ -95,6 +95,12 @@
       </p>
     </div>
     <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      <input type="file" id="arquivo_mesa" class="tw-hidden" accept=".csv,.xls,.xlsx" />
+      <button id="upload"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-upload tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Carregar</span>
+      </button>
+
       <button id="exportar"
               class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
         <i class="fa fa-download tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Exportar</span>
@@ -130,11 +136,31 @@
     </div>
   </form>
 
+  <div class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+      <span class="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-slate-500">Ação em massa</span>
+      <select id="bulk-action"
+              class="tw-h-9 tw-min-w-[210px] tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm tw-text-slate-700 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
+        <option value="">Selecione uma ação...</option>
+        <option value="delete">Remover selecionadas</option>
+      </select>
+      <button id="bulk-apply" type="button"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition disabled:tw-opacity-50 disabled:tw-cursor-not-allowed"
+              disabled>
+        <i class="fa fa-bolt tw-text-xs"></i><span>Aplicar</span>
+      </button>
+      <span id="bulk-selected-count" class="tw-text-xs tw-text-slate-500">0 selecionadas</span>
+    </div>
+  </div>
+
   <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
     <div class="tw-overflow-x-auto">
       <table class="tw-min-w-full tw-text-sm tw-text-left" id="table-data">
         <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
           <tr class="tw-border-b tw-border-slate-200/70">
+            <th class="tw-px-4 tw-py-3 tw-text-center tw-w-10">
+              <input type="checkbox" id="select-all-mesas" class="tw-h-4 tw-w-4">
+            </th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Número de Mesa</th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Criado em</th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500 tw-text-center">Ação</th>
@@ -143,6 +169,9 @@
         <tbody>
           {% for mesa in page_obj %}
             <tr class="tbl-row tw-border-b tw-border-slate-100 last:tw-border-0">
+              <td class="tw-px-4 tw-py-3 tw-text-center">
+                <input type="checkbox" class="mesa-select tw-h-4 tw-w-4" value="{{ mesa.id }}">
+              </td>
               <td class="tw-px-4 tw-py-3 tw-text-slate-700">{{ mesa.nr_mesa }}</td>
               <td class="tw-px-4 tw-py-3 tw-text-slate-600">{{ mesa.createdAt }}</td>
               <td class="tw-px-4 tw-py-3">
@@ -161,7 +190,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3" class="tw-py-10 tw-text-center tw-text-slate-400">Sem registos</td>
+              <td colspan="4" class="tw-py-10 tw-text-center tw-text-slate-400">Sem registos</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -239,7 +268,71 @@
   </div>
 </div>
 
+<div id="upload-preview-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-2xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-file-text-o tw-text-xs"></i>
+        </span>
+        <span>Pré-visualização da Importação</span>
+      </h2>
+      <button type="button" id="upload-preview-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tw-p-5 tw-space-y-4">
+      <div class="tw-text-sm tw-text-slate-600">
+        Ficheiro: <span id="upload-preview-filename" class="tw-font-medium tw-text-slate-800">-</span>
+      </div>
+
+      <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-2">
+        <div class="tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-emerald-700">Criar</div>
+          <div id="upload-preview-created" class="tw-text-lg tw-font-semibold tw-text-emerald-800">0</div>
+        </div>
+        <div class="tw-bg-amber-50 tw-border tw-border-amber-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-amber-700">Reativar</div>
+          <div id="upload-preview-reactivated" class="tw-text-lg tw-font-semibold tw-text-amber-800">0</div>
+        </div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-600">Ignorar</div>
+          <div id="upload-preview-skipped" class="tw-text-lg tw-font-semibold tw-text-slate-700">0</div>
+        </div>
+        <div class="tw-bg-sky-50 tw-border tw-border-sky-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-sky-700">Linhas</div>
+          <div id="upload-preview-total" class="tw-text-lg tw-font-semibold tw-text-sky-800">0</div>
+        </div>
+      </div>
+
+      <div class="tw-border tw-border-slate-200 tw-rounded-lg tw-overflow-hidden">
+        <table class="tw-min-w-full tw-text-sm tw-text-left">
+          <thead class="tw-bg-slate-50">
+            <tr>
+              <th class="tw-px-3 tw-py-2 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Nº Mesa</th>
+              <th class="tw-px-3 tw-py-2 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="upload-preview-rows">
+            <tr><td colspan="2" class="tw-px-3 tw-py-4 tw-text-slate-400">Sem dados</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-2 tw-border-t tw-border-slate-100">
+        <button type="button" id="upload-preview-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="upload-confirm" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span>Confirmar Importação</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+  var pendingUploadFile = null;
+
   function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -274,6 +367,30 @@
     $('.content-data').html(fragment.find('.content-data').html());
     var total = fragment.find('#total-count').text();
     if (total) $('#total-count').text(total);
+    syncBulkSelectionUi();
+  }
+
+  function getSelectedMesaIds() {
+    var ids = [];
+    $('.mesa-select:checked').each(function () {
+      ids.push($(this).val());
+    });
+    return ids;
+  }
+
+  function syncBulkSelectionUi() {
+    var total = $('.mesa-select').length;
+    var selected = $('.mesa-select:checked').length;
+    $('#bulk-selected-count').text(selected + ' selecionadas');
+    $('#bulk-apply').prop('disabled', selected === 0 || !$('#bulk-action').val());
+
+    var $master = $('#select-all-mesas');
+    if (!total) {
+      $master.prop('checked', false).prop('indeterminate', false);
+      return;
+    }
+    $master.prop('checked', selected > 0 && selected === total);
+    $master.prop('indeterminate', selected > 0 && selected < total);
   }
 
   function downloadBlob(content, filename, contentType) {
@@ -313,7 +430,7 @@
 
   $(document).on('click', '.edit', function () {
     var id = $(this).attr('id-mesa');
-    $.get('mesa/view', { id: id }, function (data) {
+    $.get("{% url 'mesa.view_mesa' %}", { id: id }, function (data) {
       $('#create-modal').find('#hearder').text('Atualizar Mesa');
       $('#create-modal').find('#id_nr_mesa').val(data.nr_mesa).trigger('change');
       $('#create-modal').find('#id').val(id);
@@ -335,7 +452,7 @@
 
   $(document).on('click', '.view', function () {
     var id = $(this).attr('id-mesa');
-    $.get('mesa/view', { id: id }, function (data) {
+    $.get("{% url 'mesa.view_mesa' %}", { id: id }, function (data) {
       $('#view-modal').find('#id_nr_mesa_view').text(data.nr_mesa);
       $('#view-modal').modal('show');
     });
@@ -397,6 +514,57 @@
     search($(this).attr('data-href'));
   });
 
+  $(document).on('change', '#bulk-action', function () {
+    syncBulkSelectionUi();
+  });
+
+  $(document).on('change', '#select-all-mesas', function () {
+    var checked = $(this).is(':checked');
+    $('.mesa-select').prop('checked', checked);
+    syncBulkSelectionUi();
+  });
+
+  $(document).on('change', '.mesa-select', function () {
+    syncBulkSelectionUi();
+  });
+
+  $(document).on('click', '#bulk-apply', function () {
+    var action = $('#bulk-action').val();
+    var ids = getSelectedMesaIds();
+
+    if (!action) {
+      toast('Selecione uma ação em massa', 'error');
+      return;
+    }
+    if (!ids.length) {
+      toast('Selecione pelo menos uma mesa', 'error');
+      return;
+    }
+
+    if (action !== 'delete') return;
+
+    if (!confirm('Deseja remover ' + ids.length + ' mesas selecionadas?')) return;
+
+    $.ajax({
+      url: "{% url 'mesa.remover_massa' %}",
+      type: 'POST',
+      data: {
+        'ids[]': ids,
+        csrfmiddlewaretoken: getCookie('csrftoken')
+      },
+      traditional: true,
+      success: function (res) {
+        toast((res.removed || 0) + ' mesas removidas', 'success');
+        search();
+      },
+      error: function (xhr) {
+        var msg = 'Erro ao remover mesas selecionadas';
+        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+        toast(msg, 'error');
+      }
+    });
+  });
+
   $(document).on('change', '.invalid', function () {
     $(this).removeClass('invalid');
     $(this).parent('.form-group').find('.errors').text('');
@@ -426,6 +594,126 @@
     search();
   });
 
+  $(document).on('click', '#upload', function () {
+    $('#arquivo_mesa').val('');
+    $('#arquivo_mesa').click();
+  });
+
+  $(document).on('change', '#arquivo_mesa', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+
+    pendingUploadFile = file;
+
+    var formData = new FormData();
+    formData.append('arquivo_mesa', file);
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    var $upload = $('#upload');
+    var original = $upload.html();
+    $upload.prop('disabled', true);
+    $upload.html('<i class="fa fa-spinner fa-spin"></i><span class="tw-hidden sm:tw-inline">A carregar...</span>');
+
+    $.ajax({
+      url: "{% url 'mesa.upload_preview_mesa' %}",
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (data) {
+        $('#upload-preview-filename').text(data.filename || '-');
+        $('#upload-preview-created').text(data.created || 0);
+        $('#upload-preview-reactivated').text(data.reactivated || 0);
+        $('#upload-preview-skipped').text(data.skipped || 0);
+        $('#upload-preview-total').text(data.total_rows || 0);
+
+        var rows = data.preview || [];
+        var html = '';
+        if (!rows.length) {
+          html = '<tr><td colspan="2" class="tw-px-3 tw-py-4 tw-text-slate-400">Sem dados de pré-visualização</td></tr>';
+        } else {
+          for (var i = 0; i < rows.length; i++) {
+            var badgeClass = rows[i].action === 'Criar'
+              ? 'tw-bg-emerald-50 tw-text-emerald-700'
+              : (rows[i].action === 'Reativar' ? 'tw-bg-amber-50 tw-text-amber-700' : 'tw-bg-slate-100 tw-text-slate-600');
+            html += '<tr class="tw-border-t tw-border-slate-100">' +
+              '<td class="tw-px-3 tw-py-2 tw-text-slate-700">' + rows[i].nr_mesa + '</td>' +
+              '<td class="tw-px-3 tw-py-2"><span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-xs tw-font-medium ' + badgeClass + '">' + rows[i].action + '</span></td>' +
+            '</tr>';
+          }
+        }
+        $('#upload-preview-rows').html(html);
+        showUploadPreviewModal();
+      },
+      error: function (xhr) {
+        var msg = 'Erro ao pré-visualizar ficheiro';
+        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+        toast(msg, 'error');
+        pendingUploadFile = null;
+      },
+      complete: function () {
+        $upload.prop('disabled', false);
+        $upload.html(original);
+      }
+    });
+  });
+
+  function showUploadPreviewModal() {
+    $('#upload-preview-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideUploadPreviewModal() {
+    $('#upload-preview-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+
+  $(document).on('click', '#upload-preview-close,#upload-preview-cancel', function () {
+    hideUploadPreviewModal();
+  });
+
+  $(document).on('click', '#upload-preview-modal', function (e) {
+    if (e.target === this) hideUploadPreviewModal();
+  });
+
+  $(document).on('click', '#upload-confirm', function () {
+    if (!pendingUploadFile) {
+      toast('Selecione um ficheiro para importar', 'error');
+      hideUploadPreviewModal();
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append('arquivo_mesa', pendingUploadFile);
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    var $btn = $('#upload-confirm');
+    var original = $btn.html();
+    $btn.prop('disabled', true);
+    $btn.html('<i class="fa fa-spinner fa-spin tw-text-xs"></i><span>A importar...</span>');
+
+    $.ajax({
+      url: "{% url 'mesa.upload_mesa' %}",
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function () {
+        toast('Ficheiro importado com sucesso', 'success');
+        hideUploadPreviewModal();
+        pendingUploadFile = null;
+        search();
+      },
+      error: function () {
+        toast('Erro ao importar ficheiro', 'error');
+      },
+      complete: function () {
+        $btn.prop('disabled', false);
+        $btn.html(original);
+      }
+    });
+  });
+
   $(document).on('click', '#exportar', function () {
     var button = $(this);
     var original = button.html();
@@ -441,6 +729,10 @@
       button.prop('disabled', false);
       button.html(original);
     });
+  });
+
+  $(function () {
+    syncBulkSelectionUi();
   });
 </script>
 {% endblock %}

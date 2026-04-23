@@ -10,28 +10,13 @@
   {% csrf_token %}
 
   <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
-    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-4">
-      <div class="tw-flex tw-items-start tw-gap-4 tw-min-w-0">
-        <a href="{% url 'militantes.view' id %}"
-           class="tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 hover:tw-text-mpd-600 tw-transition tw-shrink-0"
-           title="Voltar">
-          <i class="fa fa-arrow-left"></i>
-        </a>
-        <div class="tw-min-w-0">
-          <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-mb-1 tw-mt-0">Atualizar Militante &middot; #{{ id }}</p>
-          <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
-            {{ militante.nome_completo|default:'(sem nome)' }}
-          </h1>
-        </div>
-      </div>
-      <div class="tw-flex tw-items-center tw-gap-2">
-        <a href="{% url 'militantes.view' id %}"
-           class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</a>
-        <button type="button" id="criar"
-                class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
-          <i class="fa fa-save"></i> Guardar alterações
-        </button>
-      </div>
+    <div class="tw-min-w-0">
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Editar militante
+      </h1>
+      <p class="tw-text-sm tw-text-slate-500 tw-mt-2 tw-mb-0">
+        {{ militante.nome_completo|default:'(sem nome)' }} &middot; #{{ id }}
+      </p>
     </div>
   </div>
 
@@ -39,8 +24,10 @@
 
   <div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
     <a href="{% url 'militantes.view' id %}"
-       class="tw-inline-flex tw-items-center tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Cancelar</a>
-    <button type="button" id="criar2"
+       class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-amber-50 tw-text-amber-800 tw-border tw-border-amber-200 hover:tw-bg-amber-100 hover:tw-border-amber-300 tw-transition">
+      Cancelar
+    </a>
+    <button type="button" id="criar"
             class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
       <i class="fa fa-save"></i> Guardar alterações
     </button>

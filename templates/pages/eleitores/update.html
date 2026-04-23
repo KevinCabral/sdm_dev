@@ -41,61 +41,26 @@
 {% block content %}
 <div class="tw-space-y-5">
 
-  {# ── Header ──────────────────────────────────────── #}
   <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
-    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-4">
-
-      <div class="tw-flex tw-items-start tw-gap-4 tw-min-w-0">
-        <a href="{% url 'eleitores.view' id %}"
-           class="tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 hover:tw-text-mpd-600 tw-transition tw-shrink-0"
-           title="Voltar">
-          <i class="fa fa-arrow-left"></i>
-        </a>
-
-        <div class="tw-min-w-0">
-          <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-mb-1 tw-mt-0">
-            Atualizar Eleitor &middot; #{{ id }}
-          </p>
-          <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
-            {{ form.nome.value|default:"(sem nome)" }}
-          </h1>
-
-          <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-mt-2">
-            {% if eleitor.zona %}
-              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100">
-                <i class="fa fa-map-marker-alt tw-mr-1"></i> {{ eleitor.zona }}
-              </span>
-            {% endif %}
-            {% if eleitor.nr_eleitor %}
-              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100">
-                Nº Eleitor: <strong class="tw-ml-1 tw-text-slate-800">{{ eleitor.nr_eleitor }}</strong>
-              </span>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <div class="tw-flex tw-items-center tw-gap-2">
-        <a href="{% url 'eleitores.view' id %}"
-           class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
-          Cancelar
-        </a>
-        <button type="submit" form="eleitor-form"
-                class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
-          <i class="fa fa-save"></i> Guardar alterações
-        </button>
+    <div class="tw-min-w-0">
+      <div class="tw-min-w-0">
+        <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0">
+          Editar Eleitor
+        </h1>
+        <p class="tw-text-sm tw-text-slate-500 tw-mt-2 tw-mb-0">
+          Atualize os dados principais e a associação do eleitor, se necessário.
+        </p>
       </div>
     </div>
   </div>
 
-  {# ── Form ────────────────────────────────────────── #}
   <form method="post" id="eleitor-form" class="tw-space-y-5">
     {% csrf_token %}
     {% include 'pages/eleitores/_form_fields.html' %}
 
     <div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
-      <a href="{% url 'eleitores.view' id %}"
-         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+      <a href="{% url 'eleitores.index' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-amber-50 tw-text-amber-800 tw-border tw-border-amber-200 hover:tw-bg-amber-100 hover:tw-border-amber-300 tw-transition">
         Cancelar
       </a>
       <button type="submit"

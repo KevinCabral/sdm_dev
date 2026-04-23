@@ -15,46 +15,60 @@ class MesaForm(forms.ModelForm):
         fields = '__all__'
 
 class UserMesaForm(forms.ModelForm):
-    nr_mesas = [(nr_mesas.id, nr_mesas.nr_mesa) for nr_mesas in Mesa.objects.filter(status=1).all()]
-    nr_mesas.insert(0, (None, 'Selecione uma Mesa')) 
-
-    mesa =  forms.ChoiceField(choices=nr_mesas,required=True, label="Mesa",initial=None)
-
-
-    users = [(users.id, users.username) for users in User.objects.filter(is_active=1).all()]
-    users.insert(0, (None, 'Selecione um Utilizador')) 
-
-    user =  forms.ChoiceField(choices=users,required=True, label="Utilizador",initial=None)
+    mesa = forms.IntegerField(
+        required=True,
+        label="Mesa",
+        widget=forms.Select(attrs={'class': 'form-control', 'data-ajax': 'mesa'}),
+    )
+    user = forms.IntegerField(
+        required=True,
+        label="Utilizador",
+        widget=forms.Select(attrs={'class': 'form-control', 'data-ajax': 'user'}),
+    )
 
     def __init__(self, *args, **kwargs):
         super(UserMesaForm, self).__init__(*args, **kwargs)
-        for visible in self.visible_fields():
-            visible.field.widget.attrs['class'] = 'form-control'
-       
+        # Pre-populate options only for the bound instance (edit) so Select2 has a label.
+        instance = kwargs.get('instance') or getattr(self, 'instance', None)
+        if instance and instance.pk:
+            if instance.mesa_id:
+                self.fields['mesa'].widget.choices = [
+                    (instance.mesa_id, instance.mesa.nr_mesa if instance.mesa else str(instance.mesa_id))
+                ]
+                self.fields['mesa'].initial = instance.mesa_id
+            if instance.user_id:
+                self.fields['user'].widget.choices = [
+                    (instance.user_id, instance.user.username if instance.user else str(instance.user_id))
+                ]
+                self.fields['user'].initial = instance.user_id
+        else:
+            self.fields['mesa'].widget.choices = [('', 'Selecione uma Mesa')]
+            self.fields['user'].widget.choices = [('', 'Selecione um Utilizador')]
+
     def clean_user(self):
-        user = self.cleaned_data['user']
+        user_id = self.cleaned_data.get('user')
+        if not user_id:
+            raise forms.ValidationError("Utilizador é obrigatório.")
         try:
-            user = User.objects.get(id=user)
+            return User.objects.get(pk=user_id)
         except User.DoesNotExist:
             raise forms.ValidationError("Utilizador não encontrado.")
-        return user
-    
+
     def clean_mesa(self):
-        mesa = self.cleaned_data['mesa']
+        mesa_id = self.cleaned_data.get('mesa')
+        if not mesa_id:
+            raise forms.ValidationError("Mesa é obrigatória.")
         try:
-            mesa = Mesa.objects.get(id=mesa)
+            return Mesa.objects.get(pk=mesa_id)
         except Mesa.DoesNotExist:
             raise forms.ValidationError("Mesa não encontrada.")
-        return mesa
 
     def clean(self):
         cleaned_data = super().clean()
         user = cleaned_data.get('user')
         mesa = cleaned_data.get('mesa')
-      
         if user:
             self.instance.user = user
-
         if mesa:
             self.instance.mesa = mesa
         return cleaned_data

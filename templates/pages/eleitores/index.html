@@ -196,6 +196,52 @@
   </div>
 </div>
 
+<div id="view-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-4xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-eye tw-text-xs"></i>
+        </span>
+        <span>Detalhes do Eleitor</span>
+      </h2>
+      <button type="button" id="view-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tw-p-5 tw-space-y-5">
+      <div>
+        <div id="vm-nome" class="tw-text-xl tw-font-bold tw-text-slate-900"></div>
+        <div id="vm-subtitle" class="tw-text-sm tw-text-slate-500 tw-mt-1"></div>
+      </div>
+
+      <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 xl:tw-grid-cols-3 tw-gap-4">
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Filiação</div><div id="vm-filiacao" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Data Nascimento</div><div id="vm-data_nascimento" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Idade</div><div id="vm-idade_eleitor" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Contacto</div><div id="vm-contato" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Nacionalidade</div><div id="vm-nacionalidade" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Militante</div><div id="vm-militante" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Concelho</div><div id="vm-concelho" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Zona</div><div id="vm-zona" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Mesa</div><div id="vm-nr_mesa" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Nº Eleitor</div><div id="vm-nr_eleitor" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+      </div>
+
+      <div>
+        <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-2">Estado</div>
+        <div id="vm-badges" class="tw-flex tw-flex-wrap tw-gap-2"></div>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-2 tw-border-t tw-border-slate-100">
+        <a id="vm-edit-link" href="#" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft"><i class="fa fa-edit"></i> Editar</a>
+        <button type="button" id="view-modal-cancel" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ---------- helpers ---------- */
   function getCookie(name) {
@@ -299,6 +345,65 @@
     })
       .done(() => { toast('Eleitor removido'); search(); })
       .fail(() => toast('Erro ao remover eleitor', 'error'));
+  });
+
+  function modalValue(value) {
+    return value === null || value === undefined || value === '' ? '—' : value;
+  }
+
+  function renderEleitorBadges(data) {
+    const badges = [];
+    if (data.falecido) badges.push('<span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-rose-50 tw-text-rose-700 tw-border tw-border-rose-200">Falecido</span>');
+    else badges.push('<span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200">Ativo</span>');
+    if (data.mpd) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">Apoiante MPD</span>');
+    if (data.indeciso) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">Indeciso</span>');
+    if (data.nao_vai_votar) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">Não vai votar</span>');
+    if (data.ausente) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-sky-50 tw-text-sky-700 tw-border tw-border-sky-200">Ausente</span>');
+    if (data.descarga) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-indigo-50 tw-text-indigo-700 tw-border tw-border-indigo-200">Descarga</span>');
+    $('#vm-badges').html(badges.join(''));
+  }
+
+  function showViewModal() {
+    $('#view-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideViewModal() {
+    $('#view-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+
+  $(document).on('click', '.js-view', function () {
+    const id = $(this).data('id');
+    $.get('/eleitores/' + id + '/detail-json', function (data) {
+      $('#vm-nome').text(modalValue(data.nome));
+      $('#vm-subtitle').text(data.nominho ? data.nominho : ('Eleitor #' + data.id));
+      $('#vm-filiacao').text(modalValue(data.filiacao));
+      $('#vm-data_nascimento').text(modalValue(data.data_nascimento));
+      $('#vm-idade_eleitor').text(modalValue(data.idade_eleitor));
+      $('#vm-contato').text(modalValue(data.contato));
+      $('#vm-nacionalidade').text(modalValue(data.nacionalidade));
+      $('#vm-militante').text(modalValue(data.militante));
+      $('#vm-concelho').text(modalValue(data.concelho));
+      $('#vm-zona').text(modalValue(data.zona));
+      $('#vm-nr_mesa').text(modalValue(data.nr_mesa));
+      $('#vm-nr_eleitor').text(modalValue(data.nr_eleitor));
+      $('#vm-edit-link').attr('href', '/eleitores/update/' + data.id);
+      renderEleitorBadges(data);
+      showViewModal();
+    }).fail(() => toast('Erro ao carregar eleitor', 'error'));
+  });
+
+  $(document).on('click', '#view-modal-close,#view-modal-cancel', function () {
+    hideViewModal();
+  });
+
+  $(document).on('click', '#view-modal', function (e) {
+    if (e.target === this) hideViewModal();
+  });
+
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape' && !$('#view-modal').hasClass('tw-hidden')) hideViewModal();
   });
 
   /* ---------- export ---------- */

@@ -11,6 +11,39 @@ from django.http import HttpResponse
 from django.forms.models import model_to_dict
 from .form import UserMesaForm,MesaForm
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
+from django.contrib.auth.models import User
+import pandas as pd
+import io
+
+
+@login_required
+def search_users(request):
+    """Lightweight JSON autocomplete for users (Select2 compatible)."""
+    q = (request.GET.get("q") or "").strip()
+    qs = User.objects.filter(is_active=True)
+    if q:
+        qs = qs.filter(
+            Q(username__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(email__icontains=q)
+        )
+    qs = qs.order_by("username")[:20]
+    results = [{"id": u.pk, "text": u.username} for u in qs]
+    return JsonResponse({"results": results})
+
+
+@login_required
+def search_mesas(request):
+    """Lightweight JSON autocomplete for mesas (Select2 compatible)."""
+    q = (request.GET.get("q") or "").strip()
+    qs = Mesa.objects.filter(status=1)
+    if q:
+        qs = qs.filter(nr_mesa__icontains=q)
+    qs = qs.order_by("nr_mesa")[:20]
+    results = [{"id": m.pk, "text": m.nr_mesa} for m in qs]
+    return JsonResponse({"results": results})
 
 @login_required
 def index(request):
@@ -76,14 +109,26 @@ def get(request):
     if id == "":
         return JsonResponse({})
     mesaUser = UserMesa.objects.get(pk=id)
-    
+
     if not(mesaUser):
         messages.error(request, f'Erro na visualização de Mesa')
         data = {}
     else:
         data = {
-            "mesa": model_to_dict(mesaUser.mesa),
-            "user":model_to_dict(mesaUser.user)
+            "mesa": (
+                {"id": mesaUser.mesa.id, "nr_mesa": mesaUser.mesa.nr_mesa}
+                if mesaUser.mesa else None
+            ),
+            "user": (
+                {
+                    "id": mesaUser.user.id,
+                    "username": mesaUser.user.username,
+                    "first_name": mesaUser.user.first_name,
+                    "last_name": mesaUser.user.last_name,
+                    "email": mesaUser.user.email,
+                }
+                if mesaUser.user else None
+            ),
         }
     return JsonResponse(data)
 
@@ -121,9 +166,214 @@ def exportExcel(request):
     return response
 
 
+def _normalize_column_name(name):
+    return str(name).strip().lower().replace("_", " ")
+
+
+def _extract_nr_mesa_column(df):
+    normalized_map = {_normalize_column_name(col): col for col in df.columns}
+    candidates = [
+        "nr mesa",
+        "nrmesa",
+        "numero mesa",
+        "n mesa",
+        "mesa",
+    ]
+    for candidate in candidates:
+        if candidate in normalized_map:
+            return normalized_map[candidate]
+    return None
+
+
+def _read_csv_with_common_separators(raw_bytes):
+    for encoding in ('utf-8-sig', 'latin-1'):
+        try:
+            text = raw_bytes.decode(encoding)
+        except Exception:
+            continue
+        for separator in (',', ';', '\t', '|'):
+            try:
+                parsed = pd.read_csv(io.StringIO(text), sep=separator)
+            except Exception:
+                continue
+            if not parsed.empty and _extract_nr_mesa_column(parsed):
+                return parsed
+        try:
+            return pd.read_csv(io.StringIO(text))
+        except Exception:
+            pass
+    raise ValueError('invalid csv')
+
+
+def _load_mesa_dataframe(upload):
+    filename = (upload.name or '').lower()
+    content = upload.read()
+
+    if filename.endswith('.csv'):
+        readers = [_read_csv_with_common_separators, lambda b: pd.read_excel(io.BytesIO(b))]
+    elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+        readers = [lambda b: pd.read_excel(io.BytesIO(b)), _read_csv_with_common_separators]
+    else:
+        readers = [lambda b: pd.read_excel(io.BytesIO(b)), _read_csv_with_common_separators]
+
+    for reader in readers:
+        try:
+            return reader(content)
+        except Exception:
+            continue
+    return None
+
+
+def _analyze_mesa_rows(df):
+    nr_mesa_column = _extract_nr_mesa_column(df)
+    if not nr_mesa_column:
+        return None
+
+    rows = []
+    for _, row in df.iterrows():
+        raw_value = row.get(nr_mesa_column)
+        if pd.isna(raw_value):
+            rows.append(None)
+            continue
+        nr_mesa = str(raw_value).strip()
+        rows.append(nr_mesa if nr_mesa and nr_mesa.lower() != 'nan' else None)
+    return rows
+
+
+def _summarize_mesa_import(rows, preview_limit=10):
+    seen = set()
+    ordered_unique = []
+    skipped = 0
+
+    for nr_mesa in rows:
+        if not nr_mesa:
+            skipped += 1
+            continue
+        if nr_mesa in seen:
+            skipped += 1
+            continue
+        seen.add(nr_mesa)
+        ordered_unique.append(nr_mesa)
+
+    existing = {
+        nr: status
+        for nr, status in Mesa.objects.filter(nr_mesa__in=ordered_unique).values_list('nr_mesa', 'status')
+    }
+
+    created = 0
+    reactivated = 0
+    preview = []
+
+    for nr_mesa in ordered_unique:
+        status = existing.get(nr_mesa)
+        if status is None:
+            created += 1
+            action = 'Criar'
+        elif str(status) != '1':
+            reactivated += 1
+            action = 'Reativar'
+        else:
+            skipped += 1
+            action = 'Ignorar'
+
+        if len(preview) < preview_limit:
+            preview.append({'nr_mesa': nr_mesa, 'action': action})
+
+    return {
+        'created': created,
+        'reactivated': reactivated,
+        'skipped': skipped,
+        'preview': preview,
+        'total_rows': len(rows),
+    }
+
+
+@login_required
+def uploadMesaPreview(request):
+    if request.method != 'POST' or 'arquivo_mesa' not in request.FILES:
+        return JsonResponse({'message': 'Selecione um ficheiro para pré-visualizar'}, status=400)
+
+    upload = request.FILES['arquivo_mesa']
+    df = _load_mesa_dataframe(upload)
+    if df is None:
+        return JsonResponse({'message': 'Não foi possível ler o ficheiro. Use CSV, XLS ou XLSX'}, status=400)
+    if df.empty:
+        return JsonResponse({'message': 'Ficheiro sem dados para importar'}, status=400)
+
+    rows = _analyze_mesa_rows(df)
+    if rows is None:
+        return JsonResponse({'message': 'Coluna de mesa não encontrada. Use: nr_mesa, Numero Mesa ou Mesa'}, status=400)
+
+    summary = _summarize_mesa_import(rows)
+    return JsonResponse({
+        'filename': upload.name,
+        'created': summary['created'],
+        'reactivated': summary['reactivated'],
+        'skipped': summary['skipped'],
+        'total_rows': summary['total_rows'],
+        'preview': summary['preview'],
+    })
+
+
+@login_required
+def uploadMesa(request):
+    if request.method != 'POST' or 'arquivo_mesa' not in request.FILES:
+        messages.error(request, 'Selecione um ficheiro para carregar')
+        return redirect('mesa.index_mesa')
+
+    upload = request.FILES['arquivo_mesa']
+    df = _load_mesa_dataframe(upload)
+
+    if df is None:
+        messages.error(request, 'Não foi possível ler o ficheiro. Use CSV, XLS ou XLSX')
+        return redirect('mesa.index_mesa')
+
+    if df.empty:
+        messages.warning(request, 'Ficheiro sem dados para importar')
+        return redirect('mesa.index_mesa')
+
+    rows = _analyze_mesa_rows(df)
+    if rows is None:
+        messages.error(request, 'Coluna de mesa não encontrada. Use: nr_mesa, Numero Mesa ou Mesa')
+        return redirect('mesa.index_mesa')
+
+    summary = _summarize_mesa_import(rows)
+    created = 0
+    reactivated = 0
+    seen = set()
+
+    for nr_mesa in rows:
+        if not nr_mesa or nr_mesa in seen:
+            continue
+        seen.add(nr_mesa)
+
+        mesa, is_created = Mesa.objects.get_or_create(
+            nr_mesa=nr_mesa,
+            defaults={'status': 1}
+        )
+
+        if is_created:
+            created += 1
+            continue
+
+        if str(mesa.status) != '1':
+            mesa.status = 1
+            mesa.save()
+            reactivated += 1
+    messages.success(
+        request,
+        f"Importação concluída. Criadas: {created}, Reativadas: {reactivated}, Ignoradas: {summary['skipped']}"
+    )
+    return redirect('mesa.index_mesa')
+
+
 @login_required
 def indexMesa(request):
-    filtros = {'status':'1'}
+    filtros = {'status': '1'}
+    nr_mesa = request.GET.get("nr_mesa", "")
+    if nr_mesa:
+        filtros['nr_mesa__icontains'] = nr_mesa
+
     mesa = Mesa.objects.filter(**filtros)
     paginator = Paginator(mesa, 10)
     page_number = request.GET.get('page')
@@ -173,6 +423,24 @@ def removerMesa(request):
     raise ObjectDoesNotExist()
 
 
+@login_required
+def removerMesaMassa(request):
+    if request.method != "POST":
+        return JsonResponse({"message": "Método inválido"}, status=405)
+
+    ids = request.POST.getlist("ids[]")
+    if not ids:
+        ids_csv = request.POST.get("ids", "")
+        if ids_csv:
+            ids = [x.strip() for x in ids_csv.split(",") if x.strip()]
+
+    if not ids:
+        return JsonResponse({"message": "Nenhuma mesa selecionada"}, status=400)
+
+    removed = Mesa.objects.filter(id__in=ids, status='1').update(status='0')
+    return JsonResponse({"removed": removed})
+
+
 
 @login_required
 def getMesa(request):
@@ -191,7 +459,10 @@ def getMesa(request):
 
 @login_required
 def exportExcelMesa(request):
-    filtro = {'status':'1'}
+    filtro = {'status': '1'}
+    nr_mesa = request.GET.get("nr_mesa", "")
+    if nr_mesa:
+        filtro['nr_mesa__icontains'] = nr_mesa
 
     mesas = Mesa.objects.filter(**filtro).all()
     response = HttpResponse(
