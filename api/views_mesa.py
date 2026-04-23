@@ -142,6 +142,12 @@ class UserMesaViewSet(viewsets.ModelViewSet):
 
 # ---------- Eleitores ----------
 
+class EleitorPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
 class EleitorViewSet(viewsets.ModelViewSet):
     """
     /api/eleitores/
@@ -157,6 +163,7 @@ class EleitorViewSet(viewsets.ModelViewSet):
     search_fields = ["nome", "nominho", "filiacao"]
     ordering_fields = ["nome", "nr_eleitor", "datahora_atualizacao"]
     ordering = ["nome"]
+    pagination_class = EleitorPagination
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -291,7 +298,8 @@ class VotacaoViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAdminOrDelegado]
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["nr_eleitor", "nr_bi_eleitor", "nr_mesa", "assembleia_voto_nr", "motivo_n_votou"]
     ordering_fields = ["datetime", "nr_eleitor", "nr_mesa"]
     ordering = ["-datetime"]
     pagination_class = VotacaoPagination
@@ -328,6 +336,14 @@ class VotacaoViewSet(viewsets.ModelViewSet):
         votou = params.get("votou")
         if votou is not None and votou != "":
             qs = qs.filter(votou=1 if votou.lower() in ("1", "true", "yes") else 0)
+
+        # Date range on `datetime` (ISO 8601 / YYYY-MM-DD accepted)
+        date_from = params.get("datetime_from") or params.get("date_from")
+        if date_from:
+            qs = qs.filter(datetime__gte=date_from)
+        date_to = params.get("datetime_to") or params.get("date_to")
+        if date_to:
+            qs = qs.filter(datetime__lte=date_to)
         return qs
 
     def _object_belongs_to_user(self, obj, user):
