@@ -1,174 +1,178 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
-{% block breadcrumbs %}
-
-{% endblock %}
+{% block breadcrumbs %}{% endblock %}
 
 {% block content %}
-  <!-- [ Main Content ] start -->
-  <form method="post" action="{% url 'users.profile' %}" enctype="multipart/form-data">
-    <div class="row">
-      <div class="col-sm-8">
-        <div class="card">
-          <div class="card-header" style="display: flex;">
-            {% comment %} <h5>Dados</h5> {% endcomment %}
-            <div id="menu-action" style="width: 100%;display: flex;justify-content: end;">
-              <a href="javascript:void(0)" id="edit" style="margin-right: 10px;color: #1a9123;">
-                <i class="fa fa-solid fa-edit" style="font-size: 24px;"></i>
-                Editar
-              </a>
-              <a href="{% url 'admin:password_change' %}" style="color: #1a9123;">
-                <i class="fa fa-solid fa-lock" style="font-size: 24px"></i>
-                  Mudar Palavra-Passe
-              </a>
-            </div>
+<form method="post" action="{% url 'users.profile' %}" enctype="multipart/form-data" id="profile-form">
+  {% csrf_token %}
+  <div class="row">
+    {# ─────────────── Sidebar: avatar + identity ─────────────── #}
+    <div class="col-lg-4 col-md-12">
+      <div class="card profile-card">
+        <div class="card-body text-center">
+          <div class="profile-avatar-wrap mx-auto">
+            {% if user.profile and user.profile.image %}
+              <img src="/media/{{ user.profile.image }}"
+                   onerror="this.style.display='none';document.getElementById('profile-avatar-fallback').style.display='flex';"
+                   alt="profile" class="profile-avatar-img" id="profile_image">
+              <span id="profile-avatar-fallback" class="profile-avatar" style="display:none;">
+                <i class="feather icon-user"></i>
+              </span>
+            {% else %}
+              <img id="profile_image" alt="profile" class="profile-avatar-img" style="display:none;">
+              <span id="profile-avatar-fallback" class="profile-avatar">
+                <i class="feather icon-user"></i>
+              </span>
+            {% endif %}
+            <button type="button" id="avatar-upload-btn" class="profile-avatar-edit" title="Alterar imagem" disabled>
+              <i class="feather icon-camera"></i>
+            </button>
           </div>
-          <div class="card-block">
-            <div class="row">
-              <div class="col-sm-12 mb-4">
-                <div class="form-group">
-                  <div class="form-group">{{ userForm.email.label_tag }}
-                    {{ userForm.email }}
-                    {{ userForm.email.errors }}</div>
-                </div>
-              </div>
-              <div class="col-sm-6 mb-4">
-                <div class="form-group">{{ userForm.first_name.label_tag }}
-                  {{ userForm.first_name }}
-                  {{ userForm.first_name.errors }}</div>
-              </div>
-              <div class="col-sm-6 mb-4">
-                <div class="form-group">{{ userForm.last_name.label_tag }}
-                  {{ userForm.last_name }}
-                  {{ userForm.last_name.errors }}</div>
-              </div>
-              <div class="col-sm-12 mb-4">
-                <div class="form-group">{{ profileUpdateForm.address.label_tag }}
-                  {{ profileUpdateForm.address }}
-                  {{ profileUpdateForm.address.errors }}</div>
-              </div>
-              <div class="col-sm-12 mb-4">
-                <div class="form-group">{{ profileUpdateForm.about.label_tag }}
-                  {{ profileUpdateForm.about }}
-                  {{ profileUpdateForm.about.errors }}</div>
-                {% csrf_token %}
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-sm-12">
-                <button type="submit" class="btn btn-primary" id="submit">Guardar</button>
-                <a class="btn btn-secondary" href="{% url 'users.profile' %}" id="cancel">Cancelar</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-4">
-        <div class="card">
-          <div class="card-block">
-            <div class="d-flex align-items-center justify-content-center flex-column">
-              <div class="w-50 p-3" id="img-contrainer">
-                <div class="img-fluid rounded-circle" id="masc-img">
-                  <i class="fa fa-solid fa-edit" style="font-size: 24px;"></i>
-                </div>
-                <img src="{% if user.profile and user.profile.image %}/media/{{ user.profile.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
-                  onerror="this.onerror=null;this.src='{% static 'assets/images/user/avatar-1.jpg' %}';"
-                  alt="profile image"
-                  class="img-fluid rounded-circle"
-                  id="profile_image"
-                  style="width: 150px;height: 137px;transform: translateX(20px);" />
-              </div>
-              <div class="" style="margin-bottom: 10px;">{{ profileUpdateForm.image }}
-                {{ profileUpdateForm.image.errors }}
-              </div>
-              <div class="text-center">
-                <h4 class="font-weight-bold h6">{{ user.username }}</h4>
-              </div>
-              
-            </div>
 
-            <div class="small font-weight-light mt-4 text-center text-muted">
-              <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dignissimos esse excepturi fugiat id numquam? Enim illo, perferendis. Eum, ratione, voluptas?</p>
-            </div>
-            <div class="d-flex justify-content-center align-items-center">
-              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-facebook"></i></a>
-              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-twitter"></i></a>
-              <a href="#" class="h6 text-muted d-block m-1"><i class="icon feather icon-instagram"></i></a>
-            </div>
+          <h4 class="profile-name mt-3 mb-1">{{ user.get_full_name|default:user.username }}</h4>
+          <div class="text-muted small">@{{ user.username }}</div>
+          {% if user.email %}<div class="text-muted small mt-1"><i class="feather icon-mail"></i> {{ user.email }}</div>{% endif %}
+
+          <div class="profile-badges mt-3">
+            {% if user.is_superuser %}<span class="badge badge-mpd">Administrador</span>{% endif %}
+            {% for g in user.groups.all %}<span class="badge badge-light-mpd">{{ g.name }}</span>{% endfor %}
+            {% if user.is_active %}<span class="badge badge-success">Ativo</span>{% else %}<span class="badge badge-secondary">Inativo</span>{% endif %}
+          </div>
+
+          <div class="d-none mt-3" id="avatar-input-wrap">{{ profileUpdateForm.image }}</div>
+
+          <hr class="my-3">
+
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-outline-mpd btn-block" data-toggle="modal" data-target="#change-password-modal">
+              <i class="feather icon-lock mr-1"></i> Alterar palavra-passe
+            </button>
           </div>
         </div>
       </div>
     </div>
-  </form>
 
-  <!-- [ Main Content ] end -->
+    {# ─────────────── Main: account fields ─────────────── #}
+    <div class="col-lg-8 col-md-12">
+      <div class="card profile-card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="m-0"><i class="feather icon-user mr-2 text-mpd"></i>Dados da conta</h5>
+          <button type="button" id="edit" class="btn btn-sm btn-outline-mpd">
+            <i class="feather icon-edit mr-1"></i>Editar
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label>Nome</label>
+              {{ userForm.first_name }}
+              {{ userForm.first_name.errors }}
+            </div>
+            <div class="form-group col-md-6">
+              <label>Apelido</label>
+              {{ userForm.last_name }}
+              {{ userForm.last_name.errors }}
+            </div>
+            <div class="form-group col-md-12">
+              <label>Email</label>
+              {{ userForm.email }}
+              {{ userForm.email.errors }}
+            </div>
+            <div class="form-group col-md-12">
+              <label>Endereço</label>
+              {{ profileUpdateForm.address }}
+              {{ profileUpdateForm.address.errors }}
+            </div>
+            <div class="form-group col-md-12">
+              <label>Sobre mim</label>
+              {{ profileUpdateForm.about }}
+              {{ profileUpdateForm.about.errors }}
+            </div>
+          </div>
 
-  <style>
-    #masc-img {
-      width: 150px;
-      height: 137px;
-      transform: translateX(20px);
-      background: rgba(0, 0, 0, 0.5);
-      background-color: rgba(0, 0, 0, 0.5);
-      background-image: none;
-      position: absolute;
-      z-index: 1;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-    }
-    #masc-img i {
-      color: black;
-    }
-  </style>
+          <div class="d-flex justify-content-end gap-2 form-actions" style="display:none;">
+            <a class="btn btn-light mr-2" href="{% url 'users.profile' %}" id="cancel">Cancelar</a>
+            <button type="submit" class="btn btn-mpd" id="submit"><i class="feather icon-check mr-1"></i>Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
 
-  <script>
-    let isEdit = false
-    var loadFile = function (event) {
-      var image = document.getElementById('profile_image')
-      image.src = URL.createObjectURL(event.target.files[0])
-    }
-    
-    
-    document.getElementById('masc-img').addEventListener('click', function () {
-      document.getElementById('id_image').click()
-    })
-    
-    document.getElementById('id_image').addEventListener('change', loadFile)
-    
-    document.getElementById('profile_image').addEventListener('mouseover', function () {
-      if(isEdit)
-        document.getElementById('masc-img').style.display = 'flex'
-    })
-    
-    document.getElementById('masc-img').addEventListener('mouseout', function () {
-      document.getElementById('masc-img').style.display = 'none'
-    })
-    
-    function disableEnbleInput(value) {
-      $('input').prop('disabled', value)
-      $('textarea').prop('disabled', value)
-    
-      if (value) {
-        $('#submit').hide()
-        $('#cancel').hide()
-        $("#id_image").hide()
-      } else {
-        $('#submit').show()
-        $('#cancel').show()
-        $("#id_image").show()
-      }
-    }
-    
-    $(document).ready(function () {
-      disableEnbleInput(true)
-    })
-    
-    $(document).on('click', '#edit', function () {
-      disableEnbleInput(false)
-      isEdit = true
-    })
-  </script>
+<style>
+  .text-mpd { color: #1a9123 !important; }
+  .badge-mpd { background: #1a9123; color: #fff; }
+  .badge-light-mpd { background: #e8f5ec; color: #0e7716; border: 1px solid #c7e6cf; }
+  .btn-mpd { background: #1a9123; color: #fff; border-color: #1a9123; }
+  .btn-mpd:hover { background: #0e7716; color: #fff; border-color: #0e7716; }
+  .btn-outline-mpd { color: #1a9123; border: 1px solid #1a9123; background: #fff; }
+  .btn-outline-mpd:hover { background: #1a9123; color: #fff; }
+
+  .profile-card { border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+  .profile-card .card-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+
+  .profile-avatar-wrap {
+    position: relative;
+    width: 130px; height: 130px;
+  }
+  .profile-avatar,
+  .profile-avatar-img {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    background: #e8f5ec;
+    color: #0e7716;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 14px rgba(15,23,42,.08);
+    object-fit: cover;
+  }
+  .profile-avatar-edit {
+    position: absolute; right: 4px; bottom: 4px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #1a9123; color: #fff; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform .15s, opacity .15s;
+  }
+  .profile-avatar-edit:hover:not(:disabled) { transform: scale(1.05); background: #0e7716; }
+  .profile-avatar-edit:disabled { opacity: .35; cursor: not-allowed; }
+  .profile-name { font-weight: 700; color: #1f2937; }
+  .profile-badges .badge { margin: 2px; padding: .35em .6em; font-weight: 600; }
+</style>
+
+<script>
+  var isEdit = false;
+
+  function setFieldsEnabled(enabled){
+    $('#profile-form input:not([type=hidden]):not([type=file]), #profile-form textarea, #profile-form select')
+      .prop('disabled', !enabled);
+    $('#avatar-upload-btn').prop('disabled', !enabled);
+    $('.form-actions').toggle(enabled);
+    $('#edit').toggle(!enabled);
+  }
+
+  $(function(){
+    setFieldsEnabled(false);
+
+    $('#edit').on('click', function(){
+      isEdit = true;
+      setFieldsEnabled(true);
+    });
+
+    $('#avatar-upload-btn').on('click', function(){
+      $('#id_image').click();
+    });
+
+    $('#id_image').on('change', function(e){
+      var file = e.target.files[0];
+      if (!file) return;
+      var url = URL.createObjectURL(file);
+      var $img = $('#profile_image');
+      $img.attr('src', url).show();
+      $('#profile-avatar-fallback').hide();
+    });
+  });
+</script>
 {% endblock %}

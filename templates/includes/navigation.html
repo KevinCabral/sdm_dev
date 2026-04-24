@@ -1,6 +1,5 @@
 {% load static %}
 
-
 <header class="navbar pcoded-header navbar-expand-lg navbar-light">
   <div class="m-header">
     <a class="mobile-menu" id="mobile-collapse1" href="javascript:"><span></span></a>
@@ -14,77 +13,113 @@
   <a class="mobile-menu" id="mobile-header" href="javascript:">
     <i class="feather icon-more-horizontal"></i>
   </a>
+
   <div class="collapse navbar-collapse">
     <ul class="navbar-nav ml-auto">
-      <li>
-        <label>
-          <i class="icon feather icon-sun" id="theme-indicator"></i>
-          <input type="checkbox" id="theme-switch" class="d-none">
-        </label>
-      </li>
+
+      {# ─────────────── Notifications ─────────────── #}
       <li>
         <div class="dropdown">
-          <a class="dropdown-toggle" href="javascript:" data-toggle="dropdown" id="notification"><i
-              class="icon feather icon-bell"></i>&nbsp;<span>0</span></a>
-          <div class="dropdown-menu dropdown-menu-right notification">
+          <a class="dropdown-toggle nav-bell" href="javascript:" data-toggle="dropdown" id="notification" aria-label="Notificações">
+            <i class="icon feather icon-bell"></i>
+            <span class="badge badge-pill nav-bell-badge" id="nav-bell-count">0</span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right notification nav-noti-panel">
             <div class="noti-head">
-              <h6 class="d-inline-block m-b-0">Notifications</h6>
-              {% comment %} <div class="float-right">
-                <a href="javascript:" class="m-r-10">mark as read</a>
-                <a href="javascript:">clear all</a>
-              </div> {% endcomment %}
+              <h6 class="d-inline-block m-b-0">Notificações</h6>
+              <a href="javascript:" id="nav-noti-mark-read" class="small text-mpd font-weight-bold d-none">
+                <i class="feather icon-check"></i> Marcar todas como lidas
+              </a>
             </div>
             <ul class="noti-body">
-              <li class="n-title">
-                <p class="m-b-0">NEW</p>
-              </li>
+              <li class="n-title"><p class="m-b-0">PEDIDOS DE APROVAÇÃO</p></li>
             </ul>
             <div class="noti-footer">
-              <a href="militantes/?estado=P">show all</a>
+              <a href="{% url 'militantes.pedidos' %}">Ver todos os pedidos</a>
             </div>
           </div>
         </div>
       </li>
+
+      {# ─────────────── User profile ─────────────── #}
       <li>
         <div class="dropdown drp-user">
-          <a href="javascript:" class="dropdown-toggle" data-toggle="dropdown">
-            <i class="icon feather icon-settings"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-right profile-notification">
-            <div class="pro-head">
-                  <img src="{% if user.profile and user.profile.image %}/media/{{ user.profile.image }}{% else %}{% static 'assets/images/user/avatar-1.jpg' %}{% endif %}"
-                    onerror="this.onerror=null;this.src='{% static 'assets/images/user/avatar-1.jpg' %}';"
-                    class="img-radius"
-                    alt="User-Profile-Image">
-              <span>{{user}}</span>
-              {% if request.user.is_authenticated %}
-                {% if request.user.is_superuser %}
-                <a href="{% url 'admin:logout' %}" class="dud-logout" title="Logout">
-                {% else %}
-                <a href="{% url 'logout' %}" class="dud-logout" title="Logout">
-                {% endif %}
-                  <i class="feather icon-log-out"></i>
-                </a>
+          <a href="javascript:" class="dropdown-toggle nav-user-trigger" data-toggle="dropdown" aria-label="Conta">
+            <span class="nav-user-pill">
+              {% if user.profile and user.profile.image %}
+                <span class="nav-user-avatar nav-user-avatar-img">
+                  <img src="/media/{{ user.profile.image }}"
+                       onerror="this.parentNode.classList.remove('nav-user-avatar-img');this.outerHTML='<i class=\'feather icon-user\'></i>';"
+                       alt="{{ user.username }}">
+                </span>
+              {% else %}
+                <span class="nav-user-avatar">
+                  {{ user.get_full_name|default:user.username|first|upper }}
+                </span>
               {% endif %}
+              <span class="nav-user-meta d-none d-md-flex">
+                <span class="nav-user-meta-name">{{ user.get_full_name|default:user.username }}</span>
+                <span class="nav-user-meta-role">
+                  {% if user.is_superuser %}Administrador
+                  {% elif user.groups.first %}{{ user.groups.first.name|capfirst }}
+                  {% else %}Utilizador{% endif %}
+                </span>
+              </span>
+              <i class="feather icon-chevron-down nav-user-caret"></i>
+            </span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right profile-notification nav-user-panel">
+            <div class="pro-head">
+              {% if user.profile and user.profile.image %}
+                <span class="nav-user-avatar nav-user-avatar-lg nav-user-avatar-img">
+                  <img src="/media/{{ user.profile.image }}"
+                       onerror="this.parentNode.classList.remove('nav-user-avatar-img');this.outerHTML='{{ user.get_full_name|default:user.username|first|upper|escapejs }}';"
+                       alt="{{ user.username }}">
+                </span>
+              {% else %}
+                <span class="nav-user-avatar nav-user-avatar-lg">
+                  {{ user.get_full_name|default:user.username|first|upper }}
+                </span>
+              {% endif %}
+              <div class="nav-user-name">{{ user.get_full_name|default:user.username }}</div>
+              {% if user.email %}<div class="nav-user-email">{{ user.email }}</div>{% endif %}
+              <div class="nav-user-tags">
+                {% if user.is_superuser %}<span class="nav-user-tag nav-user-tag-mpd">Administrador</span>{% endif %}
+                {% for g in user.groups.all %}<span class="nav-user-tag">{{ g.name|capfirst }}</span>{% endfor %}
+              </div>
             </div>
             <ul class="pro-body">
-              <!--<li><a href="#" class="dropdown-item"><i class="feather icon-settings"></i>
-                  Settings</a></li> -->
-              <li><a href="{% url 'users.profile' %}" class="dropdown-item"><i class="feather icon-user"></i>
-                  Profile</a></li>
-              <!--<li><a href="#" class="dropdown-item"><i class="feather icon-mail"></i> My
-                  Messages</a></li>
-              <li><a href="#" class="dropdown-item"><i class="feather icon-lock"></i> Lock
-                  Screen</a></li>
-                  -->
+              <li>
+                <a href="{% url 'users.profile' %}" class="dropdown-item nav-user-action">
+                  <span class="nav-user-action-ico"><i class="feather icon-user"></i></span>
+                  <span>
+                    <span class="d-block font-weight-bold">Meu perfil</span>
+                    <span class="text-muted small">Editar dados pessoais e foto</span>
+                  </span>
+                </a>
+              </li>
               {% if request.user.is_authenticated %}
               <li>
+                <a href="javascript:" class="dropdown-item nav-user-action" data-toggle="modal" data-target="#change-password-modal">
+                  <span class="nav-user-action-ico"><i class="feather icon-lock"></i></span>
+                  <span>
+                    <span class="d-block font-weight-bold">Alterar palavra-passe</span>
+                    <span class="text-muted small">Atualizar credenciais de acesso</span>
+                  </span>
+                </a>
+              </li>
+              <li class="nav-user-divider"></li>
+              <li>
                 {% if request.user.is_superuser %}
-                <a href="{% url 'admin:password_change' %}" class="dropdown-item">
+                <a href="{% url 'admin:logout' %}" class="dropdown-item nav-user-action nav-user-logout">
                 {% else %}
-                <a href="{% url 'password_change' %}" class="dropdown-item">
+                <a href="{% url 'logout' %}" class="dropdown-item nav-user-action nav-user-logout">
                 {% endif %}
-                  <i class="feather icon-edit"></i>Change Password
+                  <span class="nav-user-action-ico nav-user-action-ico-danger"><i class="feather icon-log-out"></i></span>
+                  <span>
+                    <span class="d-block font-weight-bold">Terminar sessão</span>
+                    <span class="text-muted small">Sair da conta</span>
+                  </span>
                 </a>
               </li>
               {% endif %}
@@ -96,45 +131,378 @@
   </div>
 </header>
 
+{# ─────────────── Change Password Modal ─────────────── #}
+{% if request.user.is_authenticated %}
+<div class="modal fade" id="change-password-modal" tabindex="-1" role="dialog" aria-labelledby="change-password-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content cpw-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="change-password-title">
+          <i class="feather icon-lock mr-2"></i>Alterar palavra-passe
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="change-password-form">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div id="cpw-alert" class="alert alert-danger d-none" role="alert"></div>
+
+          <div class="form-group">
+            <label for="cpw-old">Palavra-passe atual</label>
+            <input type="password" id="cpw-old" name="old_password" class="form-control" autocomplete="current-password" required>
+            <div class="invalid-feedback" data-field="old_password"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="cpw-new1">Nova palavra-passe</label>
+            <input type="password" id="cpw-new1" name="new_password1" class="form-control" autocomplete="new-password" required>
+            <small class="form-text text-muted">Mínimo 8 caracteres, não pode ser muito comum nem inteiramente numérica.</small>
+            <div class="invalid-feedback" data-field="new_password1"></div>
+          </div>
+
+          <div class="form-group mb-0">
+            <label for="cpw-new2">Confirmar nova palavra-passe</label>
+            <input type="password" id="cpw-new2" name="new_password2" class="form-control" autocomplete="new-password" required>
+            <div class="invalid-feedback" data-field="new_password2"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-mpd" id="cpw-submit">
+            <i class="feather icon-check mr-1"></i>Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  /* topbar polish */
+  .pcoded-header .navbar-nav > li > a.nav-bell,
+  .pcoded-header .navbar-nav > li > a.nav-user-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    color: #475569;
+  }
+  .pcoded-header .navbar-nav > li > a.nav-bell { padding-top: 14px; }
+  .pcoded-header .navbar-nav > li > a.nav-bell:hover,
+  .pcoded-header .navbar-nav > li > a.nav-user-trigger:hover { color: #1a9123; }
+  .nav-bell-badge {
+    position: absolute;
+    top: 8px;
+    right: 4px;
+    font-size: 10px;
+    background: #dc2626;
+    color: #fff;
+    min-width: 18px;
+    padding: 2px 5px;
+    border-radius: 10px;
+    line-height: 1;
+    display: none;
+  }
+  .nav-bell-badge.has-items { display: inline-block; }
+
+  .nav-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a9123 0%, #0e7716 100%);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(15,23,42,.12);
+    flex-shrink: 0;
+  }
+  .nav-user-avatar-lg { width: 64px; height: 64px; font-size: 26px; border-width: 3px; }
+  .nav-user-avatar-img { padding: 0; overflow: hidden; background: #fff; }
+  .nav-user-avatar-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+
+  /* Trigger pill in topbar */
+  .pcoded-header .nav-user-trigger { padding: 0 12px !important; line-height: 1; }
+  .pcoded-header .nav-user-trigger::after { display: none !important; }
+  .nav-user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 4px 4px;
+    margin-top: 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+  }
+  .pcoded-header .nav-user-trigger:hover .nav-user-pill,
+  .pcoded-header .show > .nav-user-trigger .nav-user-pill {
+    background: #fff;
+    border-color: #c7e6cf;
+    box-shadow: 0 2px 8px rgba(26,145,35,.10);
+  }
+  .nav-user-meta { flex-direction: column; line-height: 1.15; text-align: left; }
+  .nav-user-meta-name { font-size: 13px; font-weight: 600; color: #1f2937; }
+  .nav-user-meta-role { font-size: 11px; color: #64748b; }
+  .nav-user-caret { font-size: 14px; color: #94a3b8; transition: transform .2s; }
+  .pcoded-header .show > .nav-user-trigger .nav-user-caret { transform: rotate(180deg); color: #1a9123; }
+
+  /* Dropdown panel */
+  .nav-user-panel {
+    width: 320px;
+    padding: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(15,23,42,.12);
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .nav-user-panel .pro-head {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9f3 100%);
+    padding: 22px 16px 18px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    position: relative;
+  }
+  .nav-user-name {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .nav-user-email {
+    font-size: 12px;
+    color: #475569;
+    margin-top: 2px;
+    word-break: break-all;
+  }
+  .nav-user-tags {
+    margin-top: 10px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .nav-user-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fff;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  .nav-user-tag-mpd { background: #1a9123; color: #fff; border-color: #1a9123; }
+
+  .nav-user-panel .pro-body { padding: 8px; margin: 0; list-style: none; }
+  .nav-user-divider { height: 1px; background: #e2e8f0; margin: 6px 4px; padding: 0 !important; }
+  .nav-user-action {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px !important;
+    border-radius: 10px;
+    color: #1f2937 !important;
+    transition: background .15s;
+  }
+  .nav-user-action:hover { background: #f1f5f9 !important; }
+  .nav-user-action-ico {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #e8f5ec;
+    color: #0e7716;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .nav-user-action-ico-danger { background: #fee2e2; color: #dc2626; }
+  .nav-user-logout:hover { background: #fef2f2 !important; }
+  .nav-user-logout:hover { color: #b91c1c !important; }
+
+  /* notifications panel */
+  .nav-noti-panel { width: 340px; padding: 0; }
+  .nav-noti-panel .noti-head {
+    padding: 12px 16px; border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-noti-panel .noti-head h6 { font-weight: 700; color: #1f2937; margin: 0; }
+  .nav-noti-panel .noti-body { max-height: 360px; overflow-y: auto; padding: 6px 0; margin: 0; list-style: none; }
+  .nav-noti-panel .noti-body .n-title { padding: 8px 16px 4px; }
+  .nav-noti-panel .noti-body .n-title p {
+    margin: 0; font-size: 11px; letter-spacing: .08em; color: #64748b; font-weight: 700;
+  }
+  .nav-noti-panel .noti-body .noti-item {
+    padding: 0;
+    border-bottom: 1px solid #f1f5f9; transition: background .15s;
+    list-style: none;
+  }
+  .nav-noti-panel .noti-body .noti-item:hover { background: #f8fafc; }
+  .nav-noti-panel .noti-body .noti-item a {
+    display: flex; gap: 10px; padding: 10px 16px; color: inherit; align-items: center; position: relative;
+  }
+  .nav-noti-panel .noti-body .noti-item.is-unread { background: #f0f9f3; }
+  .nav-noti-panel .noti-body .noti-item.is-unread .nm { color: #0e7716; }
+  .nav-noti-panel .noti-body .noti-item .unread-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #1a9123; flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(26,145,35,.15);
+  }
+  .nav-noti-panel .noti-body .noti-item .ico {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+    background: #fef3c7; color: #b45309;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+  }
+  .nav-noti-panel .noti-body .noti-item .nm { font-weight: 600; color: #1f2937; font-size: 13px; line-height: 1.2; margin-bottom: 2px; }
+  .nav-noti-panel .noti-body .noti-item .ms { font-size: 12px; color: #64748b; }
+  .nav-noti-panel .noti-body .empty {
+    padding: 28px 16px; text-align: center; color: #94a3b8; font-size: 13px;
+    list-style: none;
+  }
+  .nav-noti-panel .noti-footer {
+    padding: 10px 16px; border-top: 1px solid #e2e8f0; text-align: center; background: #f8fafc;
+  }
+  .nav-noti-panel .noti-footer a { color: #0e7716; font-weight: 600; font-size: 12px; }
+
+  /* change password modal */
+  .cpw-modal .modal-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .cpw-modal .modal-title { color: #1f2937; font-weight: 700; }
+  .btn-mpd { background: #1a9123; color: #fff; border-color: #1a9123; }
+  .btn-mpd:hover, .btn-mpd:focus { background: #0e7716; color: #fff; border-color: #0e7716; }
+  .cpw-modal .form-control.is-invalid { border-color: #dc2626; }
+  .cpw-modal .invalid-feedback { display: none; color: #dc2626; font-size: 12px; }
+  .cpw-modal .form-control.is-invalid + .invalid-feedback,
+  .cpw-modal .form-control.is-invalid ~ .invalid-feedback { display: block; }
+</style>
 
 <script>
-  function notification(){
-    $.get('{% url "militantes.notificacao" %}',function(data){
-      let militantes =  data.militantes
-      $("#notification span").text(militantes.length)
-      for(i = 0; i < militantes.length && i < 5; i++){
-        let element = militantes[i]
-        if($(".noti-body").find("#noti-body-"+element.id).length == 0){
-          $(".noti-body").append('<li class="notification" id="noti-body-'+element.id+'">\
-             <a href="/militantes/?estado=P">\
-                <div class="media">\
-                  <div class="media-body">\
-                    <p><strong>'+ element.nome_completo+'</strong><span class="n-time text-muted">\
-                    <p>Pedido de Aprovação</p>\
-                  </div>\
-                </div>\
-              </a>\
-          </li>')
-        }
-      }
+  /* ---------- notifications poll ---------- */
+  var NOTI_READ_KEY = 'mpd.notif.read.v1';
 
-      if(militantes.length > 5){
-        $(".noti-footer").show()
-      }
-
-      if(militantes.length  === 0){
-        $(".noti-body .n-title").hide()
-        if($(".noti-body").find(".info").length == 0){
-          $(".noti-body").append("<p class='info' style='margin-left: 19px;'>Nenhum pedido de Aprovação</p>")
-        }
-      }else{
-        $(".noti-body .n-title").show()
-      }
-    })
+  function getReadIds(){
+    try { return new Set(JSON.parse(localStorage.getItem(NOTI_READ_KEY) || '[]')); }
+    catch(e){ return new Set(); }
+  }
+  function saveReadIds(set){
+    try { localStorage.setItem(NOTI_READ_KEY, JSON.stringify(Array.from(set))); } catch(e){}
+  }
+  function markRead(id){
+    var s = getReadIds(); s.add(String(id)); saveReadIds(s);
   }
 
-  setInterval(function(){
-    //notification()
-  },2000)
-  notification()
+  function loadNotifications(){
+    $.get('{% url "militantes.notificacao" %}', function(data){
+      var militantes = data.militantes || [];
+      var read = getReadIds();
+      var unread = militantes.filter(function(m){ return !read.has(String(m.id)); });
+
+      var $count = $('#nav-bell-count');
+      $count.text(unread.length).toggleClass('has-items', unread.length > 0);
+      $('#nav-noti-mark-read').toggleClass('d-none', unread.length === 0);
+
+      var $body = $('.nav-noti-panel .noti-body');
+      $body.find('.noti-item, .empty').remove();
+
+      if (militantes.length === 0) {
+        $body.find('.n-title').hide();
+        $body.append('<li class="empty"><i class="feather icon-check-circle" style="font-size:24px;color:#10b981;"></i><div class="mt-2">Sem pedidos pendentes</div></li>');
+        return;
+      }
+
+      $body.find('.n-title').show();
+      militantes.slice(0, 8).forEach(function(m){
+        var initials = (m.nome_completo || '?').trim().charAt(0).toUpperCase();
+        var isUnread = !read.has(String(m.id));
+        var detailUrl = '{% url "militantes.pedidos" %}?open=' + m.id;
+        $body.append(
+          '<li class="noti-item ' + (isUnread ? 'is-unread' : '') + '" data-id="' + m.id + '">' +
+            '<a href="' + detailUrl + '" class="js-noti-link">' +
+              '<div class="ico">' + initials + '</div>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div class="nm">' + (m.nome_completo || 'Sem nome') + '</div>' +
+                '<div class="ms"><i class="feather icon-clock" style="font-size:11px"></i> Pedido de aprovação</div>' +
+              '</div>' +
+              (isUnread ? '<span class="unread-dot" title="Não lida"></span>' : '') +
+            '</a>' +
+          '</li>'
+        );
+      });
+    });
+  }
+  $(function(){
+    loadNotifications();
+    setInterval(loadNotifications, 30000);
+
+    // Mark read when clicking an item (and let the link navigate)
+    $(document).on('click', '.nav-noti-panel .js-noti-link', function(){
+      var id = $(this).closest('.noti-item').data('id');
+      if (id !== undefined) markRead(id);
+    });
+
+    // Mark all as read
+    $('#nav-noti-mark-read').on('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      var s = getReadIds();
+      $('.nav-noti-panel .noti-item').each(function(){
+        s.add(String($(this).data('id')));
+      });
+      saveReadIds(s);
+      loadNotifications();
+    });
+  });
+
+  /* ---------- change password modal ---------- */
+  $(function(){
+    var $form = $('#change-password-form');
+    var $alert = $('#cpw-alert');
+
+    function clearErrors(){
+      $form.find('.form-control').removeClass('is-invalid');
+      $form.find('.invalid-feedback').text('');
+      $alert.addClass('d-none').text('');
+    }
+
+    $('#change-password-modal').on('hidden.bs.modal', function(){
+      $form[0].reset();
+      clearErrors();
+    });
+
+    $form.on('submit', function(e){
+      e.preventDefault();
+      clearErrors();
+      var $btn = $('#cpw-submit').prop('disabled', true).html('<i class="feather icon-loader"></i> A guardar...');
+
+      $.ajax({
+        url: "{% url 'users.change_my_password' %}",
+        type: 'POST',
+        data: $form.serialize(),
+      }).done(function(resp){
+        if (window.toastr) toastr.success(resp.message || 'Palavra-passe alterada.');
+        $('#change-password-modal').modal('hide');
+      }).fail(function(xhr){
+        var data = xhr.responseJSON || {};
+        if (data.errors) {
+          Object.keys(data.errors).forEach(function(field){
+            var msg = data.errors[field].join(' ');
+            $form.find('[name="' + field + '"]').addClass('is-invalid');
+            $form.find('[data-field="' + field + '"]').text(msg);
+            if (field === '__all__') $alert.removeClass('d-none').text(msg);
+          });
+        } else {
+          $alert.removeClass('d-none').text('Erro ao alterar palavra-passe.');
+        }
+      }).always(function(){
+        $btn.prop('disabled', false).html('<i class="feather icon-check mr-1"></i>Guardar');
+      });
+    });
+  });
 </script>

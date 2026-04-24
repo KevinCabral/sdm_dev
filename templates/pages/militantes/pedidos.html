@@ -356,5 +356,34 @@
     $('#nome').val(''); $('#with_out_email').prop('checked', false); search();
   });
   $(document).on('click', '.page-item', function () { search($(this).attr('data-href')); });
+
+  /* ── Auto-open modal when ?open=<id> is in URL ───────── */
+  $(function(){
+    var params = new URLSearchParams(window.location.search);
+    var openId = params.get('open');
+    if (openId) {
+      // Click the matching .view trigger if present, else fetch directly
+      var $row = $('.view[id-militante="' + openId + '"]').first();
+      if ($row.length) { $row.trigger('click'); }
+      else {
+        $.get("{% url 'militantes.get' 0 %}".replace('/0', '/' + openId), function (obj) {
+          if (!obj || obj.id === undefined) return;
+          Object.keys(obj).forEach(function (k) {
+            $('#militante-modal').find('[data-field="' + k + '"]').text(obj[k] == null ? '—' : obj[k]);
+          });
+          $('#modal-title').text(obj['nome_completo'] || 'Pedido de aprovação');
+          $('#modal-aprovar').attr('id-militante', openId).attr('email-militante', obj['email_pessoal'] || '');
+          $('#modal-rejectar').attr('id-militante', openId);
+          openModal('militante-modal');
+        });
+      }
+      // Clean URL so refresh doesn't reopen
+      if (window.history && window.history.replaceState) {
+        params.delete('open');
+        var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.replaceState({}, '', clean);
+      }
+    }
+  });
 </script>
 {% endblock %}

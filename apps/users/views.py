@@ -272,7 +272,23 @@ def change_password(request,user_id):
     return render(request, "pages/users/password_change.html", {'form': form, "user":user})
 
 
+@login_required
+@require_POST
+def change_my_password(request):
+    """JSON endpoint: current user changes own password.
 
+    POST: old_password, new_password1, new_password2
+    """
+    from django.contrib.auth import update_session_auth_hash
+    from django.contrib.auth.forms import PasswordChangeForm
 
+    form = PasswordChangeForm(user=request.user, data=request.POST)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        return JsonResponse({'ok': True, 'message': 'Palavra-passe alterada com sucesso.'})
+
+    errors = {f: [str(e) for e in errs] for f, errs in form.errors.items()}
+    return JsonResponse({'ok': False, 'errors': errors}, status=400)
 
 
