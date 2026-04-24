@@ -64,3 +64,56 @@ class Votacao(models.Model):
     class Meta:
         managed = False
         db_table = 'votacao'
+
+
+class EleicaoImport(models.Model):
+    """Tracks an Excel import of eleitores tied to a specific eleição."""
+
+    TIPO_LEGISLATIVA = "L"
+    TIPO_PRESIDENCIAL = "P"
+    TIPO_AUTARQUICA = "A"
+    TIPO_CHOICES = [
+        (TIPO_LEGISLATIVA, "Legislativa"),
+        (TIPO_PRESIDENCIAL, "Presidencial"),
+        (TIPO_AUTARQUICA, "Autárquica"),
+    ]
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_ERROR = "error"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pendente"),
+        (STATUS_RUNNING, "Em curso"),
+        (STATUS_DONE, "Concluído"),
+        (STATUS_ERROR, "Erro"),
+    ]
+
+    tipo_eleicao = models.CharField(max_length=1, choices=TIPO_CHOICES)
+    mes_ano = models.CharField(max_length=7, help_text="Formato MM/YYYY")
+    arquivo = models.FileField(upload_to="eleicao_imports/", null=True, blank=True)
+    nome_original = models.CharField(max_length=255, blank=True, default="")
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    total_linhas = models.IntegerField(default=0)
+    processadas = models.IntegerField(default=0)
+    criadas = models.IntegerField(default=0)
+    erros = models.IntegerField(default=0)
+    mensagem = models.TextField(blank=True, default="")
+
+    criado_por = models.IntegerField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "eleicao_import"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.get_tipo_eleicao_display()} {self.mes_ano} ({self.get_status_display()})"
+
+    @property
+    def percent(self):
+        if not self.total_linhas:
+            return 0
+        return min(100, round((self.processadas / self.total_linhas) * 100, 1))

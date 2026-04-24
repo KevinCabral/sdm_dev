@@ -242,6 +242,111 @@
   </div>
 </div>
 
+{# ─────────────── Import modal (preview + form + progress) ─────────────── #}
+<div id="import-modal" class="tw-hidden tw-fixed tw-inset-0 tw-z-[1050] tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-flex tw-flex-col tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3 tw-border-b tw-border-slate-200">
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-1 tw-h-5 tw-bg-mpd-500 tw-rounded-full"></span>
+        <h2 class="tw-text-base tw-font-bold tw-text-slate-900 tw-m-0">Importar eleitores</h2>
+      </div>
+      <button id="im-close" class="tw-text-slate-400 hover:tw-text-slate-700 tw-w-8 tw-h-8 tw-rounded-md hover:tw-bg-slate-100 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+
+    {# Step 1: pick file #}
+    <div id="im-step-pick" class="tw-p-6">
+      <label for="im-file" class="tw-block tw-cursor-pointer tw-border-2 tw-border-dashed tw-border-slate-300 hover:tw-border-mpd-400 tw-rounded-xl tw-p-10 tw-text-center tw-transition">
+        <i class="fa fa-cloud-upload-alt tw-text-4xl tw-text-mpd-500 tw-mb-3 tw-block"></i>
+        <div class="tw-text-sm tw-font-semibold tw-text-slate-700">Clique para selecionar um ficheiro</div>
+        <div class="tw-text-xs tw-text-slate-500 tw-mt-1">Excel (.xlsx, .xls) ou CSV</div>
+        <input type="file" id="im-file" class="tw-hidden" accept=".xlsx,.xls,.csv">
+      </label>
+      <div id="im-loading" class="tw-hidden tw-mt-4 tw-text-center tw-text-sm tw-text-slate-500">
+        <i class="fa fa-spinner fa-spin tw-text-mpd-600"></i> A analisar ficheiro...
+      </div>
+    </div>
+
+    {# Step 2: preview + form #}
+    <div id="im-step-preview" class="tw-hidden tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
+      <div class="tw-px-5 tw-py-3 tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
+        <div class="tw-text-xs tw-text-slate-600">
+          <i class="fa fa-file-excel tw-text-mpd-600"></i>
+          <span id="im-filename" class="tw-font-semibold tw-text-slate-800"></span>
+          <span class="tw-text-slate-400">·</span>
+          <span id="im-total" class="tw-font-semibold">0</span> linhas
+        </div>
+        <div class="tw-flex tw-flex-wrap tw-gap-1.5" id="im-detected"></div>
+      </div>
+
+      {# detected vs missing strip #}
+      <div class="tw-px-5 tw-py-2 tw-bg-amber-50/40 tw-border-b tw-border-amber-100">
+        <div class="tw-text-[11px] tw-text-amber-800 tw-font-semibold tw-mb-1">Colunas em falta (serão ignoradas):</div>
+        <div class="tw-flex tw-flex-wrap tw-gap-1.5" id="im-missing"></div>
+      </div>
+
+      {# election form #}
+      <div class="tw-px-5 tw-py-3 tw-bg-white tw-border-b tw-border-slate-200">
+        <div class="tw-text-xs tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-semibold tw-mb-2">Eleição associada</div>
+        <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-3">
+          <div>
+            <label for="im-tipo" class="tw-block tw-text-xs tw-text-slate-600 tw-font-medium tw-mb-1">Tipo de eleição *</label>
+            <select id="im-tipo" class="tw-w-full tw-h-9 tw-px-3 tw-rounded-md tw-border tw-border-slate-300 focus:tw-border-mpd-500 focus:tw-ring-1 focus:tw-ring-mpd-500 tw-text-sm">
+              <option value="">— Selecione —</option>
+              <option value="L">Legislativa</option>
+              <option value="P">Presidencial</option>
+              <option value="A">Autárquica</option>
+            </select>
+          </div>
+          <div>
+            <label for="im-mes-ano" class="tw-block tw-text-xs tw-text-slate-600 tw-font-medium tw-mb-1">Mês / Ano (MM/YYYY) *</label>
+            <input id="im-mes-ano" type="text" placeholder="04/2026" maxlength="7"
+                   class="tw-w-full tw-h-9 tw-px-3 tw-rounded-md tw-border tw-border-slate-300 focus:tw-border-mpd-500 focus:tw-ring-1 focus:tw-ring-mpd-500 tw-text-sm">
+          </div>
+        </div>
+      </div>
+
+      {# preview table #}
+      <div class="tw-flex-1 tw-overflow-auto tw-p-5">
+        <div class="tw-text-xs tw-text-slate-500 tw-mb-2">Pré-visualização (primeiras 20 linhas):</div>
+        <div class="tw-overflow-auto tw-border tw-border-slate-200 tw-rounded-lg">
+          <table id="im-preview-table" class="tw-w-full tw-text-sm">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-items-center tw-justify-between">
+        <button id="im-btn-back" class="tw-h-9 tw-px-3 tw-text-sm tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md">← Trocar ficheiro</button>
+        <button id="im-btn-start" class="tw-h-9 tw-px-4 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-play"></i> Iniciar importação
+        </button>
+      </div>
+    </div>
+
+    {# Step 3: progress #}
+    <div id="im-step-progress" class="tw-hidden tw-p-6">
+      <div class="tw-text-xs tw-text-slate-500 tw-mb-2" id="im-job-meta"></div>
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-1">
+        <span class="tw-text-sm tw-font-semibold tw-text-slate-800" id="im-progress-status">
+          <i class="fa fa-spinner fa-spin tw-text-mpd-600"></i> A iniciar...
+        </span>
+        <span id="im-progress-pct" class="tw-text-sm tw-font-bold tw-text-mpd-700">0%</span>
+      </div>
+      <div class="tw-h-3 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">
+        <div id="im-progress-bar" class="tw-h-full tw-bg-mpd-500 tw-transition-all tw-duration-300" style="width: 0%"></div>
+      </div>
+      <div id="im-progress-stats" class="tw-text-xs tw-text-slate-500 tw-mt-2"></div>
+      <div class="tw-text-xs tw-text-amber-700 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-md tw-px-3 tw-py-2 tw-mt-4">
+        <i class="fa fa-info-circle"></i> Pode fechar esta janela — a importação continua em segundo plano.
+      </div>
+      <div class="tw-mt-4 tw-flex tw-justify-end">
+        <button id="im-cancel" data-import-close class="tw-h-9 tw-px-4 tw-text-sm tw-text-slate-700 tw-bg-white tw-border tw-border-slate-300 hover:tw-bg-slate-50 tw-rounded-md">Em segundo plano</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ---------- helpers ---------- */
   function getCookie(name) {
@@ -422,23 +527,142 @@
       .always(() => $btn.prop('disabled', false).html(original));
   });
 
-  /* ---------- upload ---------- */
-  $(document).on('click', '#upload', () => $('#arquivo_excel').click());
-  $(document).on('change', '#arquivo_excel', function () {
+  /* ---------- upload (preview + async + progress) ---------- */
+  let uploadFile = null;
+  let pollTimer = null;
+
+  function openImportModal() {
+    $('#import-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+    showImportStep('pick');
+  }
+  function closeImportModal() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    $('#import-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+    uploadFile = null;
+    $('#im-file').val('');
+    $('#im-preview-table thead, #im-preview-table tbody').empty();
+    $('#im-detected,#im-missing').empty();
+    $('#im-progress-bar').css('width', '0%');
+    $('#im-progress-pct').text('0%');
+    $('#im-progress-stats').text('');
+  }
+  function showImportStep(name) {
+    $('#im-step-pick').toggleClass('tw-hidden', name !== 'pick');
+    $('#im-step-preview').toggleClass('tw-hidden', name !== 'preview');
+    $('#im-step-progress').toggleClass('tw-hidden', name !== 'progress');
+  }
+
+  $(document).on('click', '#upload', openImportModal);
+  $(document).on('click', '#im-close, #im-cancel, [data-import-close]', closeImportModal);
+  $(document).on('click', '#import-modal', function (e) { if (e.target === this) closeImportModal(); });
+
+  $(document).on('change', '#im-file', function () {
     const file = this.files[0];
     if (!file) return;
-    toast('A carregar "' + file.name + '"...', 'info');
+    uploadFile = file;
+    $('#im-filename').text(file.name);
+    $('#im-loading').removeClass('tw-hidden');
+    $('#im-btn-back').prop('disabled', true);
+
     const fd = new FormData();
     fd.append('arquivo_excel', file);
     fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
     $.ajax({
-      url: "{% url 'eleitores.uploadExcel' %}",
+      url: "{% url 'eleitores.import_preview' %}",
       type: 'POST', data: fd, processData: false, contentType: false,
-      success: () => { toast('Importação concluída'); search(); },
-      error:   () => toast('Erro no carregamento', 'error'),
+    }).done(function (resp) {
+      if (!resp.ok) { toast(resp.error || 'Erro no preview', 'error'); return; }
+      $('#im-total').text(resp.total);
+      // detected / missing chips
+      const $det = $('#im-detected').empty();
+      resp.detected.forEach(c => $det.append('<span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">' + c + '</span>'));
+      const $miss = $('#im-missing').empty();
+      resp.missing.forEach(c => $miss.append('<span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">' + c + '</span>'));
+      // table
+      const cols = resp.columns;
+      const $thead = $('#im-preview-table thead').html('<tr>' + cols.map(c => '<th class="tw-px-2 tw-py-1.5 tw-text-left tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-border-b">' + c + '</th>').join('') + '</tr>');
+      const $tbody = $('#im-preview-table tbody').empty();
+      resp.sample.forEach(function (row) {
+        const $tr = $('<tr class="hover:tw-bg-slate-50">');
+        cols.forEach(c => $tr.append('<td class="tw-px-2 tw-py-1 tw-text-xs tw-text-slate-700 tw-border-b tw-border-slate-100">' + (row[c] != null ? String(row[c]).substring(0, 60) : '') + '</td>'));
+        $tbody.append($tr);
+      });
+      showImportStep('preview');
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao analisar ficheiro', 'error');
+    }).always(function () {
+      $('#im-loading').addClass('tw-hidden');
+      $('#im-btn-back').prop('disabled', false);
     });
-    this.value = '';
   });
+
+  $(document).on('click', '#im-btn-back', function () {
+    showImportStep('pick');
+    $('#im-file').val('');
+    uploadFile = null;
+  });
+
+  $(document).on('click', '#im-btn-start', function () {
+    const tipo = $('#im-tipo').val();
+    const mes_ano = $('#im-mes-ano').val();
+    if (!uploadFile) { toast('Ficheiro em falta', 'error'); return; }
+    if (!tipo) { toast('Selecione o tipo de eleição', 'error'); return; }
+    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(mes_ano)) { toast('MM/YYYY inválido', 'error'); return; }
+
+    const fd = new FormData();
+    fd.append('arquivo_excel', uploadFile);
+    fd.append('tipo_eleicao', tipo);
+    fd.append('mes_ano', mes_ano);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> A iniciar...');
+    $.ajax({
+      url: "{% url 'eleitores.import_start' %}",
+      type: 'POST', data: fd, processData: false, contentType: false,
+    }).done(function (resp) {
+      if (!resp.ok) { toast(resp.error || 'Erro', 'error'); return; }
+      showImportStep('progress');
+      $('#im-job-meta').text(tipo + ' • ' + mes_ano + ' • ' + uploadFile.name);
+      pollImportStatus(resp.job_id);
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao iniciar importação', 'error');
+    }).always(function () {
+      $('#im-btn-start').prop('disabled', false).html('<i class="fa fa-play"></i> Iniciar importação');
+    });
+  });
+
+  function pollImportStatus(jobId) {
+    const tick = function () {
+      $.get('/eleitores/import/' + jobId + '/status').done(function (s) {
+        const pct = s.percent || 0;
+        $('#im-progress-bar').css('width', pct + '%');
+        $('#im-progress-pct').text(pct + '%');
+        $('#im-progress-stats').text(
+          (s.processed || 0) + ' de ' + (s.total || 0) + ' • ' +
+          (s.created || 0) + ' criadas' +
+          (s.errors ? ' • ' + s.errors + ' erros' : '')
+        );
+        if (s.status === 'done') {
+          clearInterval(pollTimer); pollTimer = null;
+          $('#im-progress-bar').removeClass('tw-bg-mpd-500').addClass('tw-bg-mpd-600');
+          $('#im-progress-status').html('<i class="fa fa-check-circle tw-text-mpd-600"></i> ' + (s.message || 'Concluído'));
+          $('#im-cancel').text('Fechar');
+          search();
+        } else if (s.status === 'error') {
+          clearInterval(pollTimer); pollTimer = null;
+          $('#im-progress-bar').removeClass('tw-bg-mpd-500').addClass('tw-bg-rose-500');
+          $('#im-progress-status').html('<i class="fa fa-times-circle tw-text-rose-600"></i> ' + (s.message || 'Erro'));
+          $('#im-cancel').text('Fechar');
+        } else {
+          $('#im-progress-status').html('<i class="fa fa-spinner fa-spin tw-text-mpd-600"></i> Em curso...');
+        }
+      });
+    };
+    tick();
+    pollTimer = setInterval(tick, 1500);
+  }
 
   $(function () { renderChips(); });
 </script>

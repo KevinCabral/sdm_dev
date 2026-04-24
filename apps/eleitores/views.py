@@ -10,10 +10,29 @@ from django.db.models import Count
 from django.forms.models import model_to_dict
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.militantes.models import Militantes
 from .form import EleitoresForm
-from .models import Eleitores, Votacao
+from .models import EleicaoImport, Eleitores, Votacao
+
+
+# ----------------------------------------------------------------------
+# Excel column → model field map (shared by preview + import worker)
+# ----------------------------------------------------------------------
+ELEITOR_COLUMN_MAP = {
+    'Nome': 'nome',
+    'Nominho': 'nominho',
+    'Filiacao': 'filiacao',
+    'Data Nascimento': 'data_nascimento',
+    'Idade': 'idade_eleitor',
+    'Contato': 'contato',
+    'Nacionalidade': 'nacionalidade',
+    'Concelho': 'concelho',
+    'Zona': 'zona',
+    'Numero Mesa': 'nr_mesa',
+    'Numero Eleitor': 'nr_eleitor',
+}
 
 
 def _build_filters(request):
@@ -166,34 +185,20 @@ def exportExcel(request):
 
 @login_required
 def uploadExcel(request):
-    """Best-effort import. Expected columns (case-sensitive):
-    Nome, Nominho, Filiacao, Data Nascimento, Idade, Contato,
-    Nacionalidade, Concelho, Zona, Numero Mesa, Numero Eleitor, ID militante.
-    Missing columns are simply skipped.
+    """Legacy synchronous import — kept for backwards compatibility.
+
+    The new flow uses /eleitores/import/preview + /import/start + /import/<id>/status.
     """
     if request.method != 'POST' or 'arquivo_excel' not in request.FILES:
         messages.error(request, 'Erro em carregar eleitor')
         return redirect("eleitores.index")
 
     df = pd.read_excel(request.FILES['arquivo_excel'])
-    column_map = {
-        'Nome': 'nome',
-        'Nominho': 'nominho',
-        'Filiacao': 'filiacao',
-        'Data Nascimento': 'data_nascimento',
-        'Idade': 'idade_eleitor',
-        'Contato': 'contato',
-        'Nacionalidade': 'nacionalidade',
-        'Concelho': 'concelho',
-        'Zona': 'zona',
-        'Numero Mesa': 'nr_mesa',
-        'Numero Eleitor': 'nr_eleitor',
-    }
     created = 0
     for _, row in df.iterrows():
         kwargs = {
             field: row[col]
-            for col, field in column_map.items()
+            for col, field in ELEITOR_COLUMN_MAP.items()
             if col in df.columns and pd.notna(row[col])
         }
         eleitor = Eleitores(**kwargs)
@@ -208,6 +213,176 @@ def uploadExcel(request):
         created += 1
     messages.success(request, f'{created} eleitores carregados com sucesso')
     return redirect("eleitores.index")
+
+
+# ──────────────────────────────────────────────────────────────────────
+# New async upload flow: preview → start → poll status
+# ──────────────────────────────────────────────────────────────────────
+
+def _read_excel_safe(file_obj):
+    """Read an .xlsx/.xls/.csv file into a DataFrame."""
+    name = getattr(file_obj, 'name', '') or ''
+    if name.lower().endswith('.csv'):
+        return pd.read_csv(file_obj)
+    return pd.read_excel(file_obj)
+
+
+@login_required
+@require_POST
+def import_preview(request):
+    """Return the first rows + column metadata for the uploaded file.
+
+    Body: multipart with `arquivo_excel`. No DB writes.
+    """
+    f = request.FILES.get('arquivo_excel')
+    if not f:
+        return JsonResponse({'ok': False, 'error': 'Ficheiro não enviado.'}, status=400)
+    try:
+        df = _read_excel_safe(f)
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'Não foi possível ler o ficheiro: {exc}'}, status=400)
+
+    columns = list(df.columns)
+    detected = [c for c in columns if c in ELEITOR_COLUMN_MAP]
+    missing = [c for c in ELEITOR_COLUMN_MAP if c not in columns]
+    sample = df.head(20).fillna('').astype(str).to_dict(orient='records')
+
+    return JsonResponse({
+        'ok': True,
+        'total': int(len(df)),
+        'columns': columns,
+        'detected': detected,
+        'missing': missing,
+        'sample': sample,
+    })
+
+
+@login_required
+@require_POST
+def import_start(request):
+    """Save the upload and kick off background processing.
+
+    Body (multipart):
+        arquivo_excel: file
+        tipo_eleicao: 'L' | 'P' | 'A'
+        mes_ano: 'MM/YYYY'
+    """
+    import re
+    import threading
+
+    f = request.FILES.get('arquivo_excel')
+    tipo = request.POST.get('tipo_eleicao', '').strip().upper()
+    mes_ano = request.POST.get('mes_ano', '').strip()
+
+    if not f:
+        return JsonResponse({'ok': False, 'error': 'Ficheiro obrigatório.'}, status=400)
+    if tipo not in dict(EleicaoImport.TIPO_CHOICES):
+        return JsonResponse({'ok': False, 'error': 'Tipo de eleição inválido.'}, status=400)
+    if not re.match(r'^(0[1-9]|1[0-2])/\d{4}$', mes_ano):
+        return JsonResponse({'ok': False, 'error': 'Mês/Ano inválido. Formato esperado: MM/YYYY.'}, status=400)
+
+    job = EleicaoImport.objects.create(
+        tipo_eleicao=tipo,
+        mes_ano=mes_ano,
+        arquivo=f,
+        nome_original=f.name,
+        status=EleicaoImport.STATUS_PENDING,
+        criado_por=getattr(request.user, 'id', None),
+    )
+    job.arquivo.close()
+
+    threading.Thread(target=_run_import_job, args=(job.id,), daemon=True).start()
+    return JsonResponse({'ok': True, 'job_id': job.id})
+
+
+@login_required
+def import_status(request, job_id):
+    """Poll endpoint for the frontend progress bar."""
+    job = get_object_or_404(EleicaoImport, pk=job_id)
+    return JsonResponse({
+        'ok': True,
+        'job_id': job.id,
+        'status': job.status,
+        'total': job.total_linhas,
+        'processed': job.processadas,
+        'created': job.criadas,
+        'errors': job.erros,
+        'percent': job.percent,
+        'message': job.mensagem,
+        'tipo_eleicao': job.get_tipo_eleicao_display(),
+        'mes_ano': job.mes_ano,
+    })
+
+
+def _run_import_job(job_id):
+    """Background worker: stream the file, persist eleitores in chunks."""
+    from django.db import close_old_connections, transaction
+
+    try:
+        job = EleicaoImport.objects.get(pk=job_id)
+    except EleicaoImport.DoesNotExist:
+        return
+
+    try:
+        job.status = EleicaoImport.STATUS_RUNNING
+        job.save(update_fields=['status', 'atualizado_em'])
+
+        with job.arquivo.open('rb') as fh:
+            df = _read_excel_safe(fh)
+
+        total = len(df)
+        job.total_linhas = total
+        job.save(update_fields=['total_linhas', 'atualizado_em'])
+
+        chunk_size = 500
+        created = 0
+        errors = 0
+        militante_cache = {}
+
+        for chunk_start in range(0, total, chunk_size):
+            chunk = df.iloc[chunk_start:chunk_start + chunk_size]
+            objs = []
+            for _, row in chunk.iterrows():
+                try:
+                    kwargs = {
+                        field: row[col]
+                        for col, field in ELEITOR_COLUMN_MAP.items()
+                        if col in df.columns and pd.notna(row[col])
+                    }
+                    eleitor = Eleitores(**kwargs, falecido=False)
+                    militante_id = row.get('ID militante') if 'ID militante' in df.columns else None
+                    if pd.notna(militante_id):
+                        mid = int(militante_id)
+                        if mid not in militante_cache:
+                            militante_cache[mid] = Militantes.objects.filter(pk=mid).first()
+                        if militante_cache[mid]:
+                            eleitor.militante_id = militante_cache[mid]
+                    objs.append(eleitor)
+                except Exception:
+                    errors += 1
+            if objs:
+                with transaction.atomic():
+                    for o in objs:
+                        try:
+                            o.save()
+                            created += 1
+                        except Exception:
+                            errors += 1
+
+            job.processadas = min(chunk_start + len(chunk), total)
+            job.criadas = created
+            job.erros = errors
+            job.save(update_fields=['processadas', 'criadas', 'erros', 'atualizado_em'])
+
+        job.status = EleicaoImport.STATUS_DONE
+        job.mensagem = f'{created} eleitores carregados ({errors} erros).'
+        job.save(update_fields=['status', 'mensagem', 'atualizado_em'])
+    except Exception as exc:
+        job.status = EleicaoImport.STATUS_ERROR
+        job.mensagem = str(exc)[:500]
+        job.save(update_fields=['status', 'mensagem', 'atualizado_em'])
+    finally:
+        close_old_connections()
 
 
 @login_required
