@@ -1,0 +1,630 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "SDM — Acompanhamento da votação em tempo real. Filtros: Concelho, Zona, Mesa. Mostra quem já votou (votou=1) e quem ainda não votou.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "liveNow": true,
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["sdm", "votacao", "real-time", "mpd"],
+  "time": { "from": "now-12h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "1h"]
+  },
+  "timezone": "browser",
+  "title": "SDM — Votação em Tempo Real",
+  "uid": "sdm-votacao-realtime",
+  "version": 1,
+  "weekStart": "",
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PG",
+        "label": "PostgreSQL Datasource",
+        "type": "datasource",
+        "query": "postgres",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "concelho",
+        "label": "Concelho",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+        "definition": "SELECT DISTINCT concelho FROM eleitores WHERE concelho IS NOT NULL AND concelho <> '' ORDER BY concelho",
+        "query": "SELECT DISTINCT concelho FROM eleitores WHERE concelho IS NOT NULL AND concelho <> '' ORDER BY concelho",
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "refresh": 1,
+        "sort": 1,
+        "allValue": ".*",
+        "hide": 0
+      },
+      {
+        "name": "zona",
+        "label": "Zona",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+        "definition": "SELECT DISTINCT zona FROM eleitores WHERE zona IS NOT NULL AND zona <> '' AND COALESCE(concelho,'') ~ '${concelho:regex}' ORDER BY zona",
+        "query": "SELECT DISTINCT zona FROM eleitores WHERE zona IS NOT NULL AND zona <> '' AND COALESCE(concelho,'') ~ '${concelho:regex}' ORDER BY zona",
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "refresh": 2,
+        "sort": 1,
+        "allValue": ".*",
+        "hide": 0
+      },
+      {
+        "name": "mesa",
+        "label": "Mesa",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+        "definition": "SELECT DISTINCT nr_mesa FROM eleitores WHERE nr_mesa IS NOT NULL AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' ORDER BY nr_mesa",
+        "query": "SELECT DISTINCT nr_mesa FROM eleitores WHERE nr_mesa IS NOT NULL AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' ORDER BY nr_mesa",
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "refresh": 2,
+        "sort": 1,
+        "allValue": ".*",
+        "hide": 0
+      },
+      {
+        "name": "bucket",
+        "label": "Granularidade",
+        "type": "custom",
+        "query": "1 minute,5 minutes,10 minutes,15 minutes,30 minutes,1 hour",
+        "current": { "selected": true, "text": "5 minutes", "value": "5 minutes" },
+        "options": [
+          { "selected": false, "text": "1 minute", "value": "1 minute" },
+          { "selected": true, "text": "5 minutes", "value": "5 minutes" },
+          { "selected": false, "text": "10 minutes", "value": "10 minutes" },
+          { "selected": false, "text": "15 minutes", "value": "15 minutes" },
+          { "selected": false, "text": "30 minutes", "value": "30 minutes" },
+          { "selected": false, "text": "1 hour", "value": "1 hour" }
+        ],
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Resumo em Tempo Real",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Eleitores no âmbito",
+      "description": "Total de eleitores (vivos) no recorte selecionado (Concelho/Zona/Mesa).",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS total FROM eleitores e WHERE COALESCE(e.falecido,false) = false AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Já Votaram",
+      "description": "votacao.votou = 1 AND anulado = 0",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT v.nr_eleitor) AS votaram FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Falta Votar",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS falta FROM eleitores e WHERE COALESCE(e.falecido,false) = false AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' AND NOT EXISTS ( SELECT 1 FROM votacao v WHERE v.nr_eleitor = e.nr_eleitor AND COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 )"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "gauge",
+      "title": "% Participação",
+      "gridPos": { "h": 10, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH base AS ( SELECT e.nr_eleitor FROM eleitores e WHERE COALESCE(e.falecido,false) = false AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' ) SELECT CASE WHEN (SELECT COUNT(*) FROM base) = 0 THEN 0 ELSE 100.0 * ( SELECT COUNT(DISTINCT v.nr_eleitor) FROM votacao v JOIN base b ON b.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 ) / (SELECT COUNT(*) FROM base) END AS pct"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Votos na última hora",
+      "gridPos": { "h": 5, "w": 3, "x": 18, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS ultima_hora FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND v.datetime >= NOW() - INTERVAL '1 hour' AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Votos últimos 5 min",
+      "gridPos": { "h": 5, "w": 3, "x": 21, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "super-light-green" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS ultimos_5min FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND v.datetime >= NOW() - INTERVAL '5 minutes' AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Votos Anulados",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS anulados FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.anulado,0) = 1 AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Não votaram (registado)",
+      "description": "Registos em votacao com votou=0 (declararam que não votam).",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" }, "unit": "short" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT v.nr_eleitor) AS nao_votaram FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 0 AND COALESCE(v.anulado,0) = 0 AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Ritmo (votos/hora — última hora)",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short", "decimals": 0 }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::numeric AS ritmo FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND v.datetime >= NOW() - INTERVAL '1 hour' AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}'"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "ETA — fim previsível (ao ritmo atual)",
+      "description": "Estimativa de quanto tempo (h) até esgotar os eleitores que faltam, ao ritmo da última hora. — = sem ritmo.",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "h", "decimals": 1 }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH base AS ( SELECT e.nr_eleitor FROM eleitores e WHERE COALESCE(e.falecido,false) = false AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' ), faltam AS ( SELECT COUNT(*) AS n FROM base b WHERE NOT EXISTS ( SELECT 1 FROM votacao v WHERE v.nr_eleitor = b.nr_eleitor AND COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 ) ), ritmo AS ( SELECT COUNT(*)::numeric AS r FROM votacao v JOIN base b ON b.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND v.datetime >= NOW() - INTERVAL '1 hour' ) SELECT CASE WHEN (SELECT r FROM ritmo) = 0 THEN NULL ELSE (SELECT n FROM faltam)::numeric / (SELECT r FROM ritmo) END AS eta_h"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Evolução em Tempo Real",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Votos por intervalo (granularidade: ${bucket})",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "barAlignment": 0,
+            "stacking": { "mode": "none", "group": "A" }
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_bin('${bucket}', v.datetime, TIMESTAMP '2000-01-01') AS time, 'votos' AS metric, COUNT(*) AS value FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE v.datetime IS NOT NULL AND $__timeFilter(v.datetime) AND COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' GROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Participação acumulada (%)",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "showLegend": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "WITH base AS ( SELECT COUNT(*)::float AS total FROM eleitores e WHERE COALESCE(e.falecido,false) = false AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' ), serie AS ( SELECT date_bin('${bucket}', v.datetime, TIMESTAMP '2000-01-01') AS t, COUNT(DISTINCT v.nr_eleitor) AS n FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE v.datetime IS NOT NULL AND $__timeFilter(v.datetime) AND COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' GROUP BY 1 ) SELECT t AS time, 'participacao_%' AS metric, CASE WHEN (SELECT total FROM base) = 0 THEN 0 ELSE 100.0 * SUM(n) OVER (ORDER BY t) / (SELECT total FROM base) END AS value FROM serie ORDER BY t"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Distribuição Geográfica",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "barchart",
+      "title": "Participação por Concelho (%)",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": { "fillOpacity": 80, "axisLabel": "" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "legend": { "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH e AS ( SELECT * FROM eleitores WHERE COALESCE(falecido,false) = false AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' AND nr_mesa ~ '${mesa:regex}' ) SELECT COALESCE(e.concelho,'(s/concelho)') AS \"Concelho\", ROUND(100.0 * COUNT(DISTINCT CASE WHEN COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0 THEN v.nr_eleitor END) / NULLIF(COUNT(*),0), 1) AS \"Participação %\" FROM e LEFT JOIN votacao v ON v.nr_eleitor = e.nr_eleitor GROUP BY 1 ORDER BY 2 DESC NULLS LAST LIMIT 30"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "barchart",
+      "title": "Participação por Zona (%) — Top 20",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": { "fillOpacity": 80 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 30 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 70 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "legend": { "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH e AS ( SELECT * FROM eleitores WHERE COALESCE(falecido,false) = false AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' AND nr_mesa ~ '${mesa:regex}' ) SELECT COALESCE(e.zona,'(s/zona)') AS \"Zona\", ROUND(100.0 * COUNT(DISTINCT CASE WHEN COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0 THEN v.nr_eleitor END) / NULLIF(COUNT(*),0), 1) AS \"Participação %\" FROM e LEFT JOIN votacao v ON v.nr_eleitor = e.nr_eleitor GROUP BY 1 HAVING COUNT(*) > 0 ORDER BY 2 DESC NULLS LAST LIMIT 20"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 103,
+      "title": "Detalhe Operacional",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Estado por Mesa (em tempo real)",
+      "gridPos": { "h": 12, "w": 16, "x": 0, "y": 33 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "showHeader": true,
+        "footer": { "show": true, "reducer": ["sum"], "fields": ["Eleitores", "Votaram", "Faltam", "Últ. hora"] },
+        "sortBy": [{ "displayName": "Participação %", "desc": false }]
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Participação %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "min", "value": 0 },
+              { "id": "max", "value": 100 },
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "orange", "value": 30 },
+                    { "color": "yellow", "value": 50 },
+                    { "color": "green", "value": 70 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Últ. hora" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH e AS ( SELECT * FROM eleitores WHERE nr_mesa IS NOT NULL AND COALESCE(falecido,false) = false AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' AND nr_mesa ~ '${mesa:regex}' ), agg AS ( SELECT e.nr_mesa, MAX(e.concelho) AS concelho, MAX(e.zona) AS zona, COUNT(*) AS eleitores, COUNT(DISTINCT CASE WHEN COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0 THEN v.nr_eleitor END) AS votaram, COUNT(DISTINCT CASE WHEN COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0 AND v.datetime >= NOW() - INTERVAL '1 hour' THEN v.nr_eleitor END) AS ult_hora, MAX(v.datetime) FILTER (WHERE COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0) AS ultimo_voto FROM e LEFT JOIN votacao v ON v.nr_eleitor = e.nr_eleitor GROUP BY e.nr_mesa ) SELECT nr_mesa AS \"Mesa\", concelho AS \"Concelho\", zona AS \"Zona\", eleitores AS \"Eleitores\", votaram AS \"Votaram\", (eleitores - votaram) AS \"Faltam\", ult_hora AS \"Últ. hora\", ultimo_voto AS \"Último voto\", ROUND(100.0 * votaram / NULLIF(eleitores,0), 1) AS \"Participação %\" FROM agg ORDER BY \"Participação %\" ASC NULLS LAST"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Últimos votos registados",
+      "gridPos": { "h": 12, "w": 8, "x": 16, "y": 33 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } } },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT v.datetime AS \"Hora\", e.nr_mesa AS \"Mesa\", e.zona AS \"Zona\", e.concelho AS \"Concelho\", e.nominho AS \"Eleitor\" FROM votacao v JOIN eleitores e ON e.nr_eleitor = v.nr_eleitor WHERE COALESCE(v.votou,0) = 1 AND COALESCE(v.anulado,0) = 0 AND v.datetime IS NOT NULL AND COALESCE(e.concelho,'') ~ '${concelho:regex}' AND COALESCE(e.zona,'') ~ '${zona:regex}' AND e.nr_mesa ~ '${mesa:regex}' ORDER BY v.datetime DESC LIMIT 50"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Mesas sem voto há mais de 30 min",
+      "description": "Mesas no recorte que não registam votos válidos há mais de 30 minutos.",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 45 },
+      "datasource": { "type": "postgres", "uid": "${DS_PG}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "WITH e AS ( SELECT DISTINCT nr_mesa FROM eleitores WHERE nr_mesa IS NOT NULL AND COALESCE(concelho,'') ~ '${concelho:regex}' AND COALESCE(zona,'') ~ '${zona:regex}' AND nr_mesa ~ '${mesa:regex}' ), ult AS ( SELECT e.nr_mesa, MAX(v.datetime) FILTER (WHERE COALESCE(v.votou,0)=1 AND COALESCE(v.anulado,0)=0) AS ultimo FROM e LEFT JOIN eleitores el ON el.nr_mesa = e.nr_mesa LEFT JOIN votacao v ON v.nr_eleitor = el.nr_eleitor GROUP BY e.nr_mesa ) SELECT COUNT(*) FROM ult WHERE ultimo IS NULL OR ultimo < NOW() - INTERVAL '30 minutes'"
+        }
+      ]
+    }
+  ]
+}

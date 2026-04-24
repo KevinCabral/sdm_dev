@@ -362,14 +362,18 @@ class VotacaoViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAdminOrDelegado]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["nr_eleitor", "nr_bi_eleitor", "nr_mesa", "assembleia_voto_nr", "motivo_n_votou"]
+    filter_backends = [filters.OrderingFilter]
+    # NOTE: DRF SearchFilter is intentionally NOT used because `Votacao` has no FK
+    # to `Eleitores`, so we cannot search by `nome` via the default backend.
+    # Use the `search` / `nome` query params handled in `get_queryset` instead.
     ordering_fields = ["datetime", "nr_eleitor", "nr_mesa"]
     ordering = ["-datetime"]
     pagination_class = VotacaoPagination
 
     @extend_schema(
         parameters=[
+            OpenApiParameter("search", str, description="Procura livre: nome/nominho do eleitor (ILIKE), nr_eleitor, BI, nr_mesa, assembleia ou motivo."),
+            OpenApiParameter("nome", str, description="Procura por nome/nominho do eleitor (ILIKE)."),
             OpenApiParameter("anulado", bool, description="true → só anuladas; false → não anuladas (inclui NULL)"),
             OpenApiParameter("votou", bool, description="true → só onde votou=1; false → o resto"),
             OpenApiParameter("nr_mesa", str, description="Filtrar por nr_mesa exato"),
@@ -429,6 +433,36 @@ class VotacaoViewSet(viewsets.ModelViewSet):
         date_to = params.get("datetime_to") or params.get("date_to")
         if date_to:
             qs = qs.filter(datetime__lte=date_to)
+
+        # Free-text search: `?search=` (broad) and `?nome=` (nome/nominho only).
+        # `Votacao` has no FK to `Eleitores`, so we resolve matching `nr_eleitor`
+        # values from `Eleitores` first and then filter `Votacao` by them.
+        nome = (params.get("nome") or "").strip()
+        search = (params.get("search") or "").strip()
+        term = nome or search
+        if term:
+            elei_q = Q(nome__icontains=term) | Q(nominho__icontains=term)
+            nr_eleitores = list(
+                Eleitores.objects.filter(elei_q)
+                .exclude(nr_eleitor__isnull=True)
+                .values_list("nr_eleitor", flat=True)[:5000]
+            )
+            if nome:
+                # Restrict strictly to name matches.
+                qs = qs.filter(nr_eleitor__in=nr_eleitores) if nr_eleitores else qs.none()
+            else:
+                # Broad search: name matches OR direct fields on votacao.
+                broad = (
+                    Q(nr_bi_eleitor__icontains=term)
+                    | Q(nr_mesa__icontains=term)
+                    | Q(assembleia_voto_nr__icontains=term)
+                    | Q(motivo_n_votou__icontains=term)
+                )
+                if term.isdigit():
+                    broad |= Q(nr_eleitor=int(term))
+                if nr_eleitores:
+                    broad |= Q(nr_eleitor__in=nr_eleitores)
+                qs = qs.filter(broad)
         return qs
 
     def _object_belongs_to_user(self, obj, user):
