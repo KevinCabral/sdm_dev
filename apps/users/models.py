@@ -1,10 +1,15 @@
-from django.db import models
-from django.contrib.auth.models import User as UserBase
+import logging
 import os
 import uuid
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
+
+from django.conf import settings
+from django.contrib.auth.models import User as UserBase
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import EmailMultiAlternatives
+from django.db import models
+from django.template.loader import render_to_string
+
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.
@@ -58,10 +63,16 @@ class SendUsernamePassword:
         text_body = render_to_string("email/"+self.template+".txt", data)
         html_body = render_to_string("email/"+self.template+".html", data)
 
-        msg = EmailMultiAlternatives(subject="Conta criada", from_email="assasa@assa.com",
+        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or settings.EMAIL_HOST_USER
+        msg = EmailMultiAlternatives(subject="Conta criada", from_email=from_email,
                                     to=[self.email], body=text_body)
         msg.attach_alternative(html_body, "text/html")
-        msg.send()
+        try:
+            msg.send()
+            return True
+        except Exception as exc:
+            logger.exception("Failed to send '%s' email to %s: %s", self.template, self.email, exc)
+            return False
 
     class Meta:
         managed = False

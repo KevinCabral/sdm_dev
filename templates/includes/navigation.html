@@ -110,11 +110,7 @@
               </li>
               <li class="nav-user-divider"></li>
               <li>
-                {% if request.user.is_superuser %}
-                <a href="{% url 'admin:logout' %}" class="dropdown-item nav-user-action nav-user-logout">
-                {% else %}
                 <a href="{% url 'logout' %}" class="dropdown-item nav-user-action nav-user-logout">
-                {% endif %}
                   <span class="nav-user-action-ico nav-user-action-ico-danger"><i class="feather icon-log-out"></i></span>
                   <span>
                     <span class="d-block font-weight-bold">Terminar sessão</span>

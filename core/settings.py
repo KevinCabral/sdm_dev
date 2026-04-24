@@ -37,7 +37,14 @@ DEBUG = 'RENDER' not in os.environ
 ALLOWED_HOSTS = ['161.35.144.40','134.122.63.21','admin.mpd.cv','admin.mpd.cv.', '161.35.144.40:9494', '161.35.144.40:8001', '127.0.0.1', 'localhost']
 
 # Add here your deployment HOSTS
-CSRF_TRUSTED_ORIGINS = ['https://admin.mpd.cv','http://161.35.144.40:8000', 'http://161.35.144.40:9494', 'http://161.35.144.40:8001', 'http://127.0.0.1:8000', 'http://127.0.0.1:5085', 'http://127.0.0.1:8001']
+CSRF_TRUSTED_ORIGINS = [
+    'https://admin.mpd.cv',
+    'http://161.35.144.40:8000',  'https://161.35.144.40:8000',
+    'http://161.35.144.40:9494',  'https://161.35.144.40:9494',
+    'http://161.35.144.40:8001',  'https://161.35.144.40:8001',
+    'http://127.0.0.1:8000',      'http://127.0.0.1:5085',
+    'http://127.0.0.1:8001',
+]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
@@ -79,6 +86,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',  # Logout / refresh blacklist
     'corsheaders',                              # CORS for the SPA frontend
     'drf_spectacular',                          # OpenAPI / Swagger schema
+    'anymail',                                  # Email via HTTPS providers (Brevo)
     "django.contrib.admin",
 ]
 
@@ -189,6 +197,8 @@ STATICFILES_DIRS = (
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/accounts/login/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # ### DYNAMIC_DATATB Settings ###
@@ -266,6 +276,14 @@ if EMAIL_USE_TLS:
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@mpd.local')
 
+# --- Anymail / Brevo (HTTPS API) ---
+# Outbound SMTP (25/465/587) is blocked by the hosting provider, so we send via
+# Brevo's HTTPS API on port 443. Set BREVO_API_KEY in .env to enable.
+BREVO_API_KEY = os.getenv('BREVO_API_KEY', '')
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
+
 MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
 
 ########################################
@@ -277,4 +295,7 @@ APPEND_SLASH=False
 #SECURE_SSL_REDIRECT = True
 #SESSION_COOKIE_SECURE = True
 #CSRF_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Enable only when running behind a TLS-terminating proxy that sets X-Forwarded-Proto.
+# When the app is exposed directly over plain HTTP (e.g. http://161.35.144.40:9494),
+# enabling this causes CSRF Origin checks to expect https://… origins → 403.
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
