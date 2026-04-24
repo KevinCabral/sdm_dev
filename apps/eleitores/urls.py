@@ -17,6 +17,8 @@ urlpatterns = [
     path("/distribuicao-mesa", views.distribuicaoNrMesa, name="eleitores.distribuicaoNrMesa"),
     path("/distribuicao-mesa-votacao", views.distribuicaoNrMesaVotacao, name="eleitores.distribuicaoNrMesaVotacao"),
     path("/distribuicao-regiao-votacao", views.distribuicaoNrMesaVotacaoRegiao, name="eleitores.distribuicaoNrMesaVotacaoRegiao"),
+    path("/top-mesas-comparecimento", views.topMesasComparecimento, name="eleitores.topMesasComparecimento"),
+    path("/votacao-horaria", views.votacaoHoraria, name="eleitores.votacaoHoraria"),
     
 
     

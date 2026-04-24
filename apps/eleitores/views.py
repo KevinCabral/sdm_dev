@@ -212,20 +212,139 @@ def uploadExcel(request):
 
 @login_required
 def dashboard(request):
-    totalEleitores = Eleitores.objects.count()
-    totalVotaram = Eleitores.objects.filter(
-        nr_eleitor__in=Votacao.objects.filter(votou=True).values_list('nr_eleitor', flat=True)
-    ).count()
-    totalNaoVotaram = totalEleitores - totalVotaram
+    """Aggregate KPIs in a single pass to avoid 7 SELECT count(*)."""
+    from django.db.models import Q, Sum, Case, When, IntegerField
+
+    agg = Eleitores.objects.filter(falecido=False).aggregate(
+        total=Count('id'),
+        mpd=Sum(Case(When(mpd=True, then=1), default=0, output_field=IntegerField())),
+        indecisos=Sum(Case(When(indeciso=True, then=1), default=0, output_field=IntegerField())),
+        ausentes=Sum(Case(When(ausente=True, then=1), default=0, output_field=IntegerField())),
+        nao_vai_votar=Sum(Case(When(nao_vai_votar=True, then=1), default=0, output_field=IntegerField())),
+        descarga=Sum(Case(When(descarga=True, then=1), default=0, output_field=IntegerField())),
+    )
+    total = agg['total'] or 0
+    falecidos = Eleitores.objects.filter(falecido=True).count()
+
+    voted_eleitor_ids = (
+        Votacao.objects
+        .filter(votou=1)
+        .exclude(anulado=1)
+        .values_list('nr_eleitor', flat=True)
+        .distinct()
+    )
+    total_votaram = (
+        Eleitores.objects
+        .filter(falecido=False, nr_eleitor__in=voted_eleitor_ids)
+        .count()
+    )
+    total_nao_votaram = max(total - total_votaram, 0)
+    total_anuladas = Votacao.objects.filter(anulado=1).count()
+    total_votos_validos = Votacao.objects.exclude(anulado=1).filter(votou=1).count()
+
+    def _pct(num, den):
+        return round((num / den) * 100, 1) if den else 0.0
+
+    mesas_distintas = (
+        Eleitores.objects.filter(falecido=False)
+        .exclude(nr_mesa__isnull=True).exclude(nr_mesa__exact='')
+        .values('nr_mesa').distinct().count()
+    )
+    concelhos_distintos = (
+        Eleitores.objects.filter(falecido=False)
+        .exclude(concelho__isnull=True).exclude(concelho__exact='')
+        .values('concelho').distinct().count()
+    )
+
     return render(
         request,
         "pages/eleitores/dashboard.html",
         {
-            "totalEleitores": totalEleitores,
-            'totalVotaram': totalVotaram,
-            "totalNaoVotaram": totalNaoVotaram,
+            "totalEleitores": total,
+            'totalVotaram': total_votaram,
+            "totalNaoVotaram": total_nao_votaram,
+            "pctComparecimento": _pct(total_votaram, total),
+            "pctAbstencao": _pct(total_nao_votaram, total),
+            "totalMpd": agg['mpd'] or 0,
+            "pctMpd": _pct(agg['mpd'] or 0, total),
+            "totalIndecisos": agg['indecisos'] or 0,
+            "totalAusentes": agg['ausentes'] or 0,
+            "totalNaoVaiVotar": agg['nao_vai_votar'] or 0,
+            "totalDescarga": agg['descarga'] or 0,
+            "totalFalecidos": falecidos,
+            "totalAnuladas": total_anuladas,
+            "totalVotosValidos": total_votos_validos,
+            "totalMesas": mesas_distintas,
+            "totalConcelhos": concelhos_distintos,
         },
     )
+
+
+@login_required
+def topMesasComparecimento(request):
+    """Top mesas by comparecimento %.
+
+    Returns: [{nr_mesa, total, votaram, pct}, ...] ordered by pct desc, then total desc.
+    """
+    from django.db.models import Q
+
+    voted_ids = (
+        Votacao.objects.filter(votou=1).exclude(anulado=1)
+        .values_list('nr_eleitor', flat=True)
+    )
+
+    rows = (
+        Eleitores.objects.filter(falecido=False)
+        .exclude(nr_mesa__isnull=True).exclude(nr_mesa__exact='')
+        .values('nr_mesa')
+        .annotate(
+            total=Count('id'),
+            votaram=Count('id', filter=Q(nr_eleitor__in=voted_ids)),
+        )
+    )
+    data = []
+    for r in rows:
+        total = r['total'] or 0
+        votaram = r['votaram'] or 0
+        pct = round((votaram / total) * 100, 1) if total else 0.0
+        data.append({
+            'nr_mesa': r['nr_mesa'],
+            'total': total,
+            'votaram': votaram,
+            'pct': pct,
+        })
+    data.sort(key=lambda r: (-r['pct'], -r['total']))
+    limit = int(request.GET.get('limit', '15') or 15)
+    return JsonResponse({'data': data[:limit]})
+
+
+@login_required
+def votacaoHoraria(request):
+    """Votação distribution by hour of day for the most recent day with votes.
+
+    Useful to spot peak hours during election day.
+    """
+    from django.db.models.functions import ExtractHour
+    from django.db.models import Min, Max
+
+    bounds = Votacao.objects.exclude(anulado=1).filter(votou=1).aggregate(
+        last=Max('datetime')
+    )
+    last = bounds.get('last')
+    if not last:
+        return JsonResponse({'data': [], 'date': None})
+
+    day_qs = (
+        Votacao.objects
+        .exclude(anulado=1).filter(votou=1, datetime__date=last.date())
+        .annotate(hour=ExtractHour('datetime'))
+        .values('hour')
+        .annotate(total=Count('id'))
+        .order_by('hour')
+    )
+    counts = {int(r['hour']): r['total'] for r in day_qs}
+    data = [{'hour': h, 'total': counts.get(h, 0)} for h in range(24)]
+    return JsonResponse({'data': data, 'date': last.date().isoformat()})
 
 
 @login_required

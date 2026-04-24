@@ -32,9 +32,10 @@ from apps.users.password_reset import (
     PasswordResetCompleteView,
     PasswordResetRequestView,
 )
+from home import views as home_views
 
 urlpatterns = [
-    path('', views.dashboard),
+    path('', home_views.index, name='home.index'),
     # path('home', include('home.urls')),
     path('api/', include('api.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

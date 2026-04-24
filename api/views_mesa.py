@@ -11,6 +11,7 @@ not a FK to Mesa).
 """
 from django.contrib.auth.models import User
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -32,6 +33,7 @@ from .permissions import (
     user_mesa_numbers,
 )
 from .serializers_mesa import (
+    EleitorFlagsSerializer,
     EleitorListSerializer,
     EleitorMarkSerializer,
     EleitorSerializer,
@@ -160,10 +162,26 @@ class EleitorViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAdminOrDelegado]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["nome", "nominho", "filiacao"]
+    search_fields = ["nome", "nominho", "filiacao", "=nr_eleitor", "nr_mesa"]
     ordering_fields = ["nome", "nr_eleitor", "datahora_atualizacao"]
     ordering = ["nome"]
     pagination_class = EleitorPagination
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("nr_mesa", str, description="Filtrar por nr_mesa exato"),
+            OpenApiParameter("nr_eleitor", int, description="Filtrar por nr_eleitor exato"),
+            OpenApiParameter("concelho", str, description="Filtrar por concelho exato"),
+            OpenApiParameter("zona", str, description="Filtrar por zona exata"),
+            OpenApiParameter("mpd", bool, description="true/false — eleitor MpD"),
+            OpenApiParameter("indeciso", bool, description="true/false"),
+            OpenApiParameter("ausente", bool, description="true/false"),
+            OpenApiParameter("nao_vai_votar", bool, description="true/false"),
+            OpenApiParameter("descarga", bool, description="true/false — já votou"),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -242,6 +260,52 @@ class EleitorViewSet(viewsets.ModelViewSet):
         eleitor.save(update_fields=["descarga", "datahora_atualizacao"])
         return Response(EleitorSerializer(eleitor).data)
 
+    @action(detail=True, methods=["patch"], url_path="mark-flags")
+    def mark_flags(self, request, pk=None):
+        """
+        Update one or more boolean flags on an eleitor.
+
+        Accepts any subset of: `nao_vai_votar`, `ausente`, `indeciso`,
+        `mpd`, `descarga`. Only the fields in the request body are updated.
+
+        Permission scope mirrors `mark-descarga` (admins or delegados on
+        their own mesas).
+        """
+        eleitor = self.get_object()
+        serializer = EleitorFlagsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        update_fields = []
+        for field, value in serializer.validated_data.items():
+            setattr(eleitor, field, value)
+            update_fields.append(field)
+        update_fields.append("datahora_atualizacao")
+        eleitor.save(update_fields=update_fields)
+        return Response(EleitorSerializer(eleitor).data)
+
+    @action(detail=True, methods=["patch"], url_path="mark-nao-vai-votar")
+    def mark_nao_vai_votar(self, request, pk=None):
+        """Convenience endpoint: set `nao_vai_votar` (default true)."""
+        return self._toggle_flag(request, "nao_vai_votar")
+
+    @action(detail=True, methods=["patch"], url_path="mark-ausente")
+    def mark_ausente(self, request, pk=None):
+        """Convenience endpoint: set `ausente` (default true)."""
+        return self._toggle_flag(request, "ausente")
+
+    @action(detail=True, methods=["patch"], url_path="mark-indeciso")
+    def mark_indeciso(self, request, pk=None):
+        """Convenience endpoint: set `indeciso` (default true)."""
+        return self._toggle_flag(request, "indeciso")
+
+    def _toggle_flag(self, request, field):
+        eleitor = self.get_object()
+        value = request.data.get(field, True)
+        if not isinstance(value, bool):
+            value = str(value).lower() in ("1", "true", "yes", "sim")
+        setattr(eleitor, field, value)
+        eleitor.save(update_fields=[field, "datahora_atualizacao"])
+        return Response(EleitorSerializer(eleitor).data)
+
     @action(detail=False, methods=["get"], url_path=r"by-nr-eleitor/(?P<nr_eleitor>\d+)")
     def by_nr_eleitor(self, request, nr_eleitor=None):
         """
@@ -304,6 +368,21 @@ class VotacaoViewSet(viewsets.ModelViewSet):
     ordering = ["-datetime"]
     pagination_class = VotacaoPagination
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("anulado", bool, description="true → só anuladas; false → não anuladas (inclui NULL)"),
+            OpenApiParameter("votou", bool, description="true → só onde votou=1; false → o resto"),
+            OpenApiParameter("nr_mesa", str, description="Filtrar por nr_mesa exato"),
+            OpenApiParameter("nr_eleitor", int, description="Filtrar por nr_eleitor exato"),
+            OpenApiParameter("nr_bi_eleitor", str, description="Filtrar por BI exato"),
+            OpenApiParameter("assembleia_voto_nr", str, description="Filtrar por assembleia exata"),
+            OpenApiParameter("date_from", str, description="Data inicial (YYYY-MM-DD ou ISO 8601). Alias: datetime_from"),
+            OpenApiParameter("date_to", str, description="Data final (YYYY-MM-DD ou ISO 8601). Alias: datetime_to"),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if self.action == "register_vote":
             return VotacaoRegisterSerializer
@@ -332,10 +411,16 @@ class VotacaoViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(**{field: value})
         anulado = params.get("anulado")
         if anulado is not None and anulado != "":
-            qs = qs.filter(anulado=1 if anulado.lower() in ("1", "true", "yes") else 0)
+            truthy = anulado.lower() in ("1", "true", "yes", "sim")
+            if truthy:
+                qs = qs.filter(anulado=1)
+            else:
+                # "false" matches both 0 and NULL — votos não anulados
+                qs = qs.exclude(anulado=1)
         votou = params.get("votou")
         if votou is not None and votou != "":
-            qs = qs.filter(votou=1 if votou.lower() in ("1", "true", "yes") else 0)
+            truthy = votou.lower() in ("1", "true", "yes", "sim")
+            qs = qs.filter(votou=1) if truthy else qs.exclude(votou=1)
 
         # Date range on `datetime` (ISO 8601 / YYYY-MM-DD accepted)
         date_from = params.get("datetime_from") or params.get("date_from")

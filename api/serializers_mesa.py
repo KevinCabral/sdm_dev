@@ -116,6 +116,28 @@ class EleitorMarkSerializer(serializers.Serializer):
     descarga = serializers.BooleanField()
 
 
+class EleitorFlagsSerializer(serializers.Serializer):
+    """
+    Payload for the `mark-flags` action.
+
+    Any combination of the boolean flags below may be provided. Only the
+    fields present in the request are updated. At least one flag is required.
+    """
+
+    nao_vai_votar = serializers.BooleanField(required=False)
+    ausente = serializers.BooleanField(required=False)
+    indeciso = serializers.BooleanField(required=False)
+    mpd = serializers.BooleanField(required=False)
+    descarga = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError(
+                "Forneça pelo menos um dos campos: nao_vai_votar, ausente, indeciso, mpd, descarga."
+            )
+        return attrs
+
+
 # ---------- Votacao ----------
 
 class VotacaoSerializer(serializers.ModelSerializer):

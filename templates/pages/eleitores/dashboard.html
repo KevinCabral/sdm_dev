@@ -1,487 +1,384 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
-{% block breadcrumbs %}
+{% block extrahead %}
+  {% include 'pages/militantes/_theme.html' %}
 {% endblock %}
 
+{% block breadcrumbs %}{% endblock %}
+
 {% block content %}
-  <script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
-  <!-- [ Main Content ] start -->
-  
-    <!-- [ daily sales section ] start -->
-<div class="row">
-  <div class="col-md-6 col-xl-4">
-    <div class="card daily-sales">
-      <div class="card-block">
-        <h6 class="mb-4">Total de Eleitores</h6>
-        <div class="row d-flex align-items-center">
-          <div class="col-9">
-            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalEleitores }}</h3>
-          </div>
+<div id="toast-container"></div>
+
+<section class="tw-px-1 sm:tw-px-2 lg:tw-px-4 tw-pb-10">
+
+  {# ── Page header ────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-end tw-justify-between tw-gap-3 tw-mb-5">
+    <div>
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-1 tw-h-7 tw-bg-mpd-500 tw-rounded-full"></span>
+        <h1 class="tw-text-xl sm:tw-text-2xl tw-font-bold tw-text-slate-900 tw-m-0">Painel de Eleitores</h1>
+      </div>
+      <p class="tw-text-sm tw-text-slate-500 tw-mt-1 tw-ml-3">Indicadores em tempo real, comparecimento e distribuição.</p>
+    </div>
+    <div class="tw-flex tw-items-center tw-gap-2">
+      <a href="{% url 'eleitores.index' %}" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-h-9 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        <i class="fa fa-list tw-text-xs"></i> Lista
+      </a>
+      <button type="button" id="btn-refresh" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-h-9 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-soft tw-transition">
+        <i class="fa fa-sync tw-text-xs"></i> Atualizar
+      </button>
+    </div>
+  </div>
+
+  {# ── Top KPIs ──────────────────────────────────────── #}
+  <div class="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-3 tw-mb-4">
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium">Total Eleitores</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-slate-900 tw-mt-1">{{ totalEleitores|default:0 }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">{{ totalMesas|default:0 }} mesas · {{ totalConcelhos|default:0 }} concelhos</div>
         </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-slate-50 tw-text-slate-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-users"></i></span>
+      </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-mpd-700 tw-font-semibold">Comparecimento</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-mpd-700 tw-mt-1">{{ pctComparecimento|default:0 }}%</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">{{ totalVotaram|default:0 }} votaram</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-check-circle"></i></span>
+      </div>
+      <div class="tw-mt-3 tw-h-1.5 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">
+        <div class="tw-h-full tw-bg-mpd-500" style="width: {{ pctComparecimento|default:0 }}%"></div>
+      </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-rose-700 tw-font-semibold">Abstenção</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-rose-600 tw-mt-1">{{ pctAbstencao|default:0 }}%</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">{{ totalNaoVotaram|default:0 }} ainda não votaram</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-rose-50 tw-text-rose-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-user-times"></i></span>
+      </div>
+      <div class="tw-mt-3 tw-h-1.5 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">
+        <div class="tw-h-full tw-bg-rose-500" style="width: {{ pctAbstencao|default:0 }}%"></div>
+      </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-mpd-700 tw-font-semibold">Eleitores MpD</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-slate-900 tw-mt-1">{{ totalMpd|default:0 }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">{{ pctMpd|default:0 }}% do total</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-flag"></i></span>
+      </div>
+      <div class="tw-mt-3 tw-h-1.5 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">
+        <div class="tw-h-full tw-bg-mpd-500" style="width: {{ pctMpd|default:0 }}%"></div>
       </div>
     </div>
   </div>
-  <div class="col-md-6 col-xl-4">
-    <div class="card daily-sales">
-      <div class="card-block">
-        <h6 class="mb-4">Total de Eleitores Votaram</h6>
-        <div class="row d-flex align-items-center">
-          <div class="col-9">
-            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalVotaram }}</h3>
-          </div>
-        </div>
-      </div>
+
+  {# ── Secondary KPIs ────────────────────────────────── #}
+  <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-mb-5">
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Indecisos</div>
+      <div class="tw-text-lg tw-font-bold tw-text-amber-600 tw-mt-0.5">{{ totalIndecisos|default:0 }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Ausentes</div>
+      <div class="tw-text-lg tw-font-bold tw-text-slate-700 tw-mt-0.5">{{ totalAusentes|default:0 }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Não vai votar</div>
+      <div class="tw-text-lg tw-font-bold tw-text-rose-600 tw-mt-0.5">{{ totalNaoVaiVotar|default:0 }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Descarga</div>
+      <div class="tw-text-lg tw-font-bold tw-text-sky-600 tw-mt-0.5">{{ totalDescarga|default:0 }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Votos válidos</div>
+      <div class="tw-text-lg tw-font-bold tw-text-mpd-700 tw-mt-0.5">{{ totalVotosValidos|default:0 }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Anuladas</div>
+      <div class="tw-text-lg tw-font-bold tw-text-rose-700 tw-mt-0.5">{{ totalAnuladas|default:0 }}</div>
     </div>
   </div>
-  <div class="col-md-6 col-xl-4">
-    <div class="card daily-sales">
-      <div class="card-block">
-        <h6 class="mb-4">Total de Eleitores não Votaram</h6>
-        <div class="row d-flex align-items-center">
-          <div class="col-9">
-            <h3 class="f-w-300 d-flex align-items-center m-b-0">{{ totalNaoVotaram }}</h3>
-          </div>
-        </div>
+
+  {# ── Row 1: comparecimento + horário ───────────────── #}
+  <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+    <div class="lg:tw-col-span-1 tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Comparecimento global</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">% sobre total elegíveis</span>
       </div>
+      <div id="chart-comparecimento" style="height: 280px;"></div>
+    </div>
+    <div class="lg:tw-col-span-2 tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Votação por hora</h3>
+        <span id="hora-date" class="tw-text-[11px] tw-text-slate-400"></span>
+      </div>
+      <div id="chart-horario" style="height: 280px;"></div>
     </div>
   </div>
-</div>
-<div class="row">
-    <div class="col-xl-6 col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Eleitores por genero</h5>
-        </div>
-        <div class="card-block">
-          <div id="chart-genero"></div>
-        </div>
-      </div>
-    </div>
 
-    <div class="col-xl-6 col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Eleitores por Faixa Etaria</h5>
-        </div>
-        <div class="card-block">
-          <div id="chart-idade"></div>
-        </div>
+  {# ── Row 2: top mesas + faixa etária ───────────────── #}
+  <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+    <div class="lg:tw-col-span-2 tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Top mesas por comparecimento</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">% votantes</span>
       </div>
+      <div id="chart-top-mesas" style="height: 320px;"></div>
     </div>
-
-    <div class="col-xl-6 col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Eleitores por Mesa</h5>
-        </div>
-        <div class="card-block">
-          <div id="chart-mesa"></div>
-        </div>
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Faixa etária</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">distribuição %</span>
       </div>
+      <div id="chart-idade" style="height: 320px;"></div>
     </div>
-    <div class="col-xl-6 col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Votoção por Mesa</h5>
-        </div>
-        <div class="card-block">
-          <div id="chart-mesa-votacao"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-6 col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Votoção por Região</h5>
-        </div>
-        <div class="card-block">
-          <div id="chart-regiao-votacao"></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script>
-    
+  {# ── Row 3: eleitores por mesa + por concelho ─────── #}
+  <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4 tw-mb-4">
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Eleitores por mesa</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">total elegíveis</span>
+      </div>
+      <div id="chart-mesa" style="height: 320px;"></div>
+    </div>
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Eleitores por concelho</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">distribuição</span>
+      </div>
+      <div id="chart-genero" style="height: 320px;"></div>
+    </div>
+  </div>
 
-    function getDistribuicaoGenero(){
-      $.get("{% url 'eleitores.distribuicaoGenero' %}",function(generos){
-        generos = generos.data
-        let data = []
-        for(index = 0; index < generos.length;index ++){
-          const element = generos[index]
-          data.push({
-            name: element.genero,
-            y:element.porcentagem
-          })
+  {# ── Row 4: votos por mesa + por região ────────────── #}
+  <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4">
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Votação por mesa</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">votos registados</span>
+      </div>
+      <div id="chart-mesa-votacao" style="height: 320px;"></div>
+    </div>
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <h3 class="tw-text-sm tw-font-semibold tw-text-slate-900 tw-m-0">Votação por concelho/região</h3>
+        <span class="tw-text-[11px] tw-text-slate-400">votantes</span>
+      </div>
+      <div id="chart-regiao-votacao" style="height: 320px;"></div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+(function () {
+  // ── Highcharts global theme tweaks
+  Highcharts.setOptions({
+    colors: ['#1a9123','#178420','#0e7716','#14b8a6','#0ea5e9','#6366f1','#f59e0b','#e11d48','#64748b'],
+    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },
+    title: { text: '' },
+    credits: { enabled: false },
+    legend: { itemStyle: { color: '#475569', fontWeight: '500', fontSize: '11px' } },
+    xAxis: { labels: { style: { color: '#64748b', fontSize: '11px' } }, lineColor: '#e2e8f0', tickColor: '#e2e8f0' },
+    yAxis: { gridLineColor: '#f1f5f9', labels: { style: { color: '#64748b', fontSize: '11px' } }, title: { text: null } },
+    plotOptions: {
+      column: { borderRadius: 4, borderWidth: 0 },
+      bar:    { borderRadius: 4, borderWidth: 0 },
+      pie:    { borderWidth: 0, dataLabels: { style: { textOutline: 'none', color: '#334155', fontWeight: '500' } } },
+      series: { animation: { duration: 600 } },
+    },
+    tooltip: {
+      backgroundColor: 'rgba(15,23,42,.95)',
+      borderWidth: 0,
+      borderRadius: 8,
+      style: { color: '#fff', fontSize: '12px' },
+      shadow: false,
+    },
+  });
+
+  function toast(msg, type) {
+    var palette = { success: 'tw-bg-mpd-500', error: 'tw-bg-rose-500', info: 'tw-bg-slate-700' };
+    var $t = $('<div class="tw-px-4 tw-py-2 tw-rounded-lg tw-shadow-soft tw-text-sm tw-font-medium tw-text-white tw-animate-slide-in ' + (palette[type] || palette.info) + '"></div>').text(msg);
+    $('#toast-container').append($t);
+    setTimeout(function(){ $t.addClass('tw-animate-fade-out'); setTimeout(function(){ $t.remove(); }, 250); }, 2200);
+  }
+
+  // ── Charts
+  function drawComparecimento() {
+    Highcharts.chart('chart-comparecimento', {
+      chart: { type: 'pie' },
+      tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.1f}%)' },
+      plotOptions: {
+        pie: {
+          innerSize: '65%',
+          dataLabels: { enabled: true, format: '{point.name}: {point.percentage:.1f}%' },
         }
-        Highcharts.chart('chart-genero', {
-          chart: {
-            type: 'pie'
-          },
-          title: {
-            text: 'Por Genero'
-          },
-          tooltip: {
-            valueSuffix: ''
-          },
-          subtitle: {
-            text: ''
-          },
-          plotOptions: {
-            series: {
-              allowPointSelect: true,
-              cursor: 'pointer',
-              dataLabels: [
-                {
-                  enabled: true,
-                  distance: 20
-                },
-                {
-                  enabled: true,
-                  distance: -40,
-                  format: '{point.percentage:.1f}%',
-                  style: {
-                    fontSize: '1.2em',
-                    textOutline: 'none',
-                    opacity: 0.7
-                  },
-                  filter: {
-                    operator: '>',
-                    property: 'percentage',
-                    value: 10
-                  }
-                }
-              ]
-            }
-          },
-          series: [
-            {
-              name: 'Percentagem',
-              colorByPoint: true,
-              data: data
-            }
-          ]
-        })
-      })
-    }
+      },
+      series: [{
+        name: 'Eleitores',
+        data: [
+          { name: 'Votaram', y: {{ totalVotaram|default:0 }}, color: '#1a9123' },
+          { name: 'Não votaram', y: {{ totalNaoVotaram|default:0 }}, color: '#e2e8f0' },
+        ]
+      }]
+    });
+  }
 
-    function getDistribuicaoIdade(){
-      $.get("{% url 'eleitores.distribuicaoIdade' %}",function(idades){
-        idades = idades.data
-        let data = []
-        let categoria = []
-        for(index = 0; index < idades.length;index ++){
-          const element = idades[index]
-          categoria.push(element.idade)
-          data.push(element.values)
-        }
-
-        Highcharts.chart('chart-idade', {
-          chart: {
-              type: 'column'
-          },
-          title: {
-              text: 'Por Faixa Etaria',
-              align: 'center'
-          },
-          subtitle: {
-              text: '',
-              align: 'center'
-          },
-          xAxis: {
-              categories: categoria,
-              title: {
-                  text: null
-              }
-          },
-          yAxis: {
-              min: 0,
-              title: {
-                  text: 'Total',
-                  align: 'high'
-              },
-              labels: {
-                  overflow: 'justify'
-              },
-              gridLineWidth: 0
-          },
-          tooltip: {
-              valueSuffix: ''
-          },
-          plotOptions: {
-              bar: {
-                  borderRadius: '50%',
-                  dataLabels: {
-                      enabled: true
-                  },
-                  groupPadding: 0.1
-              }
-          },
-          legend: {
-              layout: 'vertical',
-              align: 'right',
-              verticalAlign: 'top',
-              x: -40,
-              y: 80,
-              floating: true,
-              borderWidth: 1,
-              backgroundColor:
-                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
-              shadow: true
-          },
-          credits: {
-              enabled: false
-          },
-          series: [{
-              name: 'Idade',
-              data: data
-          }]
+  function drawHorario() {
+    $.get("{% url 'eleitores.votacaoHoraria' %}", function (resp) {
+      var data = (resp.data || []).map(function (r) { return [r.hour, r.total]; });
+      $('#hora-date').text(resp.date ? ('último dia: ' + resp.date) : 'sem dados');
+      Highcharts.chart('chart-horario', {
+        chart: { type: 'areaspline' },
+        xAxis: { categories: data.map(function (d) { return d[0] + 'h'; }) },
+        yAxis: { title: { text: 'Votos' } },
+        tooltip: { shared: true, headerFormat: '<b>{point.x}</b><br/>' },
+        plotOptions: { areaspline: { fillOpacity: .2, lineWidth: 2, marker: { radius: 3 } } },
+        series: [{ name: 'Votos', data: data.map(function (d) { return d[1]; }), color: '#1a9123' }]
       });
-      
-        
-      })
-    }
+    });
+  }
 
-    function getDistribuicaoMesa(){
-      $.get("{% url 'eleitores.distribuicaoNrMesa' %}",function(mesas){
-        let data = []
-        let categoria = []
-        for(index = 0; index < mesas.length;index ++){
-          const element = mesas[index]
-          categoria.push(element.nr_mesa)
-          data.push(element.total_eleitores)
-        }
-
-        Highcharts.chart('chart-mesa', {
-          chart: {
-              type: 'column'
-          },
-          title: {
-              text: 'Por Mesa',
-              align: 'center'
-          },
-          subtitle: {
-              text: '',
-              align: 'center'
-          },
-          xAxis: {
-              categories: categoria,
-              title: {
-                  text: null
-              }
-          },
-          yAxis: {
-              min: 0,
-              title: {
-                  text: 'Total',
-                  align: 'high'
-              },
-              labels: {
-                  overflow: 'justify'
-              },
-              gridLineWidth: 0
-          },
-          tooltip: {
-              valueSuffix: ''
-          },
-          plotOptions: {
-              bar: {
-                  borderRadius: '',
-                  dataLabels: {
-                      enabled: true
-                  },
-                  groupPadding: 0.1
-              }
-          },
-          legend: {
-              layout: 'vertical',
-              align: 'right',
-              verticalAlign: 'top',
-              x: -40,
-              y: 80,
-              floating: true,
-              borderWidth: 1,
-              backgroundColor:
-                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
-              shadow: true
-          },
-          credits: {
-              enabled: false
-          },
-          series: [{
-              name: 'Mesas',
-              data: data
-          }]
+  function drawTopMesas() {
+    $.get("{% url 'eleitores.topMesasComparecimento' %}", { limit: 12 }, function (resp) {
+      var rows = resp.data || [];
+      Highcharts.chart('chart-top-mesas', {
+        chart: { type: 'bar' },
+        xAxis: { categories: rows.map(function (r) { return 'Mesa ' + r.nr_mesa; }) },
+        yAxis: { max: 100, title: { text: '% comparecimento' }, labels: { format: '{value}%' } },
+        tooltip: {
+          formatter: function () {
+            var r = rows[this.point.index] || {};
+            return '<b>Mesa ' + r.nr_mesa + '</b><br/>' +
+                   r.votaram + ' / ' + r.total + ' (' + r.pct + '%)';
+          }
+        },
+        series: [{
+          name: 'Comparecimento',
+          data: rows.map(function (r) { return r.pct; }),
+          color: '#1a9123',
+          dataLabels: { enabled: true, format: '{y}%', style: { color: '#0f172a', textOutline: 'none', fontWeight: '600' } }
+        }]
       });
-      
-        
-      })
-    }
-    function getDistribuicaoMesaVotacao(){
-      $.get("{% url 'eleitores.distribuicaoNrMesaVotacao' %}",function(mesas){
-        let data = []
-        let categoria = []
-        for(index = 0; index < mesas.length;index ++){
-          const element = mesas[index]
-          categoria.push(element.nr_mesa)
-          data.push(element.total_votacao)
-        }
+    });
+  }
 
-        Highcharts.chart('chart-mesa-votacao', {
-          chart: {
-              type: 'column'
-          },
-          title: {
-              text: 'Por Mesa',
-              align: 'center'
-          },
-          subtitle: {
-              text: '',
-              align: 'center'
-          },
-          xAxis: {
-              categories: categoria,
-              title: {
-                  text: null
-              }
-          },
-          yAxis: {
-              min: 0,
-              title: {
-                  text: 'Total',
-                  align: 'high'
-              },
-              labels: {
-                  overflow: 'justify'
-              },
-              gridLineWidth: 0
-          },
-          tooltip: {
-              valueSuffix: ''
-          },
-          plotOptions: {
-              bar: {
-                  borderRadius: '',
-                  dataLabels: {
-                      enabled: true
-                  },
-                  groupPadding: 0.1
-              }
-          },
-          legend: {
-              layout: 'vertical',
-              align: 'right',
-              verticalAlign: 'top',
-              x: -40,
-              y: 80,
-              floating: true,
-              borderWidth: 1,
-              backgroundColor:
-                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
-              shadow: true
-          },
-          credits: {
-              enabled: false
-          },
-          series: [{
-              name: 'Mesas',
-              data: data
-          }]
+  function drawIdade() {
+    $.get("{% url 'eleitores.distribuicaoIdade' %}", function (resp) {
+      var data = (resp.data || []).map(function (r) {
+        return { name: r.idade, y: Math.round(r.values * 10) / 10 };
       });
-      
-        
-      })
-    }
-
-    function getDistribuicaoRegiaoVotacao(){
-      $.get("{% url 'eleitores.distribuicaoNrMesaVotacaoRegiao' %}",function(mesas){
-        let data = []
-        let categoria = []
-        for(index = 0; index < mesas.length;index ++){
-          const element = mesas[index]
-          categoria.push(element.nr_mesa)
-          data.push(element.total_votacao)
-        }
-
-        Highcharts.chart('chart-regiao-votacao', {
-          chart: {
-              type: 'column'
-          },
-          title: {
-              text: 'Por Região',
-              align: 'center'
-          },
-          subtitle: {
-              text: '',
-              align: 'center'
-          },
-          xAxis: {
-              categories: categoria,
-              title: {
-                  text: null
-              }
-          },
-          yAxis: {
-              min: 0,
-              title: {
-                  text: 'Total',
-                  align: 'high'
-              },
-              labels: {
-                  overflow: 'justify'
-              },
-              gridLineWidth: 0
-          },
-          tooltip: {
-              valueSuffix: ''
-          },
-          plotOptions: {
-              bar: {
-                  borderRadius: '',
-                  dataLabels: {
-                      enabled: true
-                  },
-                  groupPadding: 0.1
-              }
-          },
-          legend: {
-              layout: 'vertical',
-              align: 'right',
-              verticalAlign: 'top',
-              x: -40,
-              y: 80,
-              floating: true,
-              borderWidth: 1,
-              backgroundColor:
-                  Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
-              shadow: true
-          },
-          credits: {
-              enabled: false
-          },
-          series: [{
-              name: 'Região',
-              data: data
-          }]
+      Highcharts.chart('chart-idade', {
+        chart: { type: 'pie' },
+        tooltip: { pointFormat: '<b>{point.percentage:.1f}%</b>' },
+        plotOptions: {
+          pie: { innerSize: '55%', dataLabels: { enabled: true, format: '{point.name}: {point.y:.1f}%' } }
+        },
+        series: [{ name: 'Faixa', colorByPoint: true, data: data }]
       });
-      
-        
-      })
-    }
+    });
+  }
 
-    
+  function drawMesa() {
+    $.get("{% url 'eleitores.distribuicaoNrMesa' %}", function (rows) {
+      rows = (rows || []).filter(function (r) { return r.nr_mesa; }).slice(0, 30);
+      Highcharts.chart('chart-mesa', {
+        chart: { type: 'column' },
+        xAxis: { categories: rows.map(function (r) { return r.nr_mesa; }), labels: { rotation: -45 } },
+        yAxis: { title: { text: 'Eleitores' } },
+        tooltip: { pointFormat: '<b>{point.y}</b> eleitores' },
+        series: [{ name: 'Eleitores', data: rows.map(function (r) { return r.total_eleitores; }), color: '#1a9123' }]
+      });
+    });
+  }
 
-    $(document).ready(function(){
-      getDistribuicaoGenero()
-      getDistribuicaoIdade()
-      getDistribuicaoMesa()
-      getDistribuicaoMesaVotacao()
-      getDistribuicaoRegiaoVotacao()
-    })
-  </script>
-  <!-- [ Main Content ] end -->
+  function drawConcelho() {
+    $.get("{% url 'eleitores.distribuicaoGenero' %}", function (resp) {
+      var rows = (resp.data || []).filter(function (r) { return r.concelho && r.concelho !== 'N/A'; });
+      rows.sort(function (a, b) { return b.values - a.values; });
+      var top = rows.slice(0, 10);
+      Highcharts.chart('chart-genero', {
+        chart: { type: 'pie' },
+        tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.1f}%)' },
+        plotOptions: {
+          pie: { innerSize: '55%', dataLabels: { enabled: true, format: '{point.name}: {point.percentage:.1f}%' } }
+        },
+        series: [{
+          name: 'Concelho',
+          colorByPoint: true,
+          data: top.map(function (r) { return { name: r.concelho, y: r.values }; })
+        }]
+      });
+    });
+  }
+
+  function drawMesaVotacao() {
+    $.get("{% url 'eleitores.distribuicaoNrMesaVotacao' %}", function (rows) {
+      rows = (rows || []).filter(function (r) { return r.nr_mesa; }).slice(0, 30);
+      Highcharts.chart('chart-mesa-votacao', {
+        chart: { type: 'column' },
+        xAxis: { categories: rows.map(function (r) { return r.nr_mesa; }), labels: { rotation: -45 } },
+        yAxis: { title: { text: 'Votos' } },
+        tooltip: { pointFormat: '<b>{point.y}</b> votos' },
+        series: [{ name: 'Votos', data: rows.map(function (r) { return r.total_votacao; }), color: '#0e7716' }]
+      });
+    });
+  }
+
+  function drawRegiao() {
+    $.get("{% url 'eleitores.distribuicaoNrMesaVotacaoRegiao' %}", function (rows) {
+      rows = (rows || []).filter(function (r) { return r.concelho }).slice(0, 15);
+      Highcharts.chart('chart-regiao-votacao', {
+        chart: { type: 'bar' },
+        xAxis: { categories: rows.map(function (r) { return r.concelho; }) },
+        yAxis: { title: { text: 'Votantes' } },
+        tooltip: { pointFormat: '<b>{point.y}</b> votantes' },
+        series: [{ name: 'Votantes', data: rows.map(function (r) { return r.total_eleitores; }), color: '#178420' }]
+      });
+    });
+  }
+
+  function drawAll() {
+    drawComparecimento();
+    drawHorario();
+    drawTopMesas();
+    drawIdade();
+    drawMesa();
+    drawConcelho();
+    drawMesaVotacao();
+    drawRegiao();
+  }
+
+  $(document).on('click', '#btn-refresh', function () {
+    drawAll();
+    toast('Indicadores atualizados', 'success');
+  });
+
+  $(document).ready(drawAll);
+})();
+</script>
 {% endblock %}
