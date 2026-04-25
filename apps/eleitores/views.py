@@ -20,19 +20,111 @@ from .models import EleicaoImport, Eleitores, Votacao
 # ----------------------------------------------------------------------
 # Excel column → model field map (shared by preview + import worker)
 # ----------------------------------------------------------------------
-ELEITOR_COLUMN_MAP = {
-    'Nome': 'nome',
-    'Nominho': 'nominho',
-    'Filiacao': 'filiacao',
-    'Data Nascimento': 'data_nascimento',
-    'Idade': 'idade_eleitor',
-    'Contato': 'contato',
-    'Nacionalidade': 'nacionalidade',
-    'Concelho': 'concelho',
-    'Zona': 'zona',
-    'Numero Mesa': 'nr_mesa',
-    'Numero Eleitor': 'nr_eleitor',
+# Map of NORMALIZED header (lowercased, single-spaced, underscores→space)
+# to a tuple (model_field, kind). `kind` drives type coercion.
+ELEITOR_FIELD_MAP = {
+    'nome':                 ('nome', 'str'),
+    'nominho':              ('nominho', 'str'),
+    'filiacao':             ('filiacao', 'str'),
+    'filiação':             ('filiacao', 'str'),
+    'data nascimento':      ('data_nascimento', 'date'),
+    'data de nascimento':   ('data_nascimento', 'date'),
+    'idade':                ('idade_eleitor', 'int'),
+    'idade eleitor':        ('idade_eleitor', 'int'),
+    'contato':              ('contato', 'str'),
+    'contacto':             ('contato', 'str'),
+    'nacionalidade':        ('nacionalidade', 'str'),
+    'concelho':             ('concelho', 'str'),
+    'zona':                 ('zona', 'str'),
+    'numero mesa':          ('nr_mesa', 'str'),
+    'nr mesa':              ('nr_mesa', 'str'),
+    'numero eleitor':       ('nr_eleitor', 'int'),
+    'nr eleitor':           ('nr_eleitor', 'int'),
+    'falecido':             ('falecido', 'bool'),
+    'ausente':              ('ausente', 'bool'),
+    'indeciso':             ('indeciso', 'bool'),
+    'nao vai votar':        ('nao_vai_votar', 'bool'),
+    'não vai votar':        ('nao_vai_votar', 'bool'),
+    'mpd':                  ('mpd', 'bool'),
+    'descarga':             ('descarga', 'bool'),
 }
+
+# Headers that identify the optional militante FK column.
+MILITANTE_ID_HEADERS = {'id militante', 'militante id', 'militante'}
+
+
+def _norm_header(s):
+    """Lowercase, trim, collapse whitespace, treat _ and - as spaces."""
+    return ' '.join(
+        str(s).strip().lower().replace('_', ' ').replace('-', ' ').split()
+    )
+
+
+def _build_column_map(df_columns):
+    """Return {original_col: (model_field, kind)} for matched columns."""
+    mapping = {}
+    for col in df_columns:
+        spec = ELEITOR_FIELD_MAP.get(_norm_header(col))
+        if spec:
+            mapping[col] = spec
+    return mapping
+
+
+def _find_militante_col(df_columns):
+    for col in df_columns:
+        if _norm_header(col) in MILITANTE_ID_HEADERS:
+            return col
+    return None
+
+
+def _coerce_value(value, kind):
+    """Convert a raw cell value to the type required by the model field."""
+    if value is None:
+        return None
+    if isinstance(value, float) and pd.isna(value):
+        return None
+
+    if kind == 'bool':
+        if isinstance(value, bool):
+            return value
+        s = str(value).strip().lower()
+        if s in ('true', '1', 'sim', 'yes', 'y', 's', 'verdadeiro'):
+            return True
+        if s in ('false', '0', 'nao', 'não', 'no', 'n', 'falso', ''):
+            return False
+        return None
+
+    if kind == 'int':
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return None
+
+    if kind == 'date':
+        try:
+            d = pd.to_datetime(value, errors='coerce')
+        except Exception:
+            return None
+        if pd.isna(d):
+            return None
+        return d.date() if hasattr(d, 'date') else d
+
+    s = str(value).strip()
+    if not s or s.lower() in ('nan', 'none', 'null'):
+        return None
+    return s
+
+
+def _row_to_kwargs(row, col_map):
+    """Build model kwargs from a DataFrame row using the prepared col_map."""
+    kwargs = {}
+    for col, (field, kind) in col_map.items():
+        if col not in row.index:
+            continue
+        coerced = _coerce_value(row[col], kind)
+        if coerced is not None:
+            kwargs[field] = coerced
+    return kwargs
 
 
 def _build_filters(request):
@@ -193,25 +285,46 @@ def uploadExcel(request):
         messages.error(request, 'Erro em carregar eleitor')
         return redirect("eleitores.index")
 
-    df = pd.read_excel(request.FILES['arquivo_excel'])
+    df = _read_excel_safe(request.FILES['arquivo_excel'])
+    col_map = _build_column_map(df.columns)
+    militante_col = _find_militante_col(df.columns)
+    existing_keys = set(
+        Eleitores.objects
+        .exclude(nr_mesa__isnull=True)
+        .exclude(nr_eleitor__isnull=True)
+        .values_list('nr_mesa', 'nr_eleitor')
+    )
+    seen_in_file = set()
     created = 0
+    duplicates = 0
     for _, row in df.iterrows():
-        kwargs = {
-            field: row[col]
-            for col, field in ELEITOR_COLUMN_MAP.items()
-            if col in df.columns and pd.notna(row[col])
-        }
+        kwargs = _row_to_kwargs(row, col_map)
+        if not kwargs:
+            continue  # skip blank/unmapped rows instead of creating empty eleitores
+        nr_mesa = kwargs.get('nr_mesa')
+        nr_eleitor = kwargs.get('nr_eleitor')
+        if nr_mesa is not None and nr_eleitor is not None:
+            key = (nr_mesa, nr_eleitor)
+            if key in existing_keys or key in seen_in_file:
+                duplicates += 1
+                continue
+            seen_in_file.add(key)
         eleitor = Eleitores(**kwargs)
-        militante_id = row.get('ID militante') if 'ID militante' in df.columns else None
-        if pd.notna(militante_id):
-            try:
-                eleitor.militante_id = Militantes.objects.get(pk=militante_id)
-            except Militantes.DoesNotExist:
-                pass
-        eleitor.falecido = False
+        if militante_col is not None:
+            mid = _coerce_value(row.get(militante_col), 'int')
+            if mid is not None:
+                try:
+                    eleitor.militante_id = Militantes.objects.get(pk=mid)
+                except Militantes.DoesNotExist:
+                    pass
+        if eleitor.falecido is None:
+            eleitor.falecido = False
         eleitor.save()
         created += 1
-    messages.success(request, f'{created} eleitores carregados com sucesso')
+    messages.success(
+        request,
+        f'{created} eleitores carregados, {duplicates} duplicados ignorados.',
+    )
     return redirect("eleitores.index")
 
 
@@ -243,8 +356,12 @@ def import_preview(request):
         return JsonResponse({'ok': False, 'error': f'Não foi possível ler o ficheiro: {exc}'}, status=400)
 
     columns = list(df.columns)
-    detected = [c for c in columns if c in ELEITOR_COLUMN_MAP]
-    missing = [c for c in ELEITOR_COLUMN_MAP if c not in columns]
+    col_map = _build_column_map(columns)
+    detected = list(col_map.keys())
+    mapped_fields = {field for field, _ in col_map.values()}
+    # Required model fields we expect to see at minimum.
+    required_fields = ['nome', 'nr_mesa', 'nr_eleitor']
+    missing = [f for f in required_fields if f not in mapped_fields]
     sample = df.head(20).fillna('').astype(str).to_dict(orient='records')
 
     return JsonResponse({
@@ -273,6 +390,7 @@ def import_start(request):
     f = request.FILES.get('arquivo_excel')
     tipo = request.POST.get('tipo_eleicao', '').strip().upper()
     mes_ano = request.POST.get('mes_ano', '').strip()
+    overwrite = request.POST.get('overwrite', '').strip().lower() in ('1', 'true', 'on', 'yes')
 
     if not f:
         return JsonResponse({'ok': False, 'error': 'Ficheiro obrigatório.'}, status=400)
@@ -291,8 +409,10 @@ def import_start(request):
     )
     job.arquivo.close()
 
-    threading.Thread(target=_run_import_job, args=(job.id,), daemon=True).start()
-    return JsonResponse({'ok': True, 'job_id': job.id})
+    threading.Thread(
+        target=_run_import_job, args=(job.id,), kwargs={'overwrite': overwrite}, daemon=True,
+    ).start()
+    return JsonResponse({'ok': True, 'job_id': job.id, 'overwrite': overwrite})
 
 
 @login_required
@@ -306,6 +426,8 @@ def import_status(request, job_id):
         'total': job.total_linhas,
         'processed': job.processadas,
         'created': job.criadas,
+        'duplicates': job.duplicadas,
+        'updated': job.atualizadas,
         'errors': job.erros,
         'percent': job.percent,
         'message': job.mensagem,
@@ -314,8 +436,14 @@ def import_status(request, job_id):
     })
 
 
-def _run_import_job(job_id):
-    """Background worker: stream the file, persist eleitores in chunks."""
+def _run_import_job(job_id, overwrite=False):
+    """Background worker: stream the file, persist eleitores in chunks.
+
+    Args:
+        job_id: PK of the EleicaoImport row to process.
+        overwrite: When True, rows whose (nr_mesa, nr_eleitor) already exist
+            in the DB are updated in-place instead of being skipped.
+    """
     from django.db import close_old_connections, transaction
 
     try:
@@ -336,46 +464,114 @@ def _run_import_job(job_id):
 
         chunk_size = 500
         created = 0
+        updated = 0
         errors = 0
+        duplicates = 0
         militante_cache = {}
+        col_map = _build_column_map(df.columns)
+        militante_col = _find_militante_col(df.columns)
+
+        # Pre-load existing (nr_mesa, nr_eleitor) pairs to detect duplicates
+        # against the database. Using a set keeps the per-row check at O(1).
+        existing_keys = set(
+            Eleitores.objects
+            .exclude(nr_mesa__isnull=True)
+            .exclude(nr_eleitor__isnull=True)
+            .values_list('nr_mesa', 'nr_eleitor')
+        )
+        # Also dedupe rows that repeat within the same upload file.
+        seen_in_file = set()
 
         for chunk_start in range(0, total, chunk_size):
             chunk = df.iloc[chunk_start:chunk_start + chunk_size]
-            objs = []
+            inserts = []   # New eleitores to bulk-create
+            updates = []   # (key, kwargs, militante) tuples for existing rows
             for _, row in chunk.iterrows():
                 try:
-                    kwargs = {
-                        field: row[col]
-                        for col, field in ELEITOR_COLUMN_MAP.items()
-                        if col in df.columns and pd.notna(row[col])
-                    }
-                    eleitor = Eleitores(**kwargs, falecido=False)
-                    militante_id = row.get('ID militante') if 'ID militante' in df.columns else None
-                    if pd.notna(militante_id):
-                        mid = int(militante_id)
-                        if mid not in militante_cache:
-                            militante_cache[mid] = Militantes.objects.filter(pk=mid).first()
-                        if militante_cache[mid]:
-                            eleitor.militante_id = militante_cache[mid]
-                    objs.append(eleitor)
+                    kwargs = _row_to_kwargs(row, col_map)
+                    if not kwargs:
+                        # Skip rows that didn't map to any field (blank lines, etc.)
+                        continue
+
+                    militante_obj = None
+                    if militante_col is not None:
+                        mid = _coerce_value(row.get(militante_col), 'int')
+                        if mid is not None:
+                            if mid not in militante_cache:
+                                militante_cache[mid] = Militantes.objects.filter(pk=mid).first()
+                            militante_obj = militante_cache[mid]
+
+                    # Duplicate check on the natural key (nr_mesa, nr_eleitor).
+                    nr_mesa = kwargs.get('nr_mesa')
+                    nr_eleitor = kwargs.get('nr_eleitor')
+                    has_key = nr_mesa is not None and nr_eleitor is not None
+                    key = (nr_mesa, nr_eleitor) if has_key else None
+
+                    if has_key and key in seen_in_file:
+                        # Same row repeated within this very file → always skip.
+                        duplicates += 1
+                        continue
+
+                    if has_key and key in existing_keys:
+                        if overwrite:
+                            updates.append((key, kwargs, militante_obj))
+                            seen_in_file.add(key)
+                        else:
+                            duplicates += 1
+                        continue
+
+                    if has_key:
+                        seen_in_file.add(key)
+                    kwargs.setdefault('falecido', False)
+                    eleitor = Eleitores(**kwargs)
+                    if militante_obj is not None:
+                        eleitor.militante_id = militante_obj
+                    inserts.append(eleitor)
                 except Exception:
                     errors += 1
-            if objs:
+
+            if inserts:
                 with transaction.atomic():
-                    for o in objs:
+                    for o in inserts:
                         try:
                             o.save()
                             created += 1
                         except Exception:
                             errors += 1
 
+            if updates:
+                with transaction.atomic():
+                    for key, kwargs, militante_obj in updates:
+                        try:
+                            update_fields = dict(kwargs)
+                            if militante_obj is not None:
+                                update_fields['militante_id'] = militante_obj
+                            # Pop natural-key fields; they're the lookup, not values to overwrite.
+                            update_fields.pop('nr_mesa', None)
+                            update_fields.pop('nr_eleitor', None)
+                            n = Eleitores.objects.filter(
+                                nr_mesa=key[0], nr_eleitor=key[1],
+                            ).update(**update_fields) if update_fields else 0
+                            if n:
+                                updated += n
+                        except Exception:
+                            errors += 1
+
             job.processadas = min(chunk_start + len(chunk), total)
             job.criadas = created
+            job.duplicadas = duplicates
+            job.atualizadas = updated
             job.erros = errors
-            job.save(update_fields=['processadas', 'criadas', 'erros', 'atualizado_em'])
+            job.save(update_fields=[
+                'processadas', 'criadas', 'duplicadas', 'atualizadas',
+                'erros', 'atualizado_em',
+            ])
 
         job.status = EleicaoImport.STATUS_DONE
-        job.mensagem = f'{created} eleitores carregados ({errors} erros).'
+        job.mensagem = (
+            f'{created} criados, {updated} atualizados, '
+            f'{duplicates} duplicados ignorados, {errors} erros (de {total} linhas).'
+        )
         job.save(update_fields=['status', 'mensagem', 'atualizado_em'])
     except Exception as exc:
         job.status = EleicaoImport.STATUS_ERROR

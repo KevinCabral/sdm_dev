@@ -316,8 +316,12 @@
         </div>
       </div>
 
-      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-items-center tw-justify-between">
+      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-items-center tw-justify-between tw-gap-3">
         <button id="im-btn-back" class="tw-h-9 tw-px-3 tw-text-sm tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md">← Trocar ficheiro</button>
+        <label for="im-overwrite" class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-700 tw-cursor-pointer tw-select-none tw-mr-auto tw-ml-3" title="Quando ativo, eleitores com o mesmo (nr_mesa, nr_eleitor) já existentes serão atualizados em vez de ignorados.">
+          <input id="im-overwrite" type="checkbox" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+          <span>Substituir duplicados (nr_mesa + nr_eleitor)</span>
+        </label>
         <button id="im-btn-start" class="tw-h-9 tw-px-4 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-inline-flex tw-items-center tw-gap-2">
           <i class="fa fa-play"></i> Iniciar importação
         </button>
@@ -615,6 +619,7 @@
     fd.append('arquivo_excel', uploadFile);
     fd.append('tipo_eleicao', tipo);
     fd.append('mes_ano', mes_ano);
+    fd.append('overwrite', $('#im-overwrite').is(':checked') ? '1' : '0');
     fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
 
     $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> A iniciar...');
@@ -642,6 +647,8 @@
         $('#im-progress-stats').text(
           (s.processed || 0) + ' de ' + (s.total || 0) + ' • ' +
           (s.created || 0) + ' criadas' +
+          (s.updated ? ' • ' + s.updated + ' atualizadas' : '') +
+          (s.duplicates ? ' • ' + s.duplicates + ' duplicados' : '') +
           (s.errors ? ' • ' + s.errors + ' erros' : '')
         );
         if (s.status === 'done') {
@@ -649,6 +656,13 @@
           $('#im-progress-bar').removeClass('tw-bg-mpd-500').addClass('tw-bg-mpd-600');
           $('#im-progress-status').html('<i class="fa fa-check-circle tw-text-mpd-600"></i> ' + (s.message || 'Concluído'));
           $('#im-cancel').text('Fechar');
+          // Final summary notification
+          const summary = (s.created || 0) + ' eleitores carregados' +
+            (s.updated ? ' • ' + s.updated + ' atualizados' : '') +
+            (s.duplicates ? ' • ' + s.duplicates + ' duplicados ignorados' : '') +
+            (s.errors ? ' • ' + s.errors + ' erros' : '') +
+            ' (de ' + (s.total || 0) + ' linhas)';
+          toast(summary, (s.errors ? 'error' : 'success'));
           search();
         } else if (s.status === 'error') {
           clearInterval(pollTimer); pollTimer = null;

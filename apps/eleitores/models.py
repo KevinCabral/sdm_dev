@@ -98,6 +98,8 @@ class EleicaoImport(models.Model):
     total_linhas = models.IntegerField(default=0)
     processadas = models.IntegerField(default=0)
     criadas = models.IntegerField(default=0)
+    duplicadas = models.IntegerField(default=0)
+    atualizadas = models.IntegerField(default=0)
     erros = models.IntegerField(default=0)
     mensagem = models.TextField(blank=True, default="")
 

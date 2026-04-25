@@ -13,12 +13,18 @@ from .views import (
     UserRegistration,
 )
 from .views_mesa import EleitorViewSet, MesaViewSet, UserMesaViewSet, VotacaoViewSet
+from .views_militante import (
+    MilitanteAdminViewSet,
+    MilitanteMeView,
+    MilitanteRegisterView,
+)
 
 router = DefaultRouter()
 router.register(r"mesas", MesaViewSet, basename="api-mesa")
 router.register(r"user-mesas", UserMesaViewSet, basename="api-user-mesa")
 router.register(r"eleitores", EleitorViewSet, basename="api-eleitor")
 router.register(r"votacoes", VotacaoViewSet, basename="api-votacao")
+router.register(r"militantes", MilitanteAdminViewSet, basename="api-militante")
 
 urlpatterns = [
     # Auth (Bearer JWT)
@@ -51,6 +57,12 @@ urlpatterns = [
     path("registrar", UserRegistration.as_view()),
     path("alterar-password", ChangePasswordView.as_view()),
     path("recuperar-password", PasswordResetRequestView.as_view()),
+
+    # --- Militantes (mobile) ---
+    # These must be registered BEFORE the router so they take precedence over
+    # the `/militantes/<pk>/` detail route exposed by MilitanteAdminViewSet.
+    path("militantes/register/", MilitanteRegisterView.as_view(), name="api-militante-register"),
+    path("militantes/me/", MilitanteMeView.as_view(), name="api-militante-me"),
 ]
 
 # REST resource endpoints (mesas, user-mesas, eleitores)
