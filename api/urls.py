@@ -18,6 +18,13 @@ from .views_militante import (
     MilitanteMeView,
     MilitanteRegisterView,
 )
+from .views_quotas import (
+    AdminQuotasViewSet,
+    MeQuotaDetailView,
+    MeQuotasStatsView,
+    MeQuotasView,
+    ValorPagamentoViewSet,
+)
 
 router = DefaultRouter()
 router.register(r"mesas", MesaViewSet, basename="api-mesa")
@@ -25,6 +32,8 @@ router.register(r"user-mesas", UserMesaViewSet, basename="api-user-mesa")
 router.register(r"eleitores", EleitorViewSet, basename="api-eleitor")
 router.register(r"votacoes", VotacaoViewSet, basename="api-votacao")
 router.register(r"militantes", MilitanteAdminViewSet, basename="api-militante")
+router.register(r"quotas/valores", ValorPagamentoViewSet, basename="api-quota-valor")
+router.register(r"quotas", AdminQuotasViewSet, basename="api-quota")
 
 urlpatterns = [
     # Auth (Bearer JWT)
@@ -63,6 +72,13 @@ urlpatterns = [
     # the `/militantes/<pk>/` detail route exposed by MilitanteAdminViewSet.
     path("militantes/register/", MilitanteRegisterView.as_view(), name="api-militante-register"),
     path("militantes/me/", MilitanteMeView.as_view(), name="api-militante-me"),
+
+    # --- Quotas (mobile) ---
+    # Same trick: explicit /quotas/me/* paths must come before router urls so
+    # they aren't shadowed by /quotas/<pk>/ from AdminQuotasViewSet.
+    path("quotas/me/", MeQuotasView.as_view(), name="api-quotas-me"),
+    path("quotas/me/stats/", MeQuotasStatsView.as_view(), name="api-quotas-me-stats"),
+    path("quotas/me/<int:pk>/", MeQuotaDetailView.as_view(), name="api-quotas-me-detail"),
 ]
 
 # REST resource endpoints (mesas, user-mesas, eleitores)
