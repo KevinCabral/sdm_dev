@@ -1,118 +1,207 @@
 {% extends 'layouts/base.html' %}
 {% load static %}
 
+{% block extrahead %}
+  {% include 'pages/militantes/_theme.html' %}
+  <style>
+    .score-bar { height: 4px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; }
+    .score-bar > span { display: block; height: 100%; background: #1a9123; }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
 {% block content %}
-<div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5>Correspondências Eleitor ↔ Militante</h5>
-    <a href="{% url 'militante_match.dashboard' %}" class="btn btn-sm btn-outline-primary">Dashboard</a>
+<div id="toast-container"></div>
+
+<section class="tw-px-1 sm:tw-px-2 lg:tw-px-4 tw-pb-10 list-militantes">
+
+  {# ── Page header ────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3 tw-mb-4">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Correspondências
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        {{ page_obj.paginator.count }} registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      <a href="{% url 'militante_match.dashboard' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-chart-bar tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Dashboard</span>
+      </a>
+    </div>
   </div>
-  <div class="card-body">
-    <form method="get" class="form-inline mb-3">
-      <select name="status" class="form-control mr-2">
+
+  {# ── Filters bar ───────────────────────────────────── #}
+  <form method="get"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)] tw-mb-3">
+    <div class="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-w-full">
+
+      <div class="tw-relative tw-flex-1 tw-min-w-0">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input name="q" type="text" value="{{ search }}" placeholder="Pesquisar nome..." autocomplete="off"
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
+      </div>
+
+      <select name="status"
+              class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
         {% for value, label in statuses %}
           <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <input type="text" name="q" value="{{ search }}" placeholder="Pesquisar nome…" class="form-control mr-2">
-      <input type="number" name="min_score" value="{{ min_score }}" placeholder="Score mínimo" step="0.1" class="form-control mr-2" style="width:140px;">
-      <button type="submit" class="btn btn-primary">Filtrar</button>
-    </form>
 
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
+      <input name="min_score" type="number" step="0.1" value="{{ min_score }}" placeholder="Score mín."
+             class="tw-w-28 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+
+      <button type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Filtrar</span>
+      </button>
+
+      <a href="{% url 'militante_match.index' %}" title="Limpar filtros"
+         class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </a>
+    </div>
+  </form>
+
+  {# ── Results table ────────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <div class="tw-overflow-x-auto">
+      <table class="tw-w-full tw-text-sm">
+        <thead class="tw-bg-slate-50 tw-border-b tw-border-slate-200">
           <tr>
-            <th>Score</th>
-            <th>Eleitor</th>
-            <th>Militante</th>
-            <th>Nome</th>
-            <th>Pai</th>
-            <th>Mãe</th>
-            <th>DOB</th>
-            <th>Origem</th>
-            <th>Estado</th>
-            <th>Acções</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Score</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Eleitor</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Militante</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-hidden md:tw-table-cell">Componentes</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-hidden lg:tw-table-cell">Origem</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-left tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Estado</th>
+            <th class="tw-px-3 tw-py-2.5 tw-text-right tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Acções</th>
           </tr>
         </thead>
         <tbody>
           {% for m in page_obj %}
-            <tr>
-              <td><strong>{{ m.score }}</strong></td>
-              <td>
-                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}">
+            <tr class="tbl-row tw-border-b tw-border-slate-100 last:tw-border-0">
+              <td class="tw-px-3 tw-py-2.5 tw-align-top tw-w-28">
+                <div class="tw-text-sm tw-font-bold tw-text-slate-900">{{ m.score }}</div>
+                <div class="score-bar tw-mt-1.5"><span style="width: {{ m.score }}%"></span></div>
+              </td>
+              <td class="tw-px-3 tw-py-2.5 tw-align-top">
+                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}"
+                   class="tw-text-sm tw-font-semibold tw-text-slate-900 hover:tw-text-mpd-700">
                   {{ m.eleitor.nome|default:"—" }}
                 </a>
-                <br><small class="text-muted">{{ m.eleitor.data_nascimento|default:"—" }}</small>
+                <div class="tw-text-xs tw-text-slate-500 tw-mt-0.5">
+                  <i class="fa fa-birthday-cake tw-text-[10px] tw-mr-1"></i>{{ m.eleitor.data_nascimento|default:"—" }}
+                  {% if m.eleitor.nr_mesa %} · <i class="fa fa-table tw-text-[10px] tw-mx-1"></i>Mesa {{ m.eleitor.nr_mesa }}{% endif %}
+                </div>
               </td>
-              <td>
-                {{ m.militante.nome_completo|default:"—" }}
-                <br><small class="text-muted">{{ m.militante.dt_nascimento|default:"—" }}</small>
+              <td class="tw-px-3 tw-py-2.5 tw-align-top">
+                <div class="tw-text-sm tw-font-medium tw-text-slate-800">{{ m.militante.nome_completo|default:"—" }}</div>
+                <div class="tw-text-xs tw-text-slate-500 tw-mt-0.5">
+                  <i class="fa fa-birthday-cake tw-text-[10px] tw-mr-1"></i>{{ m.militante.dt_nascimento|default:"—" }}
+                </div>
               </td>
-              <td>{{ m.score_nome }}</td>
-              <td>{{ m.score_pai }}</td>
-              <td>{{ m.score_mae }}</td>
-              <td>
-                {% if m.dt_nascimento_match %}
-                  <span class="badge badge-success">✓</span>
+              <td class="tw-px-3 tw-py-2.5 tw-align-top tw-hidden md:tw-table-cell">
+                <div class="tw-flex tw-flex-wrap tw-gap-1">
+                  <span class="tw-inline-flex tw-items-center tw-text-[10px] tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">nome {{ m.score_nome }}</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[10px] tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">pai {{ m.score_pai }}</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[10px] tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">mãe {{ m.score_mae }}</span>
+                  {% if m.dt_nascimento_match %}
+                    <span class="tw-inline-flex tw-items-center tw-text-[10px] tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">DOB ✓</span>
+                  {% else %}
+                    <span class="tw-inline-flex tw-items-center tw-text-[10px] tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-slate-50 tw-text-slate-500 tw-border tw-border-slate-200">DOB ✗</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="tw-px-3 tw-py-2.5 tw-align-top tw-hidden lg:tw-table-cell">
+                {% if m.source == 'manual' %}
+                  <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-sky-50 tw-text-sky-700 tw-border tw-border-sky-200">Manual</span>
                 {% else %}
-                  <span class="badge badge-secondary">✗</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-slate-50 tw-text-slate-600 tw-border tw-border-slate-200">Auto</span>
                 {% endif %}
               </td>
-              <td><small>{{ m.get_source_display }}</small></td>
-              <td>
+              <td class="tw-px-3 tw-py-2.5 tw-align-top">
                 {% if m.status == 'pending' %}
-                  <span class="badge badge-warning">Pendente</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-font-semibold tw-px-2 tw-py-0.5 tw-rounded-full tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">Pendente</span>
                 {% elif m.status == 'confirmed' %}
-                  <span class="badge badge-success">Confirmado</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-font-semibold tw-px-2 tw-py-0.5 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">Confirmado</span>
                 {% else %}
-                  <span class="badge badge-secondary">Rejeitado</span>
+                  <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-font-semibold tw-px-2 tw-py-0.5 tw-rounded-full tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200">Rejeitado</span>
                 {% endif %}
               </td>
-              <td class="text-nowrap">
+              <td class="tw-px-3 tw-py-2.5 tw-align-top tw-text-right tw-whitespace-nowrap">
                 {% if m.status != 'confirmed' %}
-                  <form action="{% url 'militante_match.confirm' m.id %}" method="post" style="display:inline;">
+                  <form action="{% url 'militante_match.confirm' m.id %}" method="post" class="tw-inline-block">
                     {% csrf_token %}
-                    <button class="btn btn-sm btn-success" title="Confirmar">✓</button>
+                    <button type="submit" title="Confirmar"
+                            class="tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-mpd-600 hover:tw-bg-mpd-50 tw-transition">
+                      <i class="fa fa-check"></i>
+                    </button>
                   </form>
                 {% endif %}
                 {% if m.status != 'rejected' %}
-                  <form action="{% url 'militante_match.reject' m.id %}" method="post" style="display:inline;">
+                  <form action="{% url 'militante_match.reject' m.id %}" method="post" class="tw-inline-block">
                     {% csrf_token %}
-                    <button class="btn btn-sm btn-outline-danger" title="Rejeitar">✗</button>
+                    <button type="submit" title="Rejeitar"
+                            class="tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-rose-600 hover:tw-bg-rose-50 tw-transition">
+                      <i class="fa fa-times"></i>
+                    </button>
                   </form>
                 {% endif %}
                 {% if m.status != 'pending' %}
-                  <form action="{% url 'militante_match.reset' m.id %}" method="post" style="display:inline;">
+                  <form action="{% url 'militante_match.reset' m.id %}" method="post" class="tw-inline-block">
                     {% csrf_token %}
-                    <button class="btn btn-sm btn-outline-secondary" title="Reabrir">↺</button>
+                    <button type="submit" title="Reabrir"
+                            class="tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-slate-500 hover:tw-bg-slate-100 tw-transition">
+                      <i class="fa fa-undo"></i>
+                    </button>
                   </form>
                 {% endif %}
-                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}" class="btn btn-sm btn-outline-primary" title="Match manual">
+                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}" title="Match manual"
+                   class="tw-w-8 tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-text-sky-600 hover:tw-bg-sky-50 tw-transition">
                   <i class="fa fa-search"></i>
                 </a>
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="10" class="text-center text-muted py-4">Sem registos.</td></tr>
+            <tr>
+              <td colspan="7" class="tw-px-3 tw-py-12 tw-text-center tw-text-slate-400">
+                <i class="fa fa-inbox tw-text-2xl tw-block tw-mb-2"></i>
+                <span class="tw-text-sm">Sem registos para os filtros aplicados.</span>
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
     {% if page_obj.has_other_pages %}
-      <nav>
-        <ul class="pagination justify-content-center">
-          {% if page_obj.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}">«</a></li>
-          {% endif %}
-          <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}">»</a></li>
-          {% endif %}
-        </ul>
-      </nav>
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50/50">
+      <div class="tw-text-xs tw-text-slate-500">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="tw-flex tw-items-center tw-gap-1">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}"
+             class="tw-inline-flex tw-items-center tw-gap-1 tw-h-8 tw-px-3 tw-text-xs tw-font-medium tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-rounded-md tw-transition">
+            <i class="fa fa-chevron-left tw-text-[10px]"></i> Anterior
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}"
+             class="tw-inline-flex tw-items-center tw-gap-1 tw-h-8 tw-px-3 tw-text-xs tw-font-medium tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-rounded-md tw-transition">
+            Próxima <i class="fa fa-chevron-right tw-text-[10px]"></i>
+          </a>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
   </div>
-</div>
+</section>
 {% endblock %}
