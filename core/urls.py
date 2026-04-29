@@ -49,6 +49,7 @@ urlpatterns = [
     path("eleitores", include('apps.eleitores.urls')),
     path("quotas", include('apps.quotas.urls')),
     path("mesas", include('apps.mesa.urls')),
+    path("militante-match/", include('apps.militante_match.urls')),
 
     # Code-based password reset (overrides admin_datta's link-based flow).
     # Registered BEFORE admin_datta so URL resolution picks our views,

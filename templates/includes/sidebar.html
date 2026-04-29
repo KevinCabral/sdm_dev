@@ -120,6 +120,30 @@
         </li>
 
         <li class="nav-item pcoded-menu-caption">
+          <label style="color: white;">Correspondências</label>
+        </li>
+
+        {% url 'militante_match.dashboard' as url_mm_dash %}{% url 'militante_match.index' as url_mm_list %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_mm_dash or request.path == url_mm_list or '/militante-match/' in request.path %}pcoded-trigger active{% endif %}">
+          <a href="javascript:" class="nav-link"><span class="pcoded-micon"><i
+                class="fa fa-solid fa-link"></i></span><span class="pcoded-mtext">Eleitor ↔ Militante</span></a>
+          <ul class="pcoded-submenu">
+            <li class="{% if request.path == url_mm_dash %}active{% endif %}">
+              <a href="{{ url_mm_dash }}"><span class="pcoded-micon"><i
+                    class="fa fa-solid fa-chart-bar"></i></span><span class="pcoded-mtext">Dashboard</span></a>
+            </li>
+            <li class="{% if request.path == url_mm_list %}active{% endif %}">
+              <a href="{{ url_mm_list }}?status=pending"><span class="pcoded-micon"><i
+                    class="fa fa-solid fa-list-ul"></i></span><span class="pcoded-mtext">Pendentes</span></a>
+            </li>
+            <li class="{% if 'status=confirmed' in request.get_full_path %}active{% endif %}">
+              <a href="{{ url_mm_list }}?status=confirmed"><span class="pcoded-micon"><i
+                    class="fa fa-solid fa-check"></i></span><span class="pcoded-mtext">Confirmados</span></a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item pcoded-menu-caption">
           <label style="color: white;">Quotas</label>
         </li>
 

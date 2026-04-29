@@ -30,6 +30,13 @@ def is_delegado(user) -> bool:
     return user.groups.filter(name__iexact="delegado").exists()
 
 
+def is_gestor_militantes(user) -> bool:
+    """User belongs to the 'gestor_militantes' group."""
+    if not user or not user.is_authenticated:
+        return False
+    return user.groups.filter(name__iexact="gestor_militantes").exists()
+
+
 def user_mesa_ids(user):
     """Return the list of Mesa.id this user is assigned to via UserMesa."""
     if not user or not user.is_authenticated:
@@ -97,3 +104,39 @@ class IsAdminOrReadOnlyDelegado(IsAdminOrDelegado):
         if is_delegado(request.user):
             return request.method in permissions.SAFE_METHODS
         return False
+
+
+class IsAdminOrGestorMilitantes(permissions.BasePermission):
+    """Authenticated AND (admin OR gestor_militantes). Read-only for gestor."""
+
+    message = "Sem permissão para aceder a este recurso."
+
+    def has_permission(self, request, view):
+        if is_admin(request.user):
+            return True
+        if is_gestor_militantes(request.user):
+            return request.method in permissions.SAFE_METHODS
+        return False
+
+
+class IsAdminOrMesaReader(permissions.BasePermission):
+    """Allow admin (full) plus delegado / gestor_militantes (read-only) on
+    Mesa-related resources. Replaces ``IsAdminOrReadOnlyDelegado`` semantics
+    while extending it to gestor_militantes."""
+
+    message = "Sem permissão para aceder a este recurso."
+
+    def has_permission(self, request, view):
+        if is_admin(request.user):
+            return True
+        if is_delegado(request.user) or is_gestor_militantes(request.user):
+            return request.method in permissions.SAFE_METHODS
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if is_admin(request.user):
+            return True
+        check = getattr(view, "_object_belongs_to_user", None)
+        if callable(check):
+            return check(obj, request.user)
+        return True

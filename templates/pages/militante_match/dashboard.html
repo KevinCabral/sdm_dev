@@ -1,0 +1,167 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  {% include 'pages/militantes/_theme.html' %}
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="toast-container"></div>
+
+<section class="tw-px-1 sm:tw-px-2 lg:tw-px-4 tw-pb-10">
+
+  {# ── Page header ────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-end tw-justify-between tw-gap-3 tw-mb-5">
+    <div>
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-1 tw-h-7 tw-bg-mpd-500 tw-rounded-full"></span>
+        <h1 class="tw-text-xl sm:tw-text-2xl tw-font-bold tw-text-slate-900 tw-m-0">
+          Correspondências Eleitor ↔ Militante
+        </h1>
+      </div>
+      <p class="tw-text-sm tw-text-slate-500 tw-mt-1 tw-ml-3">
+        Identificação automática e validação manual de eleitores que são militantes.
+      </p>
+    </div>
+    <div class="tw-flex tw-items-center tw-gap-2">
+      <a href="{% url 'militante_match.index' %}?status=pending"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-h-9 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        <i class="fa fa-list tw-text-xs"></i> Pendentes
+      </a>
+      <a href="{% url 'militante_match.index' %}?status=confirmed"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-h-9 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">
+        <i class="fa fa-check tw-text-xs"></i> Confirmados
+      </a>
+    </div>
+  </div>
+
+  {# ── KPIs ──────────────────────────────────────────── #}
+  <div class="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-3 tw-mb-4">
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium">Eleitores activos</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-slate-900 tw-mt-1">{{ eleitores_total }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">{{ militantes_total }} militantes na base</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-slate-50 tw-text-slate-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-users"></i></span>
+      </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-mpd-700 tw-font-semibold">Já associados</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-mpd-700 tw-mt-1">{{ eleitores_linked }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">eleitores → militantes</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-link"></i></span>
+      </div>
+      {% if eleitores_total %}
+      <div class="tw-mt-3 tw-h-1.5 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">
+        <div class="tw-h-full tw-bg-mpd-500" style="width: {% widthratio eleitores_linked eleitores_total 100 %}%"></div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-amber-700 tw-font-semibold">Por associar</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-amber-600 tw-mt-1">{{ eleitores_pending }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">a executar / validar</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-amber-50 tw-text-amber-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-hourglass-half"></i></span>
+      </div>
+    </div>
+
+    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between">
+        <div>
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-medium">Total de matches</div>
+          <div class="tw-text-2xl tw-font-bold tw-text-slate-900 tw-mt-1">{{ stats.total }}</div>
+          <div class="tw-text-xs tw-text-slate-500 tw-mt-1">cálculos efetuados</div>
+        </div>
+        <span class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-slate-50 tw-text-slate-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-calculator"></i></span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Secondary KPIs ────────────────────────────────── #}
+  <div class="tw-grid tw-grid-cols-3 tw-gap-3 tw-mb-5">
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Pendentes</div>
+      <div class="tw-text-lg tw-font-bold tw-text-amber-600 tw-mt-0.5">{{ stats.pending }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Confirmados</div>
+      <div class="tw-text-lg tw-font-bold tw-text-mpd-700 tw-mt-0.5">{{ stats.confirmed }}</div>
+    </div>
+    <div class="tw-bg-white tw-rounded-lg tw-border tw-border-slate-100 tw-p-3">
+      <div class="tw-text-[10px] tw-uppercase tw-tracking-wider tw-text-slate-400 tw-font-semibold">Rejeitados</div>
+      <div class="tw-text-lg tw-font-bold tw-text-slate-600 tw-mt-0.5">{{ stats.rejected }}</div>
+    </div>
+  </div>
+
+  {# ── Run analysis card ─────────────────────────────── #}
+  <div class="tw-bg-white tw-rounded-xl tw-border tw-border-slate-100 tw-shadow-soft tw-overflow-hidden">
+    <div class="tw-px-5 tw-py-3 tw-border-b tw-border-slate-100 tw-flex tw-items-center tw-gap-2 tw-bg-slate-50">
+      <span class="tw-w-1 tw-h-5 tw-bg-mpd-500 tw-rounded-full"></span>
+      <h2 class="tw-text-base tw-font-bold tw-text-slate-900 tw-m-0">Executar análise automática</h2>
+    </div>
+
+    <form method="post" action="{% url 'militante_match.run' %}" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+
+      <p class="tw-text-sm tw-text-slate-600 tw-m-0">
+        Calcula correspondências usando <strong class="tw-text-slate-800">nome</strong>,
+        <strong class="tw-text-slate-800">data de nascimento</strong> e
+        <strong class="tw-text-slate-800">filiação</strong> (pai / mãe).
+      </p>
+
+      <div class="tw-flex tw-flex-wrap tw-gap-2 tw-text-xs">
+        <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">
+          Pontuação mínima: <strong class="tw-ml-1">{{ min_score }}</strong>
+        </span>
+        <span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">
+          Auto-confirmação: ≥ <strong class="tw-ml-1">{{ auto_confirm_score }}</strong>
+        </span>
+      </div>
+
+      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-3">
+        <label class="tw-inline-flex tw-items-center tw-gap-2 tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-cursor-pointer">
+          <span class="switch tw-m-0">
+            <input type="checkbox" name="only_unmatched" value="1" checked>
+            <span class="slider"></span>
+          </span>
+          <span class="tw-text-sm tw-text-slate-700">Apenas eleitores sem militante associado</span>
+        </label>
+
+        <div>
+          <label class="tw-block tw-text-xs tw-text-slate-600 tw-font-medium tw-mb-1">
+            Limite (0 = todos)
+          </label>
+          <input type="number" name="limit" value="0" min="0"
+                 class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500">
+        </div>
+      </div>
+
+      <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 tw-pt-2 tw-border-t tw-border-slate-100">
+        <div class="tw-text-xs tw-text-slate-500">
+          <i class="fa fa-info-circle"></i>
+          Para datasets grandes prefira a linha de comandos:
+          <code class="tw-px-1.5 tw-py-0.5 tw-rounded tw-bg-slate-100 tw-text-slate-700">python manage.py match_eleitores</code>
+        </div>
+        <button type="submit"
+                class="tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-shadow-soft tw-transition">
+          <i class="fa fa-play"></i> Iniciar análise
+        </button>
+      </div>
+    </form>
+  </div>
+
+</section>
+{% endblock %}

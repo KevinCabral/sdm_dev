@@ -41,6 +41,8 @@ class Militantes(models.Model):
     dt_nascimento = models.DateField(blank=True, null=True)
     is_mobile = models.BooleanField(blank=True, null=True)
     motivo_rejeicao = models.CharField(max_length=1000, null=True,blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     image = models.ImageField(upload_to=get_file_path)
 
     class Meta:

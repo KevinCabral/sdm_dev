@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "apps.quotas",
     "apps.mesa",
     "apps.commom",
+    "apps.militante_match",
 
     # Tooling Dynamic_DT
     'django_dyn_dt',             # <-- NEW: Dynamic_DT
