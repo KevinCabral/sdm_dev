@@ -26,9 +26,11 @@ from apps.mesa.models import Mesa, UserMesa
 from .permissions import (
     IsAdmin,
     IsAdminOrDelegado,
+    IsAdminOrMesaReader,
     IsAdminOrReadOnlyDelegado,
     is_admin,
     is_delegado,
+    is_gestor_militantes,
     user_mesa_ids,
     user_mesa_numbers,
 )
@@ -58,7 +60,7 @@ class MesaViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = MesaSerializer
-    permission_classes = [IsAdminOrReadOnlyDelegado]
+    permission_classes = [IsAdminOrMesaReader]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["nr_mesa"]
     ordering_fields = ["nr_mesa", "createdAt", "updatedAt"]
@@ -67,7 +69,9 @@ class MesaViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Mesa.objects.all()
         user = self.request.user
-        if is_admin(user):
+        if is_admin(user) or is_gestor_militantes(user):
+            # Gestor de militantes needs visibility over every mesa to monitor
+            # turnout across the whole election.
             return qs
         if is_delegado(user):
             return qs.filter(id__in=user_mesa_ids(user))

@@ -13,6 +13,7 @@ from .views import (
     UserRegistration,
 )
 from .views_mesa import EleitorViewSet, MesaViewSet, UserMesaViewSet, VotacaoViewSet
+from .views_militante_match import EleitorMilitanteViewSet
 from .views_militante import (
     MilitanteAdminViewSet,
     MilitanteMeView,
@@ -31,6 +32,7 @@ router.register(r"mesas", MesaViewSet, basename="api-mesa")
 router.register(r"user-mesas", UserMesaViewSet, basename="api-user-mesa")
 router.register(r"eleitores", EleitorViewSet, basename="api-eleitor")
 router.register(r"votacoes", VotacaoViewSet, basename="api-votacao")
+router.register(r"eleitores-militantes", EleitorMilitanteViewSet, basename="api-eleitor-militante")
 router.register(r"militantes", MilitanteAdminViewSet, basename="api-militante")
 router.register(r"quotas/valores", ValorPagamentoViewSet, basename="api-quota-valor")
 router.register(r"quotas", AdminQuotasViewSet, basename="api-quota")

@@ -41,6 +41,8 @@ SELF_EDITABLE_FIELDS = (
     "tp_documento",
     "dt_nascimento",
     "image",
+    "latitude",
+    "longitude",
 )
 
 # Read-only metadata exposed to the militant (admin-managed lifecycle fields).
