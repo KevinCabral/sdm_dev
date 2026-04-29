@@ -1,0 +1,120 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><h5>Eleitor</h5></div>
+      <div class="card-body">
+        <table class="table table-sm">
+          <tr><th>Nome</th><td>{{ eleitor.nome|default:"—" }}</td></tr>
+          <tr><th>Data nascimento</th><td>{{ eleitor.data_nascimento|default:"—" }}</td></tr>
+          <tr><th>Filiação (raw)</th><td><code>{{ eleitor.filiacao|default:"—" }}</code></td></tr>
+          <tr><th>Pai (parsed)</th><td>{{ pai|default:"—" }}</td></tr>
+          <tr><th>Mãe (parsed)</th><td>{{ mae|default:"—" }}</td></tr>
+          <tr><th>Nº Eleitor</th><td>{{ eleitor.nr_eleitor|default:"—" }}</td></tr>
+          <tr><th>Mesa</th><td>{{ eleitor.nr_mesa|default:"—" }}</td></tr>
+          <tr><th>Concelho / Zona</th><td>{{ eleitor.concelho|default:"—" }} / {{ eleitor.zona|default:"—" }}</td></tr>
+          <tr><th>Já associado a</th><td>
+            {% if eleitor.militante_id %}
+              <a href="/admin/militantes/militantes/{{ eleitor.militante_id_id }}/change/">
+                {{ eleitor.militante_id.nome_completo }}
+              </a>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header"><h5>Sugestões automáticas</h5></div>
+      <div class="card-body">
+        {% if suggestions %}
+        <table class="table table-hover table-sm">
+          <thead>
+            <tr>
+              <th>Score</th><th>Militante</th><th>Pai</th><th>Mãe</th><th>DOB</th>
+              <th>Detalhe</th><th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for militante, sc, match in suggestions %}
+              <tr>
+                <td><strong>{{ sc.score }}</strong></td>
+                <td>{{ militante.nome_completo|default:"—" }}</td>
+                <td>{{ militante.nm_pai|default:"—" }}</td>
+                <td>{{ militante.nm_mae|default:"—" }}</td>
+                <td>{{ militante.dt_nascimento|default:"—" }}</td>
+                <td>
+                  <small>nome:{{ sc.score_nome }} · pai:{{ sc.score_pai }} · mãe:{{ sc.score_mae }}
+                  {% if sc.dt_match %}<span class="badge badge-success">DOB✓</span>{% endif %}
+                  </small>
+                </td>
+                <td>
+                  {% if match.status == 'confirmed' %}
+                    <span class="badge badge-success">Confirmado</span>
+                  {% elif match.status == 'rejected' %}
+                    <span class="badge badge-secondary">Rejeitado</span>
+                  {% else %}
+                    <span class="badge badge-warning">Pendente</span>
+                  {% endif %}
+                </td>
+                <td class="text-nowrap">
+                  <form action="{% url 'militante_match.manual_link' eleitor.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="militante_id" value="{{ militante.id }}">
+                    <button class="btn btn-sm btn-success" title="Associar">Associar</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <p class="text-muted">Sem sugestões automáticas com pontuação suficiente.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h5>Pesquisar militante manualmente</h5></div>
+      <div class="card-body">
+        <form method="get" class="form-inline mb-3">
+          <input type="text" name="q" value="{{ search }}" placeholder="Nome, pai ou mãe…" class="form-control mr-2" style="min-width:280px;">
+          <button class="btn btn-primary" type="submit">Pesquisar</button>
+        </form>
+
+        {% if extra_results %}
+        <table class="table table-hover table-sm">
+          <thead>
+            <tr><th>Nome</th><th>Pai</th><th>Mãe</th><th>DOB</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for m in extra_results %}
+              <tr>
+                <td>{{ m.nome_completo }}</td>
+                <td>{{ m.nm_pai|default:"—" }}</td>
+                <td>{{ m.nm_mae|default:"—" }}</td>
+                <td>{{ m.dt_nascimento|default:"—" }}</td>
+                <td>
+                  <form action="{% url 'militante_match.manual_link' eleitor.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="militante_id" value="{{ m.id }}">
+                    <button class="btn btn-sm btn-success">Associar</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% elif search %}
+          <p class="text-muted">Sem resultados para “{{ search }}”.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

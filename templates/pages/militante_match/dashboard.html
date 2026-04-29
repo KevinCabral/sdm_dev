@@ -1,0 +1,105 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-block">
+    <div class="row align-items-center">
+      <div class="col-md-12">
+        <div class="page-header-title"><h5 class="m-b-10">Correspondências Eleitor ↔ Militante</h5></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-3 col-sm-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h6 class="text-muted">Eleitores activos</h6>
+        <h3>{{ eleitores_total }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h6 class="text-muted">Já associados</h6>
+        <h3 class="text-success">{{ eleitores_linked }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h6 class="text-muted">Por associar</h6>
+        <h3 class="text-warning">{{ eleitores_pending }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h6 class="text-muted">Militantes</h6>
+        <h3>{{ militantes_total }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header"><h5>Resumo dos matches</h5></div>
+      <div class="card-body">
+        <table class="table table-hover">
+          <tbody>
+            <tr><td>Total de matches</td><td><strong>{{ stats.total }}</strong></td></tr>
+            <tr><td>Pendentes de validação</td><td><strong class="text-warning">{{ stats.pending }}</strong></td></tr>
+            <tr><td>Confirmados</td><td><strong class="text-success">{{ stats.confirmed }}</strong></td></tr>
+            <tr><td>Rejeitados</td><td><strong class="text-muted">{{ stats.rejected }}</strong></td></tr>
+          </tbody>
+        </table>
+        <a href="{% url 'militante_match.index' %}?status=pending" class="btn btn-primary">Ver pendentes</a>
+        <a href="{% url 'militante_match.index' %}?status=confirmed" class="btn btn-outline-success">Ver confirmados</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><h5>Executar análise</h5></div>
+      <div class="card-body">
+        <p class="text-muted">
+          Calcula matches automáticos com base em <strong>nome</strong>,
+          <strong>data de nascimento</strong> e <strong>filiação</strong>.
+        </p>
+        <p class="small text-muted">
+          Pontuação mínima: {{ min_score }} · Auto-confirmação: ≥ {{ auto_confirm_score }}
+        </p>
+        <form method="post" action="{% url 'militante_match.run' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="d-flex align-items-center">
+              <input type="checkbox" name="only_unmatched" value="1" checked class="mr-2">
+              Apenas eleitores sem militante associado
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Limite (0 = todos)</label>
+            <input type="number" name="limit" value="0" min="0" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-success btn-block">
+            <i class="fa fa-play"></i> Iniciar análise
+          </button>
+        </form>
+        <hr>
+        <p class="small text-muted mb-0">
+          Para datasets grandes use:<br>
+          <code>python manage.py match_eleitores</code>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

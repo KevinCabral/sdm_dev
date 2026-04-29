@@ -1,0 +1,118 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5>Correspondências Eleitor ↔ Militante</h5>
+    <a href="{% url 'militante_match.dashboard' %}" class="btn btn-sm btn-outline-primary">Dashboard</a>
+  </div>
+  <div class="card-body">
+    <form method="get" class="form-inline mb-3">
+      <select name="status" class="form-control mr-2">
+        {% for value, label in statuses %}
+          <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="q" value="{{ search }}" placeholder="Pesquisar nome…" class="form-control mr-2">
+      <input type="number" name="min_score" value="{{ min_score }}" placeholder="Score mínimo" step="0.1" class="form-control mr-2" style="width:140px;">
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Score</th>
+            <th>Eleitor</th>
+            <th>Militante</th>
+            <th>Nome</th>
+            <th>Pai</th>
+            <th>Mãe</th>
+            <th>DOB</th>
+            <th>Origem</th>
+            <th>Estado</th>
+            <th>Acções</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in page_obj %}
+            <tr>
+              <td><strong>{{ m.score }}</strong></td>
+              <td>
+                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}">
+                  {{ m.eleitor.nome|default:"—" }}
+                </a>
+                <br><small class="text-muted">{{ m.eleitor.data_nascimento|default:"—" }}</small>
+              </td>
+              <td>
+                {{ m.militante.nome_completo|default:"—" }}
+                <br><small class="text-muted">{{ m.militante.dt_nascimento|default:"—" }}</small>
+              </td>
+              <td>{{ m.score_nome }}</td>
+              <td>{{ m.score_pai }}</td>
+              <td>{{ m.score_mae }}</td>
+              <td>
+                {% if m.dt_nascimento_match %}
+                  <span class="badge badge-success">✓</span>
+                {% else %}
+                  <span class="badge badge-secondary">✗</span>
+                {% endif %}
+              </td>
+              <td><small>{{ m.get_source_display }}</small></td>
+              <td>
+                {% if m.status == 'pending' %}
+                  <span class="badge badge-warning">Pendente</span>
+                {% elif m.status == 'confirmed' %}
+                  <span class="badge badge-success">Confirmado</span>
+                {% else %}
+                  <span class="badge badge-secondary">Rejeitado</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if m.status != 'confirmed' %}
+                  <form action="{% url 'militante_match.confirm' m.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-success" title="Confirmar">✓</button>
+                  </form>
+                {% endif %}
+                {% if m.status != 'rejected' %}
+                  <form action="{% url 'militante_match.reject' m.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger" title="Rejeitar">✗</button>
+                  </form>
+                {% endif %}
+                {% if m.status != 'pending' %}
+                  <form action="{% url 'militante_match.reset' m.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary" title="Reabrir">↺</button>
+                  </form>
+                {% endif %}
+                <a href="{% url 'militante_match.manual_match' m.eleitor.id %}" class="btn btn-sm btn-outline-primary" title="Match manual">
+                  <i class="fa fa-search"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="10" class="text-center text-muted py-4">Sem registos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      <nav>
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}">«</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status }}&q={{ search }}&min_score={{ min_score }}">»</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
