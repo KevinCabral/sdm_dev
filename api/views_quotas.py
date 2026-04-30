@@ -33,7 +33,9 @@ from rest_framework.views import APIView
 from apps.militantes.models import Militantes
 from apps.quotas.models import PagamentoQuotas, SendComprovativo, ValorPagamento
 
-from .permissions import is_admin
+from django.utils import timezone
+
+from .permissions import IsAdmin, is_admin
 from .serializers_quotas import (
     PagamentoQuotasSerializer,
     ValorPagamentoSerializer,
@@ -121,15 +123,30 @@ def _build_stats(qs):
     }
 
 
-# ---------- ValorPagamento (read-only catalog) ----------
+# ---------- ValorPagamento (CRUD catalog) ----------
 
-class ValorPagamentoViewSet(viewsets.ReadOnlyModelViewSet):
-    """/api/quotas/valores/ — list payment value options."""
+class ValorPagamentoViewSet(viewsets.ModelViewSet):
+    """/api/quotas/valores/ — manage payment value options.
+
+    Read: any authenticated user (used by the payment form).
+    Write (create/update/delete): admin only.
+    """
 
     serializer_class = ValorPagamentoSerializer
-    permission_classes = (IsAuthenticated,)
     queryset = ValorPagamento.objects.all().order_by("valor")
     pagination_class = None  # tiny catalog; no need to paginate
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdmin()]
+
+    def perform_create(self, serializer):
+        now = timezone.now()
+        serializer.save(createdat=now, updatedat=now)
+
+    def perform_update(self, serializer):
+        serializer.save(updatedat=timezone.now())
 
 
 # ---------- Militante self-service ----------

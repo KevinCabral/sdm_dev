@@ -1,0 +1,497 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)',
+          },
+          keyframes: {
+            'slide-in': {
+              '0%':   { transform: 'translateY(-12px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)',     opacity: '1' },
+            },
+            'fade-out': {
+              '0%':   { opacity: '1' },
+              '100%': { opacity: '0', transform: 'translateY(-8px)' },
+            },
+          },
+          animation: {
+            'slide-in': 'slide-in .25s ease-out',
+            'fade-out': 'fade-out .25s ease-in forwards',
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .pcoded-content { background: #f6f7f9 !important; }
+    .pcoded-content button,
+    .pcoded-content .btn { border: 0; box-shadow: none; }
+    .pcoded-content button:focus,
+    .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+    .tbl-row:hover { background: #fafbfc; }
+    .pcoded-content button:not([disabled]),
+    .pcoded-content a { cursor: pointer; }
+
+    #toast-container {
+      position: fixed; top: 1rem; right: 1rem; z-index: 1080;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+
+    #filters select,
+    #filters input[type="text"] {
+      background-color: #f8fafc !important;
+      border: 1px solid transparent !important;
+      box-shadow: none !important;
+      color: #1f2937 !important;
+    }
+    #filters select:focus,
+    #filters input[type="text"]:focus {
+      background-color: #fff !important;
+      border-color: #1a9123 !important;
+      box-shadow: 0 0 0 2px rgba(26,145,35,.15) !important;
+    }
+    .errors { display:block; color:#ef4444; font-size:.75rem; margin-top:.25rem; }
+    .invalid { border-color:#ef4444 !important; }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div id="toast-container"></div>
+
+<div class="tw-space-y-6">
+
+  {# ── Header ─────────────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Valores de Pagamento
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        <span id="total-count">{{ page_obj.paginator.count }}</span> registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      {% if can_manage %}
+        <button type="button" id="btn-open-add"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+          <i class="fa fa-plus tw-text-xs"></i><span>Novo valor</span>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Filters ────────────────────────────────────────────── #}
+  <form id="filters" method="get"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-w-full">
+      <div class="tw-relative tw-flex-1 tw-min-w-[220px]">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input name="q" type="text" value="{{ q }}" autocomplete="off"
+               placeholder="Pesquisar por valor ou estado..."
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-rounded-md tw-text-sm placeholder:tw-text-slate-400 tw-transition">
+      </div>
+
+      <select name="status"
+              class="tw-h-9 tw-px-3 tw-rounded-md tw-text-sm tw-w-44 tw-shrink-0">
+        <option value="">Estado: todos</option>
+        <option value="A" {% if status_filter == 'A' %}selected{% endif %}>Estado: ativo</option>
+        <option value="I" {% if status_filter == 'I' %}selected{% endif %}>Estado: inativo</option>
+      </select>
+
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+
+      <button type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+      </button>
+
+      <a href="{{ request.path }}" title="Limpar filtros"
+         class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </a>
+    </div>
+  </form>
+
+  {# ── Results ────────────────────────────────────────────── #}
+  <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    <div class="tw-overflow-x-auto">
+      <table class="tw-min-w-full tw-text-sm tw-text-left">
+        <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+          <tr class="tw-border-b tw-border-slate-200/70 tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wide">
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium">ID</th>
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium">Valor</th>
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-text-center">Estado</th>
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium">Criado em</th>
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium">Atualizado em</th>
+            <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-text-right">&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody class="tw-divide-y tw-divide-slate-100">
+          {% for v in page_obj %}
+            <tr class="tbl-row tw-transition" data-id="{{ v.id }}">
+              <td class="tw-px-5 tw-py-3 tw-text-slate-500">#{{ v.id }}</td>
+              <td class="tw-px-5 tw-py-3 tw-text-slate-900 tw-font-medium">{{ v.valor }}</td>
+              <td class="tw-px-5 tw-py-3 tw-text-center">
+                {% if v.status %}
+                  {% if v.status|lower == 'a' or v.status|lower == 'ativo' %}
+                    <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium">{{ v.status }}</span>
+                  {% else %}
+                    <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-600 tw-text-xs tw-font-medium">{{ v.status }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="tw-text-xs tw-text-slate-300">—</span>
+                {% endif %}
+              </td>
+              <td class="tw-px-5 tw-py-3 tw-text-slate-600 tw-text-xs">{{ v.createdat|default:"—" }}</td>
+              <td class="tw-px-5 tw-py-3 tw-text-slate-600 tw-text-xs">{{ v.updatedat|default:"—" }}</td>
+              <td class="tw-px-5 tw-py-3">
+                <div class="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                  {% if can_manage %}
+                    <button type="button" data-edit-valor="{{ v.id }}" title="Editar"
+                       class="btn-edit-valor tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-edit tw-text-xs"></i>
+                    </button>
+                    <button type="button"
+                       data-delete-valor="{{ v.id }}"
+                       data-delete-name="{{ v.valor }}"
+                       title="Remover"
+                       class="btn-delete-valor tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                      <i class="fa fa-trash tw-text-xs"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">
+              <div class="tw-py-20 tw-text-center">
+                <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+                  <i class="fa fa-search"></i>
+                </div>
+                <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+                <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Crie um novo valor de pagamento para começar.</div>
+              </div>
+            </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Pagination #}
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+        <div class="tw-text-xs tw-text-slate-500">
+          Mostrando página <span class="tw-font-medium tw-text-slate-700">{{ page_obj.number }}</span>
+          de <span class="tw-font-medium tw-text-slate-700">{{ page_obj.paginator.num_pages }}</span>
+          · {{ page_obj.paginator.count }} registos
+        </div>
+        <div class="tw-inline-flex tw-items-center tw-gap-1">
+          {% if page_obj.has_previous %}
+            <a href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+               class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Anterior</a>
+          {% else %}
+            <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Anterior</span>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+               class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Próxima</a>
+          {% else %}
+            <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Próxima</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Create / Edit Modal ──────────────────────────────────── #}
+<div id="valor-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span id="valor-modal-icon-wrap" class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center"><i id="valor-modal-icon" class="fa fa-money tw-text-xs"></i></span>
+        <span id="valor-modal-title">Novo valor</span>
+      </h2>
+      <button type="button" id="valor-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form id="valor-modal-form" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="valor_id" value="">
+
+      <div>
+        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Valor <span class="tw-text-rose-500">*</span></label>
+        <input type="text" name="valor" required inputmode="decimal" placeholder="Ex.: 100.00"
+               class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+        <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="valor"></p>
+      </div>
+
+      <div>
+        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Estado</label>
+        <select name="status"
+                class="tw-w-full tw-h-10 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-text-sm focus:tw-bg-white focus:tw-border-mpd-500 focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-outline-none tw-transition">
+          <option value="">— sem estado —</option>
+          <option value="A">Ativo</option>
+          <option value="I">Inativo</option>
+        </select>
+        <p class="tw-text-xs tw-text-rose-500 tw-mt-1 tw-hidden" data-err="status"></p>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="valor-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="submit" id="valor-modal-submit" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span data-submit-label>Criar valor</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Delete Confirmation Modal ────────────────────────────── #}
+<div id="delete-valor-modal" class="tw-fixed tw-inset-0 tw-z-[1060] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-overflow-hidden">
+    <div class="tw-flex tw-items-start tw-gap-3 tw-px-5 tw-py-4 tw-border-b tw-border-slate-100">
+      <div class="tw-w-10 tw-h-10 tw-rounded-full tw-bg-rose-50 tw-text-rose-600 tw-flex tw-items-center tw-justify-center tw-shrink-0">
+        <i class="fa fa-exclamation-triangle"></i>
+      </div>
+      <div class="tw-flex-1">
+        <h3 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0">Eliminar valor</h3>
+        <p class="tw-text-sm tw-text-slate-600 tw-mt-1 tw-mb-0">
+          Tem a certeza que pretende eliminar o valor
+          <strong id="delete-valor-name" class="tw-text-slate-900"></strong>?
+          Esta ação é irreversível.
+        </p>
+      </div>
+    </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-bg-slate-50">
+      <button type="button" id="delete-valor-cancel"
+              class="tw-h-9 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-100 tw-transition">
+        Cancelar
+      </button>
+      <button type="button" id="delete-valor-confirm"
+              class="tw-h-9 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-rose-600 hover:tw-bg-rose-700 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+        <i class="fa fa-trash tw-text-xs"></i><span>Eliminar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    function getCsrf() {
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      if (m) return decodeURIComponent(m[1]);
+      var inp = document.querySelector('input[name=csrfmiddlewaretoken]');
+      return inp ? inp.value : '';
+    }
+
+    function toast(message, type) {
+      type = type || 'success';
+      var styles = {
+        success: 'tw-bg-mpd-500 tw-text-white',
+        error:   'tw-bg-rose-500 tw-text-white',
+        info:    'tw-bg-slate-800 tw-text-white'
+      }[type];
+      var icon = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' }[type];
+      var el = document.createElement('div');
+      el.className = 'tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2.5 tw-rounded-lg tw-shadow-soft tw-text-sm tw-animate-slide-in ' + styles;
+      el.innerHTML = '<i class="fa ' + icon + '"></i><span>' + message + '</span>';
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(function () { el.classList.add('tw-animate-fade-out'); setTimeout(function () { el.remove(); }, 250); }, 2800);
+    }
+
+    // ---------- Create / Edit modal ----------
+    var modal     = document.getElementById('valor-modal');
+    var form      = document.getElementById('valor-modal-form');
+    var submitBtn = document.getElementById('valor-modal-submit');
+    var titleEl   = document.getElementById('valor-modal-title');
+    var subLabel  = form.querySelector('[data-submit-label]');
+    var openAdd   = document.getElementById('btn-open-add');
+    var closeEls  = ['valor-modal-close', 'valor-modal-cancel'].map(function (id) { return document.getElementById(id); });
+
+    var CREATE_URL = "{% url 'quotas.valor_create_ajax' %}";
+    var currentMode = 'create';
+    var currentUrl  = CREATE_URL;
+
+    function clearErrors() {
+      form.querySelectorAll('[data-err]').forEach(function (el) { el.textContent = ''; el.classList.add('tw-hidden'); });
+      form.querySelectorAll('input,select').forEach(function (i) { i.classList.remove('tw-border-rose-400', 'tw-bg-rose-50'); });
+    }
+    function showErrors(errors) {
+      Object.keys(errors).forEach(function (key) {
+        var p   = form.querySelector('[data-err="' + key + '"]');
+        var inp = form.querySelector('[name="' + key + '"]');
+        if (p) { p.textContent = errors[key]; p.classList.remove('tw-hidden'); }
+        if (inp) inp.classList.add('tw-border-rose-400', 'tw-bg-rose-50');
+      });
+    }
+    function show() {
+      modal.classList.remove('tw-hidden'); modal.classList.add('tw-flex');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function () { var f = form.querySelector('input[name=valor]'); f && f.focus(); }, 50);
+    }
+    function hide() {
+      modal.classList.add('tw-hidden'); modal.classList.remove('tw-flex');
+      document.body.style.overflow = '';
+      clearErrors(); form.reset();
+      form.querySelector('[name=valor_id]').value = '';
+    }
+
+    function configureForCreate() {
+      currentMode = 'create';
+      currentUrl  = CREATE_URL;
+      titleEl.textContent  = 'Novo valor';
+      subLabel.textContent = 'Criar valor';
+    }
+    function configureForEdit(data) {
+      currentMode = 'edit';
+      currentUrl  = '/quotas/valor/' + data.id + '/update-ajax';
+      titleEl.textContent  = 'Editar valor';
+      subLabel.textContent = 'Guardar alterações';
+      form.querySelector('[name=valor_id]').value = data.id;
+      form.querySelector('[name=valor]').value    = data.valor != null ? data.valor : '';
+      form.querySelector('[name=status]').value   = data.status || '';
+    }
+
+    if (openAdd) openAdd.addEventListener('click', function () { clearErrors(); form.reset(); configureForCreate(); show(); });
+
+    document.querySelectorAll('.btn-edit-valor').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-edit-valor');
+        clearErrors(); form.reset();
+        var origLabel = subLabel.textContent;
+        subLabel.textContent = 'A carregar...';
+        fetch('/quotas/valor/' + id + '/update-ajax', { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (r) { return r.json(); })
+          .then(function (json) {
+            if (json && json.success) { configureForEdit(json.valor); show(); }
+            else toast((json && json.error) || 'Não foi possível carregar.', 'error');
+          })
+          .catch(function () { toast('Erro de rede.', 'error'); })
+          .finally(function () { subLabel.textContent = origLabel; });
+      });
+    });
+
+    closeEls.forEach(function (b) { if (b) b.addEventListener('click', hide); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.classList.contains('tw-hidden')) hide();
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearErrors();
+      submitBtn.disabled = true;
+      var orig = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin tw-text-xs"></i><span>' + (currentMode === 'edit' ? 'A guardar...' : 'A criar...') + '</span>';
+
+      fetch(currentUrl, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
+        credentials: 'same-origin',
+      }).then(function (r) {
+        return r.json().then(function (json) { return { ok: r.ok, json: json }; });
+      }).then(function (res) {
+        if (res.ok && res.json.success) {
+          toast(res.json.message || 'Operação concluída.', 'success');
+          hide();
+          setTimeout(function () { window.location.reload(); }, 500);
+        } else {
+          if (res.json && res.json.errors) showErrors(res.json.errors);
+          toast((res.json && res.json.error) || 'Por favor corrija os erros.', 'error');
+        }
+      }).catch(function () {
+        toast('Erro de rede. Tente novamente.', 'error');
+      }).finally(function () {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = orig;
+      });
+    });
+
+    // ---------- Delete confirmation modal ----------
+    var dModal     = document.getElementById('delete-valor-modal');
+    var dNameEl    = document.getElementById('delete-valor-name');
+    var dConfirm   = document.getElementById('delete-valor-confirm');
+    var dCancel    = document.getElementById('delete-valor-cancel');
+    var pendingId  = null;
+    var pendingRow = null;
+
+    function dShow() { dModal.classList.remove('tw-hidden'); dModal.classList.add('tw-flex'); document.body.style.overflow = 'hidden'; }
+    function dHide() { dModal.classList.add('tw-hidden'); dModal.classList.remove('tw-flex'); document.body.style.overflow = ''; pendingId = null; pendingRow = null; }
+
+    document.querySelectorAll('.btn-delete-valor').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pendingId  = btn.getAttribute('data-delete-valor');
+        pendingRow = btn.closest('tr');
+        dNameEl.textContent = btn.getAttribute('data-delete-name') || ('#' + pendingId);
+        dShow();
+      });
+    });
+
+    dCancel.addEventListener('click', dHide);
+    dModal.addEventListener('click', function (e) { if (e.target === dModal) dHide(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !dModal.classList.contains('tw-hidden')) dHide();
+    });
+
+    dConfirm.addEventListener('click', function () {
+      if (!pendingId) return;
+      dConfirm.disabled = true;
+      var orig = dConfirm.innerHTML;
+      dConfirm.innerHTML = '<i class="fa fa-spinner fa-spin tw-text-xs"></i><span>A eliminar...</span>';
+
+      fetch('/quotas/valor/' + pendingId + '/delete-ajax', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
+        credentials: 'same-origin',
+      }).then(function (r) {
+        return r.json().then(function (json) { return { ok: r.ok, json: json }; });
+      }).then(function (res) {
+        if (res.ok && res.json.success) {
+          toast(res.json.message || 'Eliminado.', 'success');
+          if (pendingRow && pendingRow.parentNode) pendingRow.parentNode.removeChild(pendingRow);
+          dHide();
+          setTimeout(function () { window.location.reload(); }, 400);
+        } else {
+          toast((res.json && res.json.error) || 'Não foi possível eliminar.', 'error');
+        }
+      }).catch(function () {
+        toast('Erro de rede. Tente novamente.', 'error');
+      }).finally(function () {
+        dConfirm.disabled = false;
+        dConfirm.innerHTML = orig;
+      });
+    });
+
+    // Strip empty filter params on submit
+    var f = document.getElementById('filters');
+    if (f) {
+      f.addEventListener('submit', function () {
+        Array.prototype.forEach.call(f.elements, function (el) {
+          if (!el.name) return;
+          if ((el.tagName === 'SELECT' || el.type === 'text') && el.value === '') {
+            el.disabled = true;
+          }
+        });
+      });
+    }
+  })();
+</script>
+{% endblock %}

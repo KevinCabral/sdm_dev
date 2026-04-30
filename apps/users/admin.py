@@ -65,6 +65,7 @@ class ActiveStatusFilter(admin.SimpleListFilter):
 class UserAdmin(DjangoUserAdmin):
 	list_per_page = 10
 	list_filter = (TeamStatusFilter, SuperuserStatusFilter, ActiveStatusFilter, "groups")
+	search_fields = ("username", "first_name", "last_name", "email")
 	change_list_template = "admin/auth/user/change_list.html"
 
 

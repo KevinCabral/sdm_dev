@@ -7,7 +7,15 @@ from apps.quotas.models import PagamentoQuotas, ValorPagamento
 class ValorPagamentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ValorPagamento
-        fields = ("id", "valor", "status")
+        fields = ("id", "valor", "status", "createdat", "updatedat")
+        read_only_fields = ("createdat", "updatedat")
+
+    def validate_valor(self, value):
+        if value is None:
+            raise serializers.ValidationError("O valor é obrigatório.")
+        if value <= 0:
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
+        return value
 
 
 class PagamentoQuotasSerializer(serializers.ModelSerializer):

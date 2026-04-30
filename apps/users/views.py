@@ -10,6 +10,8 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 from .forms import UserUpdateForm, ProfileUpdateForm,SetPasswordForm
 from django.contrib import messages
 import random
@@ -158,6 +160,51 @@ def update_ajax(request, user_id):
         'success': True,
         'message': f'Utilizador "{target.username}" atualizado com sucesso.',
         'user': {'id': target.id, 'username': target.username, 'email': target.email},
+    })
+
+
+@login_required
+@require_POST
+def delete_ajax(request, user_id):
+    """Delete a user via AJAX. Returns JSON with success or error."""
+    if not request.user.is_superuser and not request.user.has_perm('auth.delete_user'):
+        return JsonResponse({'success': False, 'error': 'Sem permissão.'}, status=403)
+
+    try:
+        target = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Utilizador não encontrado.'}, status=404)
+
+    if target.pk == request.user.pk:
+        return JsonResponse({'success': False, 'error': 'Não pode eliminar a sua própria conta.'}, status=400)
+
+    if target.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Sem permissão para eliminar superutilizadores.'}, status=403)
+
+    username = target.username
+    try:
+        with transaction.atomic():
+            target.delete()
+    except ProtectedError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Não é possível eliminar: existem registos relacionados protegidos.',
+        }, status=400)
+    except IntegrityError:
+        return JsonResponse({
+            'success': False,
+            'error': (
+                'Não é possível eliminar este utilizador porque tem registos '
+                'relacionados (ex.: mesa, eleitores). Remova ou reatribua esses '
+                'registos primeiro, ou desative a conta.'
+            ),
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erro ao eliminar: {e}'}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Utilizador "{username}" eliminado com sucesso.',
     })
 
 

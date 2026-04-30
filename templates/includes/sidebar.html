@@ -148,12 +148,17 @@
         </li>
 
         {% url 'quotas.pagamento' as url_quot %}
-        <li class="nav-item pcoded-hasmenu {% if request.path == url_quot %}pcoded-trigger active{% endif %}">
+        {% url 'quotas.valor_index' as url_quot_valor %}
+        <li class="nav-item pcoded-hasmenu {% if request.path == url_quot or request.path == url_quot_valor %}pcoded-trigger active{% endif %}">
           <a href="javascript:" class="nav-link" ><span class="pcoded-micon"><i class="fa fa-solid fa-envelope"></i></span><span class="pcoded-mtext">Quotas</span></a>
           <ul class="pcoded-submenu">
             <li class="{% if request.path == url_quot %}active{% endif %}">
               <a href="{{ url_quot }}"><span class="pcoded-micon"><i
                     class="fa fa-solid fa-money-bill-wave"></i></span><span class="pcoded-mtext">Pagamento</span></a>
+            </li>
+            <li class="{% if request.path == url_quot_valor %}active{% endif %}">
+              <a href="{{ url_quot_valor }}"><span class="pcoded-micon"><i
+                    class="fa fa-solid fa-tags"></i></span><span class="pcoded-mtext">Valores de Pagamento</span></a>
             </li>
           </ul>
         </li>
