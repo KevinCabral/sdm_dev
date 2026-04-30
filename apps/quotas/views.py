@@ -186,7 +186,7 @@ def _can_manage_valores(user):
 
 @login_required
 def valor_pagamento_index(request):
-    """List page for ValorPagamento with search + status filter."""
+    """List page for ValorPagamento (Valores de Quotas) with search + status filter."""
     q = (request.GET.get("q") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
 

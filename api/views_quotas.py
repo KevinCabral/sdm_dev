@@ -125,11 +125,26 @@ def _build_stats(qs):
 
 # ---------- ValorPagamento (CRUD catalog) ----------
 
+@extend_schema(tags=["Quotas - Valores de Quotas"])
 class ValorPagamentoViewSet(viewsets.ModelViewSet):
-    """/api/quotas/valores/ — manage payment value options.
+    """Valores de Quotas — catálogo de valores de quotas.
 
-    Read: any authenticated user (used by the payment form).
-    Write (create/update/delete): admin only.
+    Endpoints sob `/api/quotas/valores/`.
+
+    - `GET    /api/quotas/valores/`        Lista todos os valores de quotas disponíveis.
+                                           Útil para popular o `select` de "Valor" ao criar
+                                           um Pagamento de Quotas. Acessível a qualquer
+                                           utilizador autenticado.
+    - `POST   /api/quotas/valores/`        Cria um novo valor de quota. (apenas administradores)
+    - `GET    /api/quotas/valores/{id}/`   Detalhe de um valor de quota.
+    - `PUT    /api/quotas/valores/{id}/`   Atualiza completamente um valor. (apenas administradores)
+    - `PATCH  /api/quotas/valores/{id}/`   Atualiza parcialmente um valor. (apenas administradores)
+    - `DELETE /api/quotas/valores/{id}/`   Elimina um valor. (apenas administradores)
+
+    Campos:
+      - `valor`  (float)  Montante da quota. Obrigatório, deve ser maior que zero.
+      - `status` (str)    Estado opcional (ex.: `"A"` ativo, `"I"` inativo).
+      - `createdat` / `updatedat` (datetime, somente leitura).
     """
 
     serializer_class = ValorPagamentoSerializer
