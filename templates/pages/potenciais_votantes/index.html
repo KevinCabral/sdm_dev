@@ -1,0 +1,765 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            mpd: {
+              50:  '#e8f5ec', 100: '#c7e6d0', 200: '#9ed3ad',
+              500: '#1a9123', 600: '#178420', 700: '#0e7716', 800: '#0b5a11',
+            }
+          },
+          boxShadow: { soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)' },
+          keyframes: {
+            'slide-in': { '0%': { transform: 'translateY(-12px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            'fade-out': { '0%': { opacity: '1' }, '100%': { opacity: '0', transform: 'translateY(-8px)' } },
+          },
+          animation: { 'slide-in': 'slide-in .25s ease-out', 'fade-out': 'fade-out .25s ease-in forwards' },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .pcoded-content { background: #f6f7f9 !important; }
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08); border-left: 3px solid #1a9123; padding-left: 17px;
+    }
+    .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; cursor: pointer; background: #cbd5e1; border-radius: 9999px; transition: .2s; }
+    .switch .slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+    .switch input:checked + .slider { background: #1a9123; }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+    #toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 1080; display: flex; flex-direction: column; gap: .5rem; }
+    .pcoded-content button, .pcoded-content .btn { border: 0; box-shadow: none; }
+    .pcoded-content button:focus, .pcoded-content .btn:focus { outline: none; box-shadow: none; }
+    #filters label { margin: 0 !important; font-weight: 400; }
+    #filters input[type="text"], #filters input[type="checkbox"] { margin: 0 !important; }
+    #filters input[type="text"] { box-shadow: none !important; }
+    #filters .switch          { width: 30px; height: 18px; }
+    #filters .switch .slider::before { height: 14px; width: 14px; }
+    #filters .switch input:checked + .slider::before { transform: translateX(12px); }
+    .col-nome { max-width: 280px; }
+    .col-nome .name-text { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tbl-row:hover { background: #fafbfc; }
+    .pcoded-content button:not([disabled]), .pcoded-content a, .pcoded-content label.tw-cursor-pointer { cursor: pointer; }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div id="toast-container"></div>
+
+<div class="tw-space-y-6">
+
+  {# ── Header ──────────────────────────────────────────── #}
+  <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-gap-3">
+    <div>
+      <h1 class="tw-text-xl md:tw-text-2xl tw-font-semibold tw-text-slate-900 tw-tracking-tight tw-m-0">
+        Potenciais Votantes
+      </h1>
+      <p class="tw-text-xs tw-text-slate-500 tw-mt-0.5 tw-mb-0">
+        <span id="total-count">{{ page_obj.paginator.count }}</span> registos
+      </p>
+    </div>
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+      <button id="upload"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-sky-700 hover:tw-text-sky-800 hover:tw-bg-sky-50 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-upload tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Carregar</span>
+      </button>
+      <button id="exportar"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-download tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Exportar</span>
+      </button>
+      <a href="{% url 'potenciais_votantes.create' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
+        <i class="fa fa-plus tw-text-xs"></i><span>Novo</span>
+      </a>
+    </div>
+  </div>
+
+  {# ── Filters ─────────────────────────────────────────── #}
+  <form id="filters" onsubmit="return false"
+        class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div class="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-w-full">
+      <div class="tw-relative tw-flex-1 tw-min-w-0">
+        <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
+        <input id="nome" type="text" placeholder="Pesquisar por nome..." autocomplete="off"
+               class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
+      </div>
+      <input id="localidade" type="text" placeholder="Localidade"
+             class="tw-w-36 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+      <input id="telefone" type="text" placeholder="Telefone"
+             class="tw-w-32 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+      <label class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2 tw-cursor-pointer tw-shrink-0 tw-text-slate-600 hover:tw-text-slate-900 tw-transition">
+        <span class="switch tw-m-0"><input id="is_contactado" type="checkbox"><span class="slider"></span></span>
+        <span class="tw-text-sm tw-whitespace-nowrap">Contactados</span>
+      </label>
+      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+      <button id="btn-search" type="submit"
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+      </button>
+      <button id="btn-clear" type="button" title="Limpar filtros"
+              class="tw-h-9 tw-w-9 tw-inline-flex tw-items-center tw-justify-center tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 tw-rounded-md tw-transition tw-shrink-0">
+        <i class="fa fa-times tw-text-sm"></i>
+      </button>
+    </div>
+    <div id="filter-chips" class="tw-flex tw-flex-wrap tw-gap-1.5 tw-mt-2.5 tw-pt-2.5 tw-border-t tw-border-slate-100 tw-hidden"></div>
+  </form>
+
+  {# ── Results ─────────────────────────────────────────── #}
+  <div class="content-data tw-bg-white tw-rounded-lg tw-border tw-border-slate-200/70 tw-overflow-hidden">
+    {% include 'pages/potenciais_votantes/_table.html' %}
+  </div>
+</div>
+
+{# ─────────────── View modal ─────────────── #}
+<div id="view-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-2xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-sky-50 tw-text-sky-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-eye tw-text-xs"></i></span>
+        <span>Detalhes do Potencial Votante</span>
+      </h2>
+      <button type="button" id="view-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="tw-p-5 tw-space-y-5">
+      <div>
+        <div id="vm-nome" class="tw-text-xl tw-font-bold tw-text-slate-900"></div>
+      </div>
+      <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Localidade</div><div id="vm-localidade" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Telefone</div><div id="vm-telefone" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Contactado</div><div id="vm-is_contactado" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3 md:tw-col-span-2"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Observação</div><div id="vm-observacao" class="tw-text-sm tw-text-slate-800 tw-mt-1 tw-whitespace-pre-line"></div></div>
+      </div>
+      <div>
+        <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-2">Estado</div>
+        <div id="vm-badges" class="tw-flex tw-flex-wrap tw-gap-2"></div>
+      </div>
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-2 tw-border-t tw-border-slate-100">
+        <a id="vm-edit-link" href="#" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft"><i class="fa fa-edit"></i> Editar</a>
+        <button type="button" id="view-modal-cancel" class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─────────────── Reject call modal ─────────────── #}
+<div id="rej-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-md tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-rose-50 tw-text-rose-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-phone-slash tw-text-xs"></i></span>
+        <span>Rejeitar chamada · <span id="rej-nome" class="tw-text-slate-700 tw-font-normal"></span></span>
+      </h2>
+      <button type="button" id="rej-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="tw-p-5 tw-space-y-3">
+      <p class="tw-text-sm tw-text-slate-600 tw-m-0">Selecione o motivo da rejeição:</p>
+      <div class="tw-grid tw-grid-cols-1 tw-gap-2">
+        <label class="tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 hover:tw-border-rose-300 tw-bg-slate-50 hover:tw-bg-rose-50 tw-cursor-pointer">
+          <input type="radio" name="rej-reason" value="nao_atendeu" class="tw-h-4 tw-w-4 tw-text-rose-600">
+          <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Não atendeu</span>
+        </label>
+        <label class="tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 hover:tw-border-rose-300 tw-bg-slate-50 hover:tw-bg-rose-50 tw-cursor-pointer">
+          <input type="radio" name="rej-reason" value="nao_recetivo" class="tw-h-4 tw-w-4 tw-text-rose-600">
+          <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Não recetivo</span>
+        </label>
+        <label class="tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 hover:tw-border-rose-300 tw-bg-slate-50 hover:tw-bg-rose-50 tw-cursor-pointer">
+          <input type="radio" name="rej-reason" value="nao_encontrado" class="tw-h-4 tw-w-4 tw-text-rose-600">
+          <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Não encontrado</span>
+        </label>
+      </div>
+      <div id="rej-comentario-wrap" class="tw-hidden">
+        <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Comentário</label>
+        <textarea id="rej-comentario" rows="3" class="tw-w-full tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm" placeholder="Ex.: cliente não interessado em..."></textarea>
+      </div>
+    </div>
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" id="rej-cancel" class="tw-h-9 tw-px-4 tw-rounded-md tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50">Cancelar</button>
+      <button type="button" id="rej-confirm" class="tw-h-9 tw-px-4 tw-rounded-md tw-text-sm tw-font-semibold tw-bg-rose-600 hover:tw-bg-rose-700 tw-text-white tw-inline-flex tw-items-center tw-gap-2">
+        <i class="fa fa-check"></i> Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ─────────────── Inquérito (call-center survey) modal ─────────────── #}
+<div id="inq-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-4xl tw-max-h-[92vh] tw-flex tw-flex-col tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-600 tw-flex tw-items-center tw-justify-center"><i class="fa fa-phone tw-text-xs"></i></span>
+        <span>Inquérito · <span id="inq-pv-nome" class="tw-text-slate-700 tw-font-normal"></span></span>
+      </h2>
+      <button type="button" id="inq-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+
+    <form id="inq-form" class="tw-flex-1 tw-overflow-auto tw-p-5 tw-space-y-5">
+      {# Militante section #}
+      <div>
+        <div class="tw-text-xs tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-semibold tw-mb-2">Dados do militante</div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-3">
+          <div class="md:tw-col-span-2">
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Nome completo</label>
+            <input name="nome_completo" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Estado ficha</label>
+            <input name="estado_ficha" type="text" value="Validado" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Tipo associado</label>
+            <select name="tp_associado" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+              <option value="Militantes">Militantes</option>
+              <option value="Apoiante">Apoiante</option>
+            </select>
+          </div>
+          <input name="estado_militante" type="hidden" value="A">
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Género</label>
+            <select name="genero" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+              <option value="">—</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+            </select>
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Nome do pai</label>
+            <input name="nm_pai" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Nome da mãe</label>
+            <input name="nm_mae" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Agregado familiar</label>
+            <input name="agregado_familiar" type="number" min="0" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Data de nascimento</label>
+            <input name="dt_nascimento" type="date" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Telefone (casa)</label>
+            <input name="nr_telefone_casa" type="text" inputmode="numeric" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Telemóvel 1</label>
+            <input name="nr_telemovel1" type="text" inputmode="numeric" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Telemóvel 2</label>
+            <input name="nr_telemovel2" type="text" inputmode="numeric" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div class="md:tw-col-span-3">
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Motivo de rejeição</label>
+            <input name="motivo_rejeicao" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+        </div>
+      </div>
+
+      {# Morada section #}
+      <div>
+        <div class="tw-text-xs tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-semibold tw-mb-2">Morada</div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3">
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Morada atual</label>
+            <input name="morada_atual" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+          <div>
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Perto de</label>
+            <input name="perto_de" type="text" class="tw-w-full tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+          </div>
+        </div>
+      </div>
+
+      {# Call info section #}
+      <div>
+        <div class="tw-text-xs tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-semibold tw-mb-2">Informação da chamada</div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3">
+          <label class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-slate-50 tw-cursor-pointer">
+            <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Recenseado fora da Praia</span>
+            <span class="switch"><input name="resenciado_fora_praia" type="checkbox" value="1"><span class="slider"></span></span>
+          </label>
+          <label class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-slate-50 tw-cursor-pointer">
+            <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Recenseado</span>
+            <span class="switch"><input name="resenciado" type="checkbox" value="1"><span class="slider"></span></span>
+          </label>
+          <label class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-slate-50 tw-cursor-pointer">
+            <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Recetivo</span>
+            <span class="switch"><input name="recetivo" type="checkbox" value="1"><span class="slider"></span></span>
+          </label>
+          <label class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-slate-50 tw-cursor-pointer">
+            <span class="tw-text-sm tw-text-slate-700 tw-font-medium">Precisa transporte para votar</span>
+            <span class="switch"><input name="precisa_transporte_vota" type="checkbox" value="1"><span class="slider"></span></span>
+          </label>
+          <div class="md:tw-col-span-2">
+            <label class="tw-text-[11px] tw-text-slate-500 tw-font-medium">Comentário</label>
+            <textarea name="comentario" rows="3" class="tw-w-full tw-px-3 tw-py-2 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm"></textarea>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100 tw-bg-slate-50">
+      <button type="button" id="inq-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-slate-700 tw-border tw-border-slate-200 hover:tw-bg-slate-50">Cancelar</button>
+      <button type="button" id="inq-save" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-inline-flex tw-items-center tw-gap-2">
+        <i class="fa fa-save"></i> Guardar inquérito
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ─────────────── Import modal (multi-file) ─────────────── #}
+<div id="import-modal" class="tw-hidden tw-fixed tw-inset-0 tw-z-[1050] tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-xl tw-w-full tw-max-w-4xl tw-max-h-[90vh] tw-flex tw-flex-col tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3 tw-border-b tw-border-slate-200">
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-1 tw-h-5 tw-bg-mpd-500 tw-rounded-full"></span>
+        <h2 class="tw-text-base tw-font-bold tw-text-slate-900 tw-m-0">Importar potenciais votantes</h2>
+      </div>
+      <button id="im-close" class="tw-text-slate-400 hover:tw-text-slate-700 tw-w-8 tw-h-8 tw-rounded-md hover:tw-bg-slate-100 tw-transition"><i class="fa fa-times"></i></button>
+    </div>
+
+    {# Step 1: pick file(s) #}
+    <div id="im-step-pick" class="tw-p-6">
+      <label for="im-file" class="tw-block tw-cursor-pointer tw-border-2 tw-border-dashed tw-border-slate-300 hover:tw-border-mpd-400 tw-rounded-xl tw-p-10 tw-text-center tw-transition">
+        <i class="fa fa-cloud-upload-alt tw-text-4xl tw-text-mpd-500 tw-mb-3 tw-block"></i>
+        <div class="tw-text-sm tw-font-semibold tw-text-slate-700">Clique para selecionar um ou vários ficheiros</div>
+        <div class="tw-text-xs tw-text-slate-500 tw-mt-1">Excel (.xlsx, .xls) ou CSV — colunas esperadas: NOME · LOCALIDADE · ASSINATURA · TELEFONE</div>
+        <input type="file" id="im-file" class="tw-hidden" accept=".xlsx,.xls,.csv" multiple>
+      </label>
+      <div id="im-loading" class="tw-hidden tw-mt-4 tw-text-center tw-text-sm tw-text-slate-500">
+        <i class="fa fa-spinner fa-spin tw-text-mpd-600"></i> A analisar ficheiro...
+      </div>
+    </div>
+
+    {# Step 2: preview + file list + start #}
+    <div id="im-step-preview" class="tw-hidden tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
+      <div class="tw-px-5 tw-py-3 tw-bg-slate-50 tw-border-b tw-border-slate-200">
+        <div class="tw-text-xs tw-uppercase tw-tracking-wider tw-text-slate-500 tw-font-semibold tw-mb-2">Ficheiros selecionados</div>
+        <ul id="im-file-list" class="tw-text-sm tw-text-slate-700 tw-space-y-1"></ul>
+      </div>
+
+      <div class="tw-px-5 tw-py-3 tw-bg-white tw-border-b tw-border-slate-200">
+        <div class="tw-text-xs tw-text-slate-600">
+          <i class="fa fa-file-excel tw-text-mpd-600"></i>
+          Pré-visualização do <span id="im-filename" class="tw-font-semibold tw-text-slate-800"></span>
+          <span class="tw-text-slate-400">·</span>
+          <span id="im-total" class="tw-font-semibold">0</span> linhas
+        </div>
+        <div class="tw-flex tw-flex-wrap tw-gap-1.5 tw-mt-2" id="im-detected"></div>
+      </div>
+
+      <div class="tw-px-5 tw-py-2 tw-bg-amber-50/40 tw-border-b tw-border-amber-100">
+        <div class="tw-text-[11px] tw-text-amber-800 tw-font-semibold tw-mb-1">Colunas obrigatórias em falta:</div>
+        <div class="tw-flex tw-flex-wrap tw-gap-1.5" id="im-missing"></div>
+      </div>
+
+      <div class="tw-flex-1 tw-overflow-auto tw-p-5">
+        <div class="tw-text-xs tw-text-slate-500 tw-mb-2">Pré-visualização (primeiras 20 linhas):</div>
+        <div class="tw-overflow-auto tw-border tw-border-slate-200 tw-rounded-lg">
+          <table id="im-preview-table" class="tw-w-full tw-text-sm">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-items-center tw-justify-between tw-gap-3">
+        <button id="im-btn-back" class="tw-h-9 tw-px-3 tw-text-sm tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md">← Trocar ficheiros</button>
+        <label for="im-overwrite" class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-700 tw-cursor-pointer tw-select-none tw-mr-auto tw-ml-3" title="Quando ativo, registos com o mesmo (nome, telefone) já existentes serão atualizados em vez de ignorados.">
+          <input id="im-overwrite" type="checkbox" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+          <span>Substituir duplicados (nome + telefone)</span>
+        </label>
+        <button id="im-btn-start" class="tw-h-9 tw-px-4 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-play"></i> Iniciar importação
+        </button>
+      </div>
+    </div>
+
+    {# Step 3: progress (one row per file) #}
+    <div id="im-step-progress" class="tw-hidden tw-p-6 tw-overflow-auto">
+      <ul id="im-jobs" class="tw-space-y-4"></ul>
+      <div class="tw-text-xs tw-text-amber-700 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-md tw-px-3 tw-py-2 tw-mt-4">
+        <i class="fa fa-info-circle"></i> Pode fechar esta janela — a importação continua em segundo plano.
+      </div>
+      <div class="tw-mt-4 tw-flex tw-justify-end">
+        <button id="im-cancel" data-import-close class="tw-h-9 tw-px-4 tw-text-sm tw-text-slate-700 tw-bg-white tw-border tw-border-slate-300 hover:tw-bg-slate-50 tw-rounded-md">Em segundo plano</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ---------- helpers ---------- */
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+
+  function toast(message, type) {
+    type = type || 'success';
+    const styles = { success: 'tw-bg-mpd-500 tw-text-white', error: 'tw-bg-red-500 tw-text-white', info: 'tw-bg-slate-800 tw-text-white' }[type];
+    const icon = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' }[type];
+    const $t = $('<div class="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2.5 tw-rounded-lg tw-shadow-soft tw-text-sm tw-animate-slide-in ' + styles + '"><i class="fa ' + icon + '"></i><span>' + message + '</span></div>');
+    $('#toast-container').append($t);
+    setTimeout(() => { $t.addClass('tw-animate-fade-out'); setTimeout(() => $t.remove(), 250); }, 2800);
+  }
+
+  function currentFilters(extra) {
+    return Object.assign({
+      nome: $('#nome').val(),
+      localidade: $('#localidade').val(),
+      telefone: $('#telefone').val(),
+      is_contactado: $('#is_contactado').is(':checked'),
+    }, extra || {});
+  }
+
+  function renderChips() {
+    const chips = [];
+    const f = currentFilters();
+    if (f.nome)          chips.push({ k: 'nome',          label: 'Nome: '       + f.nome });
+    if (f.localidade)    chips.push({ k: 'localidade',    label: 'Localidade: ' + f.localidade });
+    if (f.telefone)      chips.push({ k: 'telefone',      label: 'Telefone: '   + f.telefone });
+    if (f.is_contactado) chips.push({ k: 'is_contactado', label: 'Contactados' });
+
+    const $box = $('#filter-chips').empty().toggleClass('tw-hidden', chips.length === 0);
+    chips.forEach(c => $box.append('<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-pl-2.5 tw-pr-1.5 tw-py-1 tw-text-xs tw-rounded-md tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">' + c.label + '<button type="button" data-chip="' + c.k + '" class="tw-text-slate-400 hover:tw-text-slate-700 tw-w-4 tw-h-4 tw-inline-flex tw-items-center tw-justify-center"><i class="fa fa-times tw-text-[10px]"></i></button></span>'));
+  }
+
+  /* ---------- search ---------- */
+  let debounce;
+  function search(page) {
+    const data = currentFilters(page ? { page } : null);
+    $('.content-data').html('<div class="tw-flex tw-flex-col tw-justify-center tw-items-center tw-py-16 tw-text-slate-400 tw-gap-2"><i class="fa fa-spinner fa-spin tw-text-2xl tw-text-mpd-600"></i><span class="tw-text-xs">A carregar...</span></div>');
+    $.get('', data, function (html) {
+      const fragment = $('<div>').append(html);
+      $('.content-data').html(fragment.find('.content-data').html());
+      const total = fragment.find('#total-count').text();
+      if (total) $('#total-count').text(total);
+      renderChips();
+    }).fail(() => toast('Erro ao carregar resultados', 'error'));
+  }
+
+  $(document).on('input', '#nome, #localidade, #telefone', function () { clearTimeout(debounce); debounce = setTimeout(() => { search(); }, 350); });
+  $(document).on('keydown', '#nome, #localidade, #telefone', function (e) { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounce); search(); } });
+  $(document).on('change', '#is_contactado', () => search());
+  $(document).on('click', '#btn-search', (e) => { e.preventDefault(); search(); });
+  $(document).on('click', '#btn-clear', function () {
+    $('#nome,#localidade,#telefone').val('');
+    $('#is_contactado').prop('checked', false);
+    search();
+  });
+  $(document).on('click', '[data-chip]', function () {
+    const k = $(this).data('chip');
+    if (k === 'is_contactado') $('#is_contactado').prop('checked', false);
+    else $('#' + k).val('');
+    search();
+  });
+
+  /* ---------- pagination / row actions ---------- */
+  $(document).on('click', '[data-page]', function (e) { e.preventDefault(); search($(this).data('page')); });
+
+  $(document).on('click', '.js-remove', function () {
+    if (!confirm('Deseja apagar este registo?')) return;
+    $.post("{% url 'potenciais_votantes.remover' %}", { id: $(this).data('id'), csrfmiddlewaretoken: getCookie('csrftoken') })
+      .done(() => { toast('Registo removido'); search(); })
+      .fail(() => toast('Erro ao remover', 'error'));
+  });
+
+  function modalValue(value) { return value === null || value === undefined || value === '' ? '—' : value; }
+
+  function showViewModal() { $('#view-modal').removeClass('tw-hidden').addClass('tw-flex'); document.body.style.overflow = 'hidden'; }
+  function hideViewModal() { $('#view-modal').addClass('tw-hidden').removeClass('tw-flex'); document.body.style.overflow = ''; }
+
+  $(document).on('click', '.js-view', function () {
+    const id = $(this).data('id');
+    $.get('/potenciais-votantes/' + id + '/detail-json', function (data) {
+      $('#vm-nome').text(modalValue(data.nome));
+      $('#vm-localidade').text(modalValue(data.localidade));
+      $('#vm-telefone').text(modalValue(data.telefone));
+      $('#vm-is_contactado').text(data.is_contactado ? 'Sim' : 'Não');
+      $('#vm-observacao').text(modalValue(data.observacao));
+      $('#vm-edit-link').attr('href', '/potenciais-votantes/update/' + data.id);
+      const badges = [];
+      if (data.is_contactado) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-sky-50 tw-text-sky-700 tw-border tw-border-sky-200">Contactado</span>');
+      else badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">Não contactado</span>');
+      if (data.assinatura) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">Assinatura recolhida</span>');
+      $('#vm-badges').html(badges.join(''));
+      showViewModal();
+    }).fail(() => toast('Erro ao carregar registo', 'error'));
+  });
+
+  $(document).on('click', '#view-modal-close,#view-modal-cancel', hideViewModal);
+  $(document).on('click', '#view-modal', function (e) { if (e.target === this) hideViewModal(); });
+  $(document).on('keydown', function (e) { if (e.key === 'Escape' && !$('#view-modal').hasClass('tw-hidden')) hideViewModal(); });
+
+  /* ---------- inquérito modal ---------- */
+  let inqPvId = null;
+  function showInqModal() { $('#inq-modal').removeClass('tw-hidden').addClass('tw-flex'); document.body.style.overflow = 'hidden'; }
+  function hideInqModal() { $('#inq-modal').addClass('tw-hidden').removeClass('tw-flex'); document.body.style.overflow = ''; inqPvId = null; }
+
+  function setInqField(name, value) {
+    const $el = $('#inq-form [name="' + name + '"]');
+    if (!$el.length) return;
+    if ($el.attr('type') === 'checkbox') $el.prop('checked', !!value);
+    else $el.val(value == null ? '' : value);
+  }
+
+  $(document).on('click', '.js-inquerito', function () {
+    const id = $(this).data('id');
+    const nome = $(this).data('nome') || '';
+    inqPvId = id;
+    $('#inq-pv-nome').text(nome);
+    // reset
+    $('#inq-form')[0].reset();
+    $.get('/potenciais-votantes/' + id + '/inquerito').done(function (resp) {
+      if (!resp.ok) { toast('Erro ao carregar inquérito', 'error'); return; }
+      Object.entries(resp.militante || {}).forEach(([k, v]) => setInqField(k, v));
+      Object.entries(resp.morada    || {}).forEach(([k, v]) => setInqField(k, v));
+      Object.entries(resp.call_info || {}).forEach(([k, v]) => setInqField(k, v));
+      showInqModal();
+    }).fail(() => toast('Erro ao carregar inquérito', 'error'));
+  });
+
+  $(document).on('click', '#inq-close,#inq-cancel', hideInqModal);
+  $(document).on('click', '#inq-modal', function (e) { if (e.target === this) hideInqModal(); });
+
+  $(document).on('click', '#inq-save', function () {
+    if (!inqPvId) return;
+    const $btn = $(this).prop('disabled', true);
+    const original = $btn.html();
+    $btn.html('<i class="fa fa-spinner fa-spin"></i> A guardar...');
+    const fd = new FormData(document.getElementById('inq-form'));
+    // Ensure unchecked checkboxes are sent as 0
+    ['resenciado_fora_praia', 'resenciado', 'recetivo', 'precisa_transporte_vota'].forEach(function (n) {
+      if (!fd.has(n)) fd.append(n, '0');
+    });
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    $.ajax({
+      url: '/potenciais-votantes/' + inqPvId + '/inquerito',
+      type: 'POST', data: fd, processData: false, contentType: false,
+    }).done(function (resp) {
+      if (resp && resp.ok) { toast(resp.message || 'Inquérito guardado'); hideInqModal(); search(); }
+      else { toast((resp && resp.error) || 'Erro ao guardar', 'error'); }
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao guardar inquérito', 'error');
+    }).always(function () { $btn.prop('disabled', false).html(original); });
+  });
+
+  /* ---------- reject call modal ---------- */
+  let rejId = null;
+  function showRejModal() { $('#rej-modal').removeClass('tw-hidden').addClass('tw-flex'); document.body.style.overflow = 'hidden'; }
+  function hideRejModal() { $('#rej-modal').addClass('tw-hidden').removeClass('tw-flex'); document.body.style.overflow = ''; rejId = null; }
+
+  $(document).on('click', '.js-reject', function () {
+    rejId = $(this).data('id');
+    $('#rej-nome').text($(this).data('nome') || '');
+    $('input[name="rej-reason"]').prop('checked', false);
+    $('#rej-comentario').val('');
+    $('#rej-comentario-wrap').addClass('tw-hidden');
+    showRejModal();
+  });
+
+  $(document).on('change', 'input[name="rej-reason"]', function () {
+    $('#rej-comentario-wrap').toggleClass('tw-hidden', this.value !== 'nao_recetivo');
+  });
+
+  $(document).on('click', '#rej-close,#rej-cancel', hideRejModal);
+  $(document).on('click', '#rej-modal', function (e) { if (e.target === this) hideRejModal(); });
+
+  $(document).on('click', '#rej-confirm', function () {
+    if (!rejId) return;
+    const reason = $('input[name="rej-reason"]:checked').val();
+    if (!reason) { toast('Selecione um motivo', 'error'); return; }
+    const $btn = $(this).prop('disabled', true);
+    const original = $btn.html();
+    $btn.html('<i class="fa fa-spinner fa-spin"></i> A registar...');
+    $.post('/potenciais-votantes/' + rejId + '/reject', {
+      reason: reason,
+      comentario: $('#rej-comentario').val(),
+      csrfmiddlewaretoken: getCookie('csrftoken'),
+    }).done(function (resp) {
+      if (resp && resp.ok) { toast(resp.message || 'Chamada registada'); hideRejModal(); search(); }
+      else { toast((resp && resp.error) || 'Erro', 'error'); }
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao registar', 'error');
+    }).always(function () { $btn.prop('disabled', false).html(original); });
+  });
+
+  /* ---------- export ---------- */
+  $(document).on('click', '#exportar', function () {
+    const $btn = $(this).prop('disabled', true);
+    const original = $btn.html();
+    $btn.html('<i class="fa fa-spinner fa-spin"></i><span class="tw-hidden sm:tw-inline">A exportar...</span>');
+    $.get("{% url 'potenciais_votantes.exportExcel' %}", currentFilters(), function (data) {
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'potenciais_votantes.csv'; a.click();
+      toast('Ficheiro CSV gerado');
+    }).fail(() => toast('Erro ao exportar', 'error')).always(() => $btn.prop('disabled', false).html(original));
+  });
+
+  /* ---------- upload (multi-file: preview first, then start all) ---------- */
+  let uploadFiles = [];
+  let pollTimers = {};
+
+  function openImportModal() {
+    $('#import-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+    showImportStep('pick');
+  }
+  function closeImportModal() {
+    Object.keys(pollTimers).forEach(k => clearInterval(pollTimers[k]));
+    pollTimers = {};
+    $('#import-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+    uploadFiles = [];
+    $('#im-file').val('');
+    $('#im-preview-table thead, #im-preview-table tbody').empty();
+    $('#im-detected,#im-missing,#im-file-list,#im-jobs').empty();
+  }
+  function showImportStep(name) {
+    $('#im-step-pick').toggleClass('tw-hidden', name !== 'pick');
+    $('#im-step-preview').toggleClass('tw-hidden', name !== 'preview');
+    $('#im-step-progress').toggleClass('tw-hidden', name !== 'progress');
+  }
+
+  $(document).on('click', '#upload', openImportModal);
+  $(document).on('click', '#im-close, #im-cancel, [data-import-close]', closeImportModal);
+  $(document).on('click', '#import-modal', function (e) { if (e.target === this) closeImportModal(); });
+
+  $(document).on('change', '#im-file', function () {
+    const files = Array.from(this.files || []);
+    if (!files.length) return;
+    uploadFiles = files;
+
+    // Render file list
+    const $list = $('#im-file-list').empty();
+    files.forEach(f => $list.append('<li><i class="fa fa-file-excel tw-text-mpd-600 tw-mr-1"></i>' + f.name + ' <span class="tw-text-slate-400 tw-text-xs">(' + Math.round(f.size / 1024) + ' KB)</span></li>'));
+
+    // Preview only first file
+    const first = files[0];
+    $('#im-filename').text(first.name);
+    $('#im-loading').removeClass('tw-hidden');
+    $('#im-btn-back').prop('disabled', true);
+
+    const fd = new FormData();
+    fd.append('arquivo_excel', first);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    $.ajax({
+      url: "{% url 'potenciais_votantes.import_preview' %}",
+      type: 'POST', data: fd, processData: false, contentType: false,
+    }).done(function (resp) {
+      if (!resp.ok) { toast(resp.error || 'Erro no preview', 'error'); return; }
+      $('#im-total').text(resp.total);
+      const $det = $('#im-detected').empty();
+      resp.detected.forEach(c => $det.append('<span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">' + c + '</span>'));
+      const $miss = $('#im-missing').empty();
+      resp.missing.forEach(c => $miss.append('<span class="tw-inline-flex tw-items-center tw-text-[11px] tw-px-2 tw-py-0.5 tw-rounded tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">' + c + '</span>'));
+      const cols = resp.columns;
+      $('#im-preview-table thead').html('<tr>' + cols.map(c => '<th class="tw-px-2 tw-py-1.5 tw-text-left tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-border-b">' + c + '</th>').join('') + '</tr>');
+      const $tbody = $('#im-preview-table tbody').empty();
+      resp.sample.forEach(function (row) {
+        const $tr = $('<tr class="hover:tw-bg-slate-50">');
+        cols.forEach(c => $tr.append('<td class="tw-px-2 tw-py-1 tw-text-xs tw-text-slate-700 tw-border-b tw-border-slate-100">' + (row[c] != null ? String(row[c]).substring(0, 60) : '') + '</td>'));
+        $tbody.append($tr);
+      });
+      showImportStep('preview');
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao analisar ficheiro', 'error');
+    }).always(function () {
+      $('#im-loading').addClass('tw-hidden');
+      $('#im-btn-back').prop('disabled', false);
+    });
+  });
+
+  $(document).on('click', '#im-btn-back', function () {
+    showImportStep('pick');
+    $('#im-file').val('');
+    uploadFiles = [];
+  });
+
+  $(document).on('click', '#im-btn-start', function () {
+    if (!uploadFiles.length) { toast('Sem ficheiros', 'error'); return; }
+
+    const fd = new FormData();
+    uploadFiles.forEach(f => fd.append('arquivo_excel', f));
+    fd.append('overwrite', $('#im-overwrite').is(':checked') ? '1' : '0');
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> A iniciar...');
+    $.ajax({
+      url: "{% url 'potenciais_votantes.import_start' %}",
+      type: 'POST', data: fd, processData: false, contentType: false,
+    }).done(function (resp) {
+      if (!resp.ok) { toast(resp.error || 'Erro', 'error'); return; }
+      const $jobs = $('#im-jobs').empty();
+      resp.jobs.forEach(function (j) {
+        const id = j.job_id;
+        $jobs.append(
+          '<li id="job-' + id + '" class="tw-border tw-border-slate-200 tw-rounded-lg tw-p-3">' +
+          '  <div class="tw-flex tw-items-center tw-justify-between tw-mb-1">' +
+          '    <span class="tw-text-sm tw-font-semibold tw-text-slate-800"><i class="fa fa-file-excel tw-text-mpd-600 tw-mr-1"></i>' + j.nome + '</span>' +
+          '    <span class="tw-pct tw-text-sm tw-font-bold tw-text-mpd-700">0%</span>' +
+          '  </div>' +
+          '  <div class="tw-h-2 tw-bg-slate-100 tw-rounded-full tw-overflow-hidden">' +
+          '    <div class="tw-bar tw-h-full tw-bg-mpd-500 tw-transition-all tw-duration-300" style="width: 0%"></div>' +
+          '  </div>' +
+          '  <div class="tw-stats tw-text-xs tw-text-slate-500 tw-mt-1">A iniciar...</div>' +
+          '</li>'
+        );
+        pollImportStatus(id);
+      });
+      showImportStep('progress');
+    }).fail(function (xhr) {
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Erro ao iniciar importação', 'error');
+    }).always(function () {
+      $('#im-btn-start').prop('disabled', false).html('<i class="fa fa-play"></i> Iniciar importação');
+    });
+  });
+
+  function pollImportStatus(jobId) {
+    const tick = function () {
+      $.get('/potenciais-votantes/import/' + jobId + '/status').done(function (s) {
+        const pct = s.percent || 0;
+        const $row = $('#job-' + jobId);
+        $row.find('.tw-bar').css('width', pct + '%');
+        $row.find('.tw-pct').text(pct + '%');
+        const stats = (s.processed || 0) + ' de ' + (s.total || 0) + ' • ' +
+          (s.created || 0) + ' criados' +
+          (s.updated ? ' • ' + s.updated + ' atualizados' : '') +
+          (s.duplicates ? ' • ' + s.duplicates + ' duplicados' : '') +
+          (s.errors ? ' • ' + s.errors + ' erros' : '');
+        $row.find('.tw-stats').text(stats);
+        if (s.status === 'done') {
+          clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
+          $row.find('.tw-bar').removeClass('tw-bg-mpd-500').addClass('tw-bg-mpd-600');
+          $row.find('.tw-stats').html('<i class="fa fa-check-circle tw-text-mpd-600"></i> ' + (s.message || 'Concluído'));
+          search();
+        } else if (s.status === 'error') {
+          clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
+          $row.find('.tw-bar').removeClass('tw-bg-mpd-500').addClass('tw-bg-rose-500');
+          $row.find('.tw-stats').html('<i class="fa fa-times-circle tw-text-rose-600"></i> ' + (s.message || 'Erro'));
+        }
+      });
+    };
+    tick();
+    pollTimers[jobId] = setInterval(tick, 1500);
+  }
+
+  $(function () { renderChips(); });
+</script>
+{% endblock %}

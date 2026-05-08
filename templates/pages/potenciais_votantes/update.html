@@ -1,0 +1,52 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: { extend: {
+        colors: { mpd: { 50:'#e8f5ec',100:'#c7e6d0',200:'#9ed3ad',500:'#1a9123',600:'#178420',700:'#0e7716',800:'#0b5a11' } },
+        boxShadow: { soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)' }
+      } }
+    }
+  </script>
+  <style>
+    .pcoded-content { background: #f7f8fa !important; }
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08); border-left: 3px solid #1a9123; padding-left: 17px;
+    }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="tw-space-y-5">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
+    <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0">
+      Editar Potencial Votante
+    </h1>
+    <p class="tw-text-sm tw-text-slate-500 tw-mt-2 tw-mb-0">
+      Atualize os dados deste registo.
+    </p>
+  </div>
+
+  <form method="post" id="pv-form" class="tw-space-y-5">
+    {% csrf_token %}
+    {% include 'pages/potenciais_votantes/_form_fields.html' %}
+
+    <div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
+      <a href="{% url 'potenciais_votantes.index' %}"
+         class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-amber-50 tw-text-amber-800 tw-border tw-border-amber-200 hover:tw-bg-amber-100 hover:tw-border-amber-300 tw-transition">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-px-5 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+        <i class="fa fa-save"></i> Guardar alterações
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

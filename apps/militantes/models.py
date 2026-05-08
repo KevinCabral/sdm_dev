@@ -44,6 +44,9 @@ class Militantes(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     image = models.ImageField(upload_to=get_file_path)
+    # Reference to apps.potenciais_votantes.PotencialVotante (kept as a plain
+    # BigIntegerField to avoid a hard cross-app FK constraint).
+    potencial_votante_id = models.BigIntegerField(blank=True, null=True, db_index=True)
 
     class Meta:
         db_table = 'militantes'
@@ -71,8 +74,42 @@ class Morada(models.Model):
     status = models.CharField(max_length=1, blank=True, null=True)
     geografia = models.ForeignKey(Geografia, models.DO_NOTHING, blank=True, null=True)
     militante = models.ForeignKey(Militantes, models.DO_NOTHING, blank=True, null=True)
+    # Reference to apps.potenciais_votantes.PotencialVotante.
+    potencial_votante_id = models.BigIntegerField(blank=True, null=True, db_index=True)
 
     class Meta:
         db_table = 'morada'
+
+
+class MilitantesCallInfo(models.Model):
+    """Information collected by the Call Center during a phone inquérito.
+
+    The underlying ``militantes_call_info`` table pre-exists in Postgres
+    with a fixed schema, so this model is unmanaged. The new
+    ``potencial_votante_id`` column is added by a RunSQL migration.
+    """
+
+    id = models.AutoField(primary_key=True)
+    # 0 / 1 flags (smallint in DB)
+    resenciado_fora_praia = models.SmallIntegerField(blank=True, null=True)
+    resenciado = models.SmallIntegerField(blank=True, null=True)
+    recetivo = models.SmallIntegerField(blank=True, null=True)
+    n_encontrado = models.SmallIntegerField(blank=True, null=True)
+    n_atendeu = models.SmallIntegerField(blank=True, null=True)
+    precisa_transporte_vota = models.CharField(max_length=20, blank=True, null=True)
+
+    username = models.CharField(max_length=50, blank=True, null=True)
+    data_hr_chamada = models.CharField(max_length=20, blank=True, null=True)
+    comentario = models.CharField(max_length=255, blank=True, null=True)
+
+    id_militante = models.IntegerField(blank=True, null=True)
+    potencial_votante_id = models.BigIntegerField(blank=True, null=True, db_index=True)
+
+    class Meta:
+        db_table = 'militantes_call_info'
+        managed = False
+
+    def __str__(self):
+        return f'CallInfo #{self.pk} (PV {self.potencial_votante_id})'
 
 

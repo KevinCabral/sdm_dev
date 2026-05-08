@@ -1,0 +1,150 @@
+{% load static %}
+
+{# Desktop: real table, sticky header, hover rows #}
+<div class="tw-hidden md:tw-block tw-overflow-auto" style="max-height: calc(100vh - 360px); min-height: 320px;">
+  <table class="tw-w-full tw-text-sm tw-border-collapse">
+    <thead class="tw-sticky tw-top-0 tw-z-10 tw-bg-slate-50/80 tw-backdrop-blur">
+      <tr class="tw-text-left tw-text-slate-500 tw-text-[11px] tw-uppercase tw-tracking-wider">
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 col-nome">Nome</th>
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Localidade</th>
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70">Telefone</th>
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Contactado</th>
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-center">Assinatura</th>
+        <th class="tw-px-5 tw-py-2.5 tw-font-medium tw-border-b tw-border-slate-200/70 tw-text-right">&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody class="tw-divide-y tw-divide-slate-100">
+      {% for obj in page_obj %}
+        <tr class="tbl-row tw-transition tw-group">
+          <td class="tw-px-5 tw-py-3 col-nome">
+            <div class="tw-min-w-0">
+              <div class="name-text tw-font-medium tw-text-slate-900" title="{{ obj.nome }}">{{ obj.nome }}</div>
+            </div>
+          </td>
+          <td class="tw-px-5 tw-py-3 tw-text-slate-700">{{ obj.localidade|default:"—" }}</td>
+          <td class="tw-px-5 tw-py-3 tw-text-slate-700 tw-tabular-nums">{{ obj.telefone|default:"—" }}</td>
+          <td class="tw-px-5 tw-py-3 tw-text-center">
+            {% if obj.is_contactado %}
+              <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-sky-50 tw-text-sky-700 tw-text-xs tw-font-medium">
+                <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-sky-500"></span>Sim
+              </span>
+            {% else %}
+              <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-600 tw-text-xs tw-font-medium">Não</span>
+            {% endif %}
+          </td>
+          <td class="tw-px-5 tw-py-3 tw-text-center">
+            {% if obj.assinatura %}
+              <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium">
+                <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-mpd-500"></span>Recolhida
+              </span>
+            {% else %}
+              <span class="tw-inline-flex tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-slate-100 tw-text-slate-600 tw-text-xs tw-font-medium">Pendente</span>
+            {% endif %}
+          </td>
+          <td class="tw-px-5 tw-py-3">
+            <div class="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                <button type="button" title="Ver" data-id="{{ obj.id }}"
+                  class="js-view tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-sky-50 tw-text-sky-600 hover:tw-bg-sky-100 hover:tw-text-sky-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                <i class="fa fa-eye tw-text-xs"></i>
+                </button>
+              <button type="button" title="Inquérito" data-id="{{ obj.id }}" data-nome="{{ obj.nome }}"
+                class="js-inquerito tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-mpd-50 tw-text-mpd-600 hover:tw-bg-mpd-100 hover:tw-text-mpd-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                <i class="fa fa-phone tw-text-xs"></i>
+              </button>
+              <button type="button" title="Rejeitar chamada" data-id="{{ obj.id }}" data-nome="{{ obj.nome }}"
+                class="js-reject tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                <i class="fa fa-phone-slash tw-text-xs"></i>
+              </button>
+              <a href="{% url 'potenciais_votantes.update' obj.id %}" title="Editar"
+                 class="tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-amber-50 tw-text-amber-600 hover:tw-bg-amber-100 hover:tw-text-amber-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150">
+                <i class="fa fa-edit tw-text-xs"></i>
+              </a>
+              <button type="button" class="js-remove tw-w-7 tw-h-7 tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-bg-rose-50 tw-text-rose-600 hover:tw-bg-rose-100 hover:tw-text-rose-700 hover:tw-shadow-sm hover:-tw-translate-y-0.5 tw-transition tw-duration-150"
+                      title="Remover" data-id="{{ obj.id }}">
+                <i class="fa fa-trash tw-text-xs"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">
+          <div class="tw-py-20 tw-text-center">
+            <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+              <i class="fa fa-search"></i>
+            </div>
+            <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+            <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+          </div>
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Mobile: card list #}
+<div class="md:tw-hidden tw-divide-y tw-divide-slate-100">
+  {% for obj in page_obj %}
+    <div class="tw-p-4">
+      <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
+        <div class="tw-min-w-0">
+          <div class="tw-font-medium tw-text-slate-900 tw-truncate">{{ obj.nome }}</div>
+        </div>
+        {% if obj.assinatura %}
+          <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-md tw-bg-mpd-50 tw-text-mpd-700 tw-text-xs tw-font-medium tw-shrink-0">
+            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-mpd-500"></span>Assinatura
+          </span>
+        {% endif %}
+      </div>
+      <div class="tw-grid tw-grid-cols-2 tw-gap-x-3 tw-gap-y-1 tw-mt-2 tw-text-xs tw-text-slate-600">
+        <div><span class="tw-text-slate-400">Localidade:</span> {{ obj.localidade|default:"—" }}</div>
+        <div><span class="tw-text-slate-400">Telefone:</span> {{ obj.telefone|default:"—" }}</div>
+        <div><span class="tw-text-slate-400">Contactado:</span> {% if obj.is_contactado %}Sim{% else %}Não{% endif %}</div>
+      </div>
+      <div class="tw-flex tw-justify-end tw-gap-1 tw-mt-3">
+          <button type="button" data-id="{{ obj.id }}"
+            class="js-view tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100">Ver</button>
+          <button type="button" data-id="{{ obj.id }}" data-nome="{{ obj.nome }}"
+            class="js-inquerito tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-mpd-700 tw-bg-mpd-50"><i class="fa fa-phone"></i> Inquérito</button>
+          <button type="button" data-id="{{ obj.id }}" data-nome="{{ obj.nome }}"
+            class="js-reject tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-rose-700 tw-bg-rose-50"><i class="fa fa-phone-slash"></i> Rejeitar</button>
+        <a href="{% url 'potenciais_votantes.update' obj.id %}"
+           class="tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-slate-100">Editar</a>
+        <button type="button" data-id="{{ obj.id }}"
+                class="js-remove tw-px-3 tw-py-1.5 tw-text-xs tw-rounded-md tw-text-red-600 tw-bg-red-50">Apagar</button>
+      </div>
+    </div>
+  {% empty %}
+    <div class="tw-py-16 tw-text-center">
+      <div class="tw-w-12 tw-h-12 tw-mx-auto tw-rounded-full tw-bg-slate-100 tw-flex tw-items-center tw-justify-center tw-text-slate-400 tw-mb-3">
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="tw-text-slate-700 tw-font-medium tw-text-sm">Sem resultados</div>
+      <div class="tw-text-xs tw-text-slate-400 tw-mt-1">Tente ajustar os filtros ou limpar a pesquisa.</div>
+    </div>
+  {% endfor %}
+</div>
+
+{# Pagination #}
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-between tw-gap-3 tw-px-5 tw-py-3 tw-border-t tw-border-slate-100">
+  <div class="tw-text-xs tw-text-slate-500">
+    Mostrando página <span class="tw-font-medium tw-text-slate-700">{{ page_obj.number }}</span>
+    de <span class="tw-font-medium tw-text-slate-700">{{ page_obj.paginator.num_pages }}</span>
+    · {{ page_obj.paginator.count }} registos
+  </div>
+  <div class="tw-inline-flex tw-items-center tw-gap-1">
+    {% if page_obj.has_previous %}
+      <a href="#" data-page="{{ page_obj.previous_page_number }}"
+         class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-600 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Anterior</a>
+    {% else %}
+      <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Anterior</span>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="#" data-page="{{ page_obj.next_page_number }}"
+         class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-700 tw-bg-white tw-border tw-border-slate-200 hover:tw-bg-slate-50 tw-transition">Próxima</a>
+    {% else %}
+      <span class="tw-h-8 tw-px-3 tw-inline-flex tw-items-center tw-text-xs tw-rounded-md tw-text-slate-300 tw-bg-white tw-border tw-border-slate-200">Próxima</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

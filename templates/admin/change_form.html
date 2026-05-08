@@ -10,15 +10,43 @@
     .mpd-admin .card.submit_btn { background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
     .mpd-admin .card.submit_btn .card-body { padding: 0 !important; }
     /* Fix Django's filter_horizontal / filter_vertical select widgets */
+    .mpd-admin .form-row {
+      display: block !important;
+      width: 100% !important;
+      clear: both !important;
+      overflow: visible !important;
+    }
+    .mpd-admin .form-row::after {
+      content: ''; display: block; clear: both;
+    }
+    .mpd-admin .aligned label {
+      float: none !important;
+      width: auto !important;
+      display: block !important;
+      padding: 0 !important;
+    }
+    .mpd-admin .aligned label + p,
+    .mpd-admin .aligned label + div.help,
+    .mpd-admin .aligned label + div.readonly {
+      margin-left: 0 !important;
+    }
+    .mpd-admin .form-row .field-permissions,
+    .mpd-admin .form-row > div,
     .mpd-admin .selector {
-      display: flex;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    .mpd-admin .selector {
+      display: flex !important;
+      float: none !important;
       gap: 12px;
       align-items: stretch;
-      width: 100%;
+      box-sizing: border-box;
     }
     .mpd-admin .selector-available,
     .mpd-admin .selector-chosen {
       flex: 1 1 0;
+      width: auto !important;
       min-width: 0;
       display: flex;
       flex-direction: column;
@@ -81,52 +109,72 @@
       width: auto;
     }
     .mpd-admin .selector-chooser li { list-style: none; margin: 0; }
-    .mpd-admin .selector-chooser a {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      width: 36px; height: 36px;
+    .mpd-admin .selector-chooser a,
+    .mpd-admin .selector-chooser a.selector-add,
+    .mpd-admin .selector-chooser a.selector-remove {
+      display: inline-flex !important; align-items: center; justify-content: center; gap: 6px;
+      width: 36px !important; height: 36px !important;
       padding: 0; border-radius: 8px;
-      background: #f1f5f9; color: #475569;
+      background: #f1f5f9 !important; color: #475569;
       font-size: 0; text-decoration: none;
       transition: background .15s, color .15s, transform .15s;
       background-image: none !important;
+      text-indent: 0 !important;
+      overflow: visible !important;
+      opacity: 1 !important;
     }
     .mpd-admin .selector-chooser a::before {
-      font-family: 'Font Awesome 5 Free', 'FontAwesome'; font-weight: 900; font-size: 13px; line-height: 1;
+      font-family: inherit; font-weight: 700; font-size: 16px; line-height: 1;
+      text-indent: 0;
     }
-    .mpd-admin .selector-chooser a.selector-add::before    { content: '\f061'; }  /* arrow-right */
-    .mpd-admin .selector-chooser a.selector-remove::before { content: '\f060'; }  /* arrow-left */
+    .mpd-admin .selector-chooser a.selector-add::before    { content: '\2192'; }  /* → */
+    .mpd-admin .selector-chooser a.selector-remove::before { content: '\2190'; }  /* ← */
     .mpd-admin .selector-chooser a:hover { background: #178420; color: #fff; transform: translateX(0); }
     .mpd-admin .selector-chooser a.active.selector-add:hover { transform: translateX(2px); }
     .mpd-admin .selector-chooser a.active.selector-remove:hover { transform: translateX(-2px); }
 
     /* "Choose all" / "Remove all" links under the boxes */
     .mpd-admin .selector-chosen .selector-clearall,
-    .mpd-admin .selector-available .selector-chooseall {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 8px; padding: 6px 10px;
+    .mpd-admin .selector-available .selector-chooseall,
+    .mpd-admin a.selector-chooseall,
+    .mpd-admin a.selector-clearall {
+      display: inline-flex !important; align-items: center; gap: 6px;
+      margin-top: 8px; padding: 6px 10px !important;
       font-size: 12px; font-weight: 600;
-      color: #475569; background: #f1f5f9;
+      color: #475569; background: #f1f5f9 !important;
       border-radius: 6px; text-decoration: none;
       background-image: none !important;
+      overflow: visible !important;
+      text-indent: 0 !important;
+      height: auto !important;
+      opacity: 1 !important;
     }
     .mpd-admin .selector-chosen .selector-clearall:hover,
     .mpd-admin .selector-available .selector-chooseall:hover { background: #178420; color: #fff; }
     .mpd-admin .selector-available .selector-chooseall::before,
     .mpd-admin .selector-chosen .selector-clearall::before {
-      font-family: 'Font Awesome 5 Free', 'FontAwesome'; font-weight: 900; font-size: 11px;
+      font-family: inherit; font-weight: 700; font-size: 12px;
     }
-    .mpd-admin .selector-available .selector-chooseall::before { content: '\f101'; }  /* angle-double-right */
-    .mpd-admin .selector-chosen .selector-clearall::before     { content: '\f100'; }  /* angle-double-left */
+    .mpd-admin .selector-available .selector-chooseall::before { content: '\00BB'; }  /* » */
+    .mpd-admin .selector-chosen .selector-clearall::before     { content: '\00AB'; }  /* « */
 
-    /* Help block under the widget */
-    .mpd-admin .help, .mpd-admin .help-block { color: #94a3b8; font-size: 12px; margin-top: 6px; }
+    /* Help block under the widget — hide the verbose Django hint that breaks layout */
+    .mpd-admin .selector-chosen .help,
+    .mpd-admin .selector ~ .help,
+    .mpd-admin .form-row .help.helptext,
+    .mpd-admin p.help,
+    .mpd-admin div.help,
+    .mpd-admin .field-box:has(.selector) .help,
+    .mpd-admin .form-row:has(.selector) .help,
+    .mpd-admin .help-tooltip { display: none !important; }
+    .mpd-admin .help, .mpd-admin .help-block { color: #94a3b8; font-size: 12px; margin-top: 6px; word-break: break-word; }
 
     /* Stack on small screens to avoid overlap */
     @media (max-width: 768px) {
       .mpd-admin .selector { flex-direction: column; }
       .mpd-admin .selector-chooser { flex-direction: row; align-self: stretch; justify-content: center; }
-      .mpd-admin .selector-chooser a.selector-add::before    { content: '\f063'; }  /* arrow-down */
-      .mpd-admin .selector-chooser a.selector-remove::before { content: '\f062'; }  /* arrow-up */
+      .mpd-admin .selector-chooser a.selector-add::before    { content: '\2193'; }  /* ↓ */
+      .mpd-admin .selector-chooser a.selector-remove::before { content: '\2191'; }  /* ↑ */
     }
     /* Readonly badge */
     .mpd-admin .readonly {

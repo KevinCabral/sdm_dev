@@ -47,90 +47,171 @@ def search_mesas(request):
 
 @login_required
 def index(request):
-    filtros = {}
-    nome = request.GET.get("nome", "")
-    nr_mesa = request.GET.get("nr_mesa", "")
-    if nome:
-        filtros['user__username__icontains'] = nome
+    """List Mesa assignments grouped by user.
 
+    Each row in the table represents a user and the set of mesas attached
+    to them via ``UserMesa``. Filters work over the username (``nome``)
+    and over a specific mesa number (``nr_mesa``).
+    """
+    nome = request.GET.get("nome", "").strip()
+    nr_mesa = request.GET.get("nr_mesa", "").strip()
+
+    qs = UserMesa.objects.select_related("user", "mesa")
+    if nome:
+        qs = qs.filter(user__username__icontains=nome)
     if nr_mesa:
-        filtros['nr_mesa'] = nr_mesa
-    userMesa = UserMesa.objects.filter(**filtros)
-    paginator = Paginator(userMesa, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+        qs = qs.filter(mesa__nr_mesa__icontains=nr_mesa)
+
+    # Group in Python to keep the query simple. A user_id of ``None``
+    # should not happen (user is non-null) but is guarded for safety.
+    grouped = {}
+    for um in qs.order_by("user__username", "mesa__nr_mesa"):
+        if not um.user_id:
+            continue
+        key = um.user_id
+        bucket = grouped.setdefault(key, {
+            "user": um.user,
+            "mesas": [],
+            "row_ids": [],
+            "createdAt": um.createdAt,
+        })
+        if um.mesa_id:
+            bucket["mesas"].append(um.mesa)
+            bucket["row_ids"].append(um.id)
+        if um.createdAt and (not bucket["createdAt"] or um.createdAt < bucket["createdAt"]):
+            bucket["createdAt"] = um.createdAt
+
+    rows = list(grouped.values())
+
+    paginator = Paginator(rows, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     form = UserMesaForm()
-    breadcrumbs = [{'title': 'Pagina Inicial','url':'/'},{'title': 'Mesas'}]
-    return render(request, "pages/mesa/index.html",{'page_obj': page_obj,'form':form,'breadcrumbs':breadcrumbs})
+    breadcrumbs = [{'title': 'Pagina Inicial', 'url': '/'}, {'title': 'Mesas'}]
+    return render(
+        request,
+        "pages/mesa/index.html",
+        {'page_obj': page_obj, 'form': form, 'breadcrumbs': breadcrumbs},
+    )
 
 @login_required
 def createOrUpdate(request):
-    form = UserMesaForm()
-    if request.method == 'POST':
-        id = request.POST.get("id", "")
-        if id != "":
-            userMesa = UserMesa.objects.get(pk=id)
-            form = UserMesaForm(request.POST,instance=userMesa)
-        else:
-            form = UserMesaForm(request.POST)
-        if form.is_valid():
-            userMesa = form.save()
-            if id != "":
-                messages.success(request, f'Atualizado')
-            else:
-                messages.success(request, f'Mesa Associada')
-            return redirect("mesa.index")
-        else:
-            if id != "":
-                messages.error(request, f'Erro na atualização')
-            else:
-                messages.error(request, f'Erro na associação de mesa')
+    """Create or replace the set of mesas assigned to a single user.
+
+    POST fields:
+      - user: User pk
+      - mesa: one or many Mesa pks (use ``getlist``)
+      - id (optional): an existing UserMesa pk used only to resolve the
+        target user when editing an existing assignment row.
+    """
+    if request.method != 'POST':
+        return redirect("mesa.index")
+
+    user_id = (request.POST.get('user') or '').strip()
+    mesa_ids = [m for m in request.POST.getlist('mesa') if m]
+    edit_id = (request.POST.get('id') or '').strip()
+
+    # When editing, allow the user-id to be inferred from the original row.
+    if not user_id and edit_id:
+        try:
+            user_id = str(UserMesa.objects.get(pk=edit_id).user_id)
+        except UserMesa.DoesNotExist:
+            user_id = ''
+
+    if not user_id or not mesa_ids:
+        messages.error(request, 'Selecione utilizador e pelo menos uma mesa')
+        return redirect("mesa.index")
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        messages.error(request, 'Utilizador inválido')
+        return redirect("mesa.index")
+
+    mesas = list(Mesa.objects.filter(pk__in=mesa_ids))
+    if not mesas:
+        messages.error(request, 'Mesas inválidas')
+        return redirect("mesa.index")
+
+    # Replace this user's assignments with the new selection (idempotent).
+    UserMesa.objects.filter(user=user).delete()
+    UserMesa.objects.bulk_create([UserMesa(user=user, mesa=m) for m in mesas])
+
+    messages.success(request, f'{len(mesas)} mesa(s) associada(s) a {user.username}')
     return redirect("mesa.index")
 
 
 @login_required
 def remover(request):
-    if request.method == "POST":
-        id = request.POST.get("id", "")
-        mesa = UserMesa.objects.get(pk=id)
-        if mesa:
-            mesa.delete()
-            messages.success(request, f'Mesa removido')
-            return redirect("mesa.index")
+    """Remove all mesa assignments for a given user.
 
-        messages.error(request, f'Erro em remover Mesa')
+    Accepts ``user`` (preferred) or legacy ``id`` (a UserMesa row pk that
+    is resolved into the underlying user) and deletes every UserMesa row
+    bound to that user.
+    """
+    if request.method != "POST":
+        raise ObjectDoesNotExist()
+
+    user_id = (request.POST.get("user") or "").strip()
+    row_id = (request.POST.get("id") or "").strip()
+    if not user_id and row_id:
+        try:
+            user_id = str(UserMesa.objects.get(pk=row_id).user_id)
+        except UserMesa.DoesNotExist:
+            user_id = ""
+
+    if not user_id:
+        messages.error(request, 'Erro em remover Mesa')
         return redirect("mesa.index")
-    raise ObjectDoesNotExist()
+
+    deleted, _ = UserMesa.objects.filter(user_id=user_id).delete()
+    if deleted:
+        messages.success(request, 'Associações removidas')
+    else:
+        messages.error(request, 'Erro em remover Mesa')
+    return redirect("mesa.index")
 
 
 @login_required
 def get(request):
-    id = request.GET.get("id","")
-    if id == "":
-        return JsonResponse({})
-    mesaUser = UserMesa.objects.get(pk=id)
+    """Return either a single UserMesa row (legacy ``id`` param) or the full
+    set of mesas attached to a user when called with ``?user=<id>``.
+    """
+    user_id = request.GET.get("user", "").strip()
+    id = request.GET.get("id", "").strip()
 
-    if not(mesaUser):
-        messages.error(request, f'Erro na visualização de Mesa')
-        data = {}
-    else:
-        data = {
-            "mesa": (
-                {"id": mesaUser.mesa.id, "nr_mesa": mesaUser.mesa.nr_mesa}
-                if mesaUser.mesa else None
-            ),
-            "user": (
-                {
-                    "id": mesaUser.user.id,
-                    "username": mesaUser.user.username,
-                    "first_name": mesaUser.user.first_name,
-                    "last_name": mesaUser.user.last_name,
-                    "email": mesaUser.user.email,
-                }
-                if mesaUser.user else None
-            ),
-        }
-    return JsonResponse(data)
+    # Resolve user from row id when only ``id`` was supplied.
+    if id and not user_id:
+        try:
+            user_id = str(UserMesa.objects.get(pk=id).user_id)
+        except UserMesa.DoesNotExist:
+            return JsonResponse({})
+
+    if user_id:
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({})
+        mesas_qs = (
+            UserMesa.objects.filter(user=user, mesa__isnull=False)
+            .select_related("mesa")
+            .order_by("mesa__nr_mesa")
+        )
+        return JsonResponse({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+            },
+            "mesas": [
+                {"id": um.mesa.id, "nr_mesa": um.mesa.nr_mesa}
+                for um in mesas_qs
+            ],
+        })
+
+    return JsonResponse({})
 
 @login_required
 def exportExcel(request):

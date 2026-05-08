@@ -18,7 +18,7 @@ class UserMesaForm(forms.ModelForm):
     mesa = forms.IntegerField(
         required=True,
         label="Mesa",
-        widget=forms.Select(attrs={'class': 'form-control', 'data-ajax': 'mesa'}),
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'data-ajax': 'mesa', 'multiple': 'multiple'}),
     )
     user = forms.IntegerField(
         required=True,

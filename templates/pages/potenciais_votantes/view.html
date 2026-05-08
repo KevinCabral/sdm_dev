@@ -1,0 +1,91 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      prefix: 'tw-',
+      corePlugins: { preflight: false },
+      theme: { extend: {
+        colors: { mpd: { 50:'#e8f5ec',100:'#c7e6d0',200:'#9ed3ad',500:'#1a9123',600:'#178420',700:'#0e7716',800:'#0b5a11' } },
+        boxShadow: { soft: '0 1px 2px rgba(15,23,42,.04), 0 4px 12px -6px rgba(15,23,42,.08)' }
+      } }
+    }
+  </script>
+  <style>
+    .pcoded-content { background: #f7f8fa !important; }
+    .pcoded-navbar .pcoded-inner-navbar > li.active > a,
+    .pcoded-navbar .pcoded-inner-navbar .pcoded-hasmenu.active > a {
+      background: rgba(255,255,255,.08); border-left: 3px solid #1a9123; padding-left: 17px;
+    }
+  </style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="tw-space-y-5">
+
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-soft tw-border tw-border-slate-200 tw-p-5">
+    <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start md:tw-justify-between tw-gap-4">
+      <div class="tw-flex tw-items-start tw-gap-4 tw-min-w-0">
+        <a href="{% url 'potenciais_votantes.index' %}"
+           class="tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 hover:tw-text-mpd-600 tw-transition tw-shrink-0"
+           title="Voltar">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+        <div class="tw-min-w-0">
+          <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-400 tw-font-semibold tw-mb-1 tw-mt-0">
+            Potencial Votante &middot; #{{ id }}
+          </p>
+          <h1 class="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-slate-900 tw-tracking-tight tw-m-0 tw-truncate">
+            {{ obj.nome|default:"(sem nome)" }}
+          </h1>
+          <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-mt-2">
+            {% if obj.assinatura %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-border tw-border-mpd-200">Assinatura recolhida</span>
+            {% else %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">Sem assinatura</span>
+            {% endif %}
+            {% if obj.localidade %}
+              <span class="tw-inline-flex tw-items-center tw-text-xs tw-text-slate-600 tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100">
+                <i class="fa fa-map-marker-alt tw-mr-1"></i> {{ obj.localidade }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <a href="{% url 'potenciais_votantes.update' id %}"
+           class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-transition tw-shadow-soft">
+          <i class="fa fa-edit"></i> Editar
+        </a>
+        <button type="button" id="remover" data-id="{{ id }}"
+                class="tw-inline-flex tw-items-center tw-gap-2 tw-px-4 tw-h-10 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-text-rose-600 tw-border tw-border-rose-200 hover:tw-bg-rose-50 tw-transition">
+          <i class="fa fa-trash"></i> Remover
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {% include 'pages/potenciais_votantes/_form_fields.html' %}
+
+</div>
+
+<script>
+  (function () {
+    var $ = window.jQuery;
+    if (!$) return;
+    // make the form readonly on view
+    $('#pv-form, .ef-field input, .ef-field select, .ef-field textarea').prop('readonly', true).prop('disabled', true);
+
+    function getCookie(name) { var m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)'); return m ? decodeURIComponent(m[2]) : null; }
+    $(document).on('click', '#remover', function () {
+      if (!confirm('Tem a certeza que deseja remover este registo?')) return;
+      $.post("{% url 'potenciais_votantes.remover' %}", { id: $(this).data('id'), csrfmiddlewaretoken: getCookie('csrftoken') })
+        .done(function () { location.href = "{% url 'potenciais_votantes.index' %}"; })
+        .fail(function () { alert('Erro ao remover.'); });
+    });
+  })();
+</script>
+{% endblock %}
