@@ -20,6 +20,9 @@ urlpatterns = [
     path("/mesa/export/excel", views.exportExcelMesa, name="mesa.exportExcel_mesa"),
     path("/mesa/upload/preview", views.uploadMesaPreview, name="mesa.upload_preview_mesa"),
     path("/mesa/upload", views.uploadMesa, name="mesa.upload_mesa"),
+
+    path("/delegados/upload/preview", views.uploadDelegadosPreview, name="mesa.upload_preview_delegados"),
+    path("/delegados/upload", views.uploadDelegados, name="mesa.upload_delegados"),
     
 ]
 

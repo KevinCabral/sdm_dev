@@ -132,6 +132,11 @@
         <i class="fa fa-download tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Exportar</span>
       </button>
 
+      <button id="importar-delegados"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-upload tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Importar</span>
+      </button>
+
       <button id="criar"
               class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
         <i class="fa fa-plus tw-text-xs"></i><span>Criar</span>
@@ -295,6 +300,72 @@
         <button type="button" id="create-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
         <button type="button" id="save" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
           <i class="fa fa-check tw-text-xs"></i><span>Criar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="import-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-2xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-mpd-50 tw-text-mpd-700 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-upload tw-text-xs"></i>
+        </span>
+        <span>Importar Delegados (Mesa · Nomes · Contacto)</span>
+      </h2>
+      <button type="button" id="import-modal-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'mesa.upload_delegados' %}" method="post" id="import-form" enctype="multipart/form-data" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+
+      <div class="tw-text-xs tw-text-slate-600 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-p-3">
+        Carregue um ficheiro <strong>CSV / XLS / XLSX</strong> com as colunas:
+        <code>MESA</code>, <code>NOMES</code>, <code>CONTACTO</code> (opcional).<br>
+        Para cada linha será criada/reativada a mesa, criado o utilizador
+        <code>username = mesa sem &quot;-&quot; em minúsculas</code>,
+        email <code>username@mpd.cv</code>, password <code>username + 2026</code>,
+        adicionado ao grupo <strong>delegado</strong> e associado à mesa.
+      </div>
+
+      <div class="form-group">
+        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Ficheiro <span class="tw-text-rose-500">*</span></label>
+        <input type="file" id="arquivo_delegados" name="arquivo_delegados" accept=".csv,.xls,.xlsx"
+               class="tw-block tw-w-full tw-text-sm tw-text-slate-700 file:tw-mr-3 file:tw-py-2 file:tw-px-3 file:tw-rounded-md file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-mpd-50 file:tw-text-mpd-700 hover:file:tw-bg-mpd-100">
+        <span class="errors"></span>
+      </div>
+
+      <div id="import-preview" class="tw-hidden tw-border tw-border-slate-200 tw-rounded-md tw-overflow-hidden">
+        <div class="tw-px-3 tw-py-2 tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-text-xs tw-text-slate-700" id="import-preview-summary"></div>
+        <div class="tw-overflow-x-auto tw-max-h-72">
+          <table class="tw-min-w-full tw-text-xs">
+            <thead class="tw-bg-slate-50 tw-text-slate-500">
+              <tr>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Mesa</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Username</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Nome</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Contacto</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Mesa</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Utilizador</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Associação</th>
+              </tr>
+            </thead>
+            <tbody id="import-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="import-modal-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="import-preview-btn" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-eye tw-text-xs"></i><span>Pré-visualizar</span>
+        </button>
+        <button type="submit" id="import-submit" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-upload tw-text-xs"></i><span>Importar</span>
         </button>
       </div>
     </form>
@@ -591,6 +662,92 @@
     }).always(function () {
       button.prop('disabled', false);
       button.html(original);
+    });
+  });
+
+  // ---- Import Delegados ----
+  function showImportModal() {
+    $('#import-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function hideImportModal() {
+    $('#import-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+  function resetImportModal() {
+    $('#import-form')[0].reset();
+    $('#import-preview').addClass('tw-hidden');
+    $('#import-preview-body').empty();
+    $('#import-preview-summary').empty();
+  }
+
+  $(document).on('click', '#importar-delegados', function () {
+    resetImportModal();
+    showImportModal();
+  });
+  $(document).on('click', '#import-modal-close,#import-modal-cancel', function () { hideImportModal(); });
+  $(document).on('click', '#import-modal', function (e) { if (e.target === this) hideImportModal(); });
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape' && !$('#import-modal').hasClass('tw-hidden')) hideImportModal();
+  });
+
+  function actionBadge(action) {
+    var cls = 'tw-bg-slate-100 tw-text-slate-600';
+    if (action === 'Criar') cls = 'tw-bg-mpd-50 tw-text-mpd-700';
+    else if (action === 'Reativar') cls = 'tw-bg-amber-50 tw-text-amber-700';
+    else if (action === 'Existe') cls = 'tw-bg-slate-100 tw-text-slate-500';
+    return '<span class="tw-inline-flex tw-items-center tw-px-1.5 tw-py-0.5 tw-rounded ' + cls + ' tw-text-[10px] tw-font-medium">' + action + '</span>';
+  }
+
+  $(document).on('click', '#import-preview-btn', function () {
+    var file = $('#arquivo_delegados')[0].files[0];
+    if (!file) {
+      toast('Escolha um ficheiro', 'error');
+      return;
+    }
+    var btn = $(this);
+    var original = btn.html();
+    btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i><span>A analisar...</span>');
+
+    var fd = new FormData();
+    fd.append('arquivo_delegados', file);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    $.ajax({
+      url: "{% url 'mesa.upload_preview_delegados' %}",
+      type: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      success: function (res) {
+        var summary = 'Linhas: ' + res.total_rows + ' · ignoradas: ' + res.skipped_rows
+          + ' · Mesas: +' + res.created_mesas + ' / reativ. ' + res.reactivated_mesas + ' / exist. ' + res.skipped_mesas
+          + ' · Utilizadores: +' + res.created_users + ' / exist. ' + res.skipped_users
+          + ' · Associações: +' + res.created_assocs + ' / exist. ' + res.skipped_assocs;
+        $('#import-preview-summary').text(summary);
+        var $body = $('#import-preview-body').empty();
+        (res.preview || []).forEach(function (r) {
+          $body.append(
+            '<tr class="tw-border-t tw-border-slate-100">' +
+            '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700 tw-font-medium">' + r.mesa + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + r.username + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + r.nome + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5 tw-text-slate-600">' + (r.contacto || '—') + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5">' + actionBadge(r.mesa_action) + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5">' + actionBadge(r.user_action) + '</td>' +
+            '<td class="tw-px-2 tw-py-1.5">' + actionBadge(r.assoc_action) + '</td>' +
+            '</tr>'
+          );
+        });
+        $('#import-preview').removeClass('tw-hidden');
+      },
+      error: function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Erro ao analisar ficheiro';
+        toast(msg, 'error');
+      },
+      complete: function () {
+        btn.prop('disabled', false).html(original);
+      }
     });
   });
 </script>

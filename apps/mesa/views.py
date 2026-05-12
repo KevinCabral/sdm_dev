@@ -12,7 +12,8 @@ from django.forms.models import model_to_dict
 from .form import UserMesaForm,MesaForm
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
+from django.db import transaction
 import pandas as pd
 import io
 
@@ -563,3 +564,309 @@ def exportExcelMesa(request):
             data = list(model_to_dict(i).values())
             writer.writerow(data)
     return response
+
+
+# --------------------------------------------------------------------------- #
+# Importação de Delegados (MESA · NOMES · CONTACTO)
+# --------------------------------------------------------------------------- #
+
+DELEGADO_GROUP_NAME = "delegado"
+DELEGADO_PASSWORD_SUFFIX = "2026"
+DELEGADO_EMAIL_DOMAIN = "@mpd.cv"
+
+
+def _find_column(df, candidates):
+    normalized_map = {_normalize_column_name(col): col for col in df.columns}
+    for cand in candidates:
+        if cand in normalized_map:
+            return normalized_map[cand]
+    return None
+
+
+def _delegado_username_from_mesa(nr_mesa):
+    """saa01 from 'SA-A-01' (strip '-', spaces, lowercase)."""
+    cleaned = "".join(str(nr_mesa).split()).replace("-", "").lower()
+    return cleaned
+
+
+def _clean_cell(value):
+    if value is None:
+        return ""
+    if isinstance(value, float) and pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if text.lower() == "nan":
+        return ""
+    # pandas may turn integer contacts into "9943769.0"
+    if text.endswith(".0") and text[:-2].isdigit():
+        text = text[:-2]
+    return text
+
+
+def _analyze_delegado_rows(df):
+    mesa_col = _find_column(df, ["mesa", "nr mesa", "nrmesa", "numero mesa", "n mesa"])
+    nome_col = _find_column(df, ["nomes", "nome", "primeiro nome"])
+    contacto_col = _find_column(df, ["contacto", "contato", "telefone", "telemovel", "telemóvel", "phone"])
+
+    if not mesa_col or not nome_col:
+        return None, None, None, None
+
+    rows = []
+    for _, row in df.iterrows():
+        mesa = _clean_cell(row.get(mesa_col))
+        nome = _clean_cell(row.get(nome_col))
+        contacto = _clean_cell(row.get(contacto_col)) if contacto_col else ""
+        if not mesa or not nome:
+            rows.append(None)
+            continue
+        rows.append({"mesa": mesa, "nome": nome, "contacto": contacto})
+    return rows, mesa_col, nome_col, contacto_col
+
+
+def _summarize_delegado_import(rows, preview_limit=10):
+    """Plan import without writing anything."""
+    skipped = 0
+    seen_users = set()
+    seen_mesas = set()
+    plan = []  # list of dicts: {mesa, username, nome, contacto, mesa_action, user_action, assoc_action}
+
+    valid = [r for r in rows if r]
+    skipped += sum(1 for r in rows if not r)
+
+    mesa_values = list({r["mesa"] for r in valid})
+    existing_mesas = {
+        m.nr_mesa: m
+        for m in Mesa.objects.filter(nr_mesa__in=mesa_values)
+    }
+
+    usernames = list({_delegado_username_from_mesa(r["mesa"]) for r in valid})
+    existing_users = {u.username: u for u in User.objects.filter(username__in=usernames)}
+
+    existing_assocs = set()
+    if existing_users and existing_mesas:
+        for um in UserMesa.objects.filter(
+            user_id__in=[u.id for u in existing_users.values()],
+            mesa_id__in=[m.id for m in existing_mesas.values()],
+        ).values_list("user_id", "mesa_id"):
+            existing_assocs.add(um)
+
+    created_users = 0
+    reactivated_users = 0
+    skipped_users = 0
+    created_mesas = 0
+    reactivated_mesas = 0
+    skipped_mesas = 0
+    created_assocs = 0
+    skipped_assocs = 0
+
+    for r in valid:
+        mesa = r["mesa"]
+        username = _delegado_username_from_mesa(mesa)
+        if not username:
+            skipped += 1
+            continue
+
+        # Mesa
+        m = existing_mesas.get(mesa)
+        if m is None:
+            mesa_action = "Criar"
+            if mesa not in seen_mesas:
+                created_mesas += 1
+        elif str(m.status) != "1":
+            mesa_action = "Reativar"
+            if mesa not in seen_mesas:
+                reactivated_mesas += 1
+        else:
+            mesa_action = "Existe"
+            if mesa not in seen_mesas:
+                skipped_mesas += 1
+        seen_mesas.add(mesa)
+
+        # User
+        u = existing_users.get(username)
+        if u is None:
+            user_action = "Criar"
+            if username not in seen_users:
+                created_users += 1
+        else:
+            user_action = "Existe"
+            if username not in seen_users:
+                skipped_users += 1
+        seen_users.add(username)
+
+        # Association
+        if u is not None and m is not None and (u.id, m.id) in existing_assocs:
+            assoc_action = "Existe"
+            skipped_assocs += 1
+        else:
+            assoc_action = "Criar"
+            created_assocs += 1
+
+        if len(plan) < preview_limit:
+            plan.append({
+                "mesa": mesa,
+                "username": username,
+                "email": username + DELEGADO_EMAIL_DOMAIN,
+                "password": username + DELEGADO_PASSWORD_SUFFIX,
+                "nome": r["nome"],
+                "contacto": r["contacto"],
+                "mesa_action": mesa_action,
+                "user_action": user_action,
+                "assoc_action": assoc_action,
+            })
+
+    return {
+        "total_rows": len(rows),
+        "skipped_rows": skipped,
+        "created_mesas": created_mesas,
+        "reactivated_mesas": reactivated_mesas,
+        "skipped_mesas": skipped_mesas,
+        "created_users": created_users,
+        "skipped_users": skipped_users,
+        "created_assocs": created_assocs,
+        "skipped_assocs": skipped_assocs,
+        "preview": plan,
+    }
+
+
+@login_required
+def uploadDelegadosPreview(request):
+    if request.method != "POST" or "arquivo_delegados" not in request.FILES:
+        return JsonResponse({"message": "Selecione um ficheiro para pré-visualizar"}, status=400)
+
+    upload = request.FILES["arquivo_delegados"]
+    df = _load_mesa_dataframe(upload)
+    if df is None:
+        return JsonResponse({"message": "Não foi possível ler o ficheiro. Use CSV, XLS ou XLSX"}, status=400)
+    if df.empty:
+        return JsonResponse({"message": "Ficheiro sem dados para importar"}, status=400)
+
+    rows, mesa_col, nome_col, contacto_col = _analyze_delegado_rows(df)
+    if rows is None:
+        return JsonResponse({
+            "message": "Colunas em falta. O ficheiro deve conter: MESA, NOMES (CONTACTO opcional)"
+        }, status=400)
+
+    summary = _summarize_delegado_import(rows)
+    summary["filename"] = upload.name
+    summary["columns"] = {
+        "mesa": mesa_col,
+        "nomes": nome_col,
+        "contacto": contacto_col,
+    }
+    return JsonResponse(summary)
+
+
+@login_required
+def uploadDelegados(request):
+    if request.method != "POST" or "arquivo_delegados" not in request.FILES:
+        messages.error(request, "Selecione um ficheiro para carregar")
+        return redirect("mesa.index")
+
+    upload = request.FILES["arquivo_delegados"]
+    df = _load_mesa_dataframe(upload)
+    if df is None:
+        messages.error(request, "Não foi possível ler o ficheiro. Use CSV, XLS ou XLSX")
+        return redirect("mesa.index")
+    if df.empty:
+        messages.warning(request, "Ficheiro sem dados para importar")
+        return redirect("mesa.index")
+
+    rows, _mesa_col, _nome_col, _contacto_col = _analyze_delegado_rows(df)
+    if rows is None:
+        messages.error(request, "Colunas em falta. O ficheiro deve conter: MESA, NOMES (CONTACTO opcional)")
+        return redirect("mesa.index")
+
+    delegado_group, _ = Group.objects.get_or_create(name=DELEGADO_GROUP_NAME)
+
+    created_users = 0
+    updated_users = 0
+    created_mesas = 0
+    reactivated_mesas = 0
+    created_assocs = 0
+    skipped_assocs = 0
+    errors = 0
+
+    seen_usernames = set()
+    seen_mesas = set()
+
+    with transaction.atomic():
+        for r in rows:
+            if not r:
+                continue
+            try:
+                mesa_value = r["mesa"]
+                nome = r["nome"]
+                username = _delegado_username_from_mesa(mesa_value)
+                if not username:
+                    errors += 1
+                    continue
+
+                # Mesa
+                mesa_obj, mesa_created = Mesa.objects.get_or_create(
+                    nr_mesa=mesa_value, defaults={"status": 1}
+                )
+                if mesa_value not in seen_mesas:
+                    seen_mesas.add(mesa_value)
+                    if mesa_created:
+                        created_mesas += 1
+                    elif str(mesa_obj.status) != "1":
+                        mesa_obj.status = 1
+                        mesa_obj.save(update_fields=["status"])
+                        reactivated_mesas += 1
+
+                # User
+                email = username + DELEGADO_EMAIL_DOMAIN
+                password = username + DELEGADO_PASSWORD_SUFFIX
+
+                user_obj, user_created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        "first_name": nome[:150],
+                        "email": email,
+                        "is_active": True,
+                    },
+                )
+                if user_created:
+                    user_obj.set_password(password)
+                    user_obj.save()
+                    created_users += 1
+                else:
+                    changed = False
+                    if not user_obj.first_name:
+                        user_obj.first_name = nome[:150]
+                        changed = True
+                    if not user_obj.email:
+                        user_obj.email = email
+                        changed = True
+                    if changed:
+                        user_obj.save(update_fields=["first_name", "email"])
+                        updated_users += 1
+
+                if username not in seen_usernames:
+                    seen_usernames.add(username)
+                    user_obj.groups.add(delegado_group)
+
+                # Association
+                assoc, assoc_created = UserMesa.objects.get_or_create(
+                    user=user_obj, mesa=mesa_obj
+                )
+                if assoc_created:
+                    created_assocs += 1
+                else:
+                    skipped_assocs += 1
+            except Exception:
+                errors += 1
+                continue
+
+    messages.success(
+        request,
+        (
+            f"Importação concluída. "
+            f"Mesas criadas: {created_mesas}, reativadas: {reactivated_mesas}. "
+            f"Utilizadores criados: {created_users}, atualizados: {updated_users}. "
+            f"Associações criadas: {created_assocs}, existentes: {skipped_assocs}. "
+            f"Erros: {errors}."
+        ),
+    )
+    return redirect("mesa.index")
