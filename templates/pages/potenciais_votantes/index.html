@@ -96,6 +96,10 @@
       </div>
       <input id="localidade" type="text" placeholder="Localidade"
              class="tw-w-36 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+      <input id="programa" type="text" placeholder="Programa"
+             class="tw-w-36 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+      <input id="concelho" type="text" placeholder="Concelho"
+             class="tw-w-36 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
       <input id="telefone" type="text" placeholder="Telefone"
              class="tw-w-32 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
       <label class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2 tw-cursor-pointer tw-shrink-0 tw-text-slate-600 hover:tw-text-slate-900 tw-transition">
@@ -336,7 +340,7 @@
       <label for="im-file" class="tw-block tw-cursor-pointer tw-border-2 tw-border-dashed tw-border-slate-300 hover:tw-border-mpd-400 tw-rounded-xl tw-p-10 tw-text-center tw-transition">
         <i class="fa fa-cloud-upload-alt tw-text-4xl tw-text-mpd-500 tw-mb-3 tw-block"></i>
         <div class="tw-text-sm tw-font-semibold tw-text-slate-700">Clique para selecionar um ou vários ficheiros</div>
-        <div class="tw-text-xs tw-text-slate-500 tw-mt-1">Excel (.xlsx, .xls) ou CSV — colunas esperadas: NOME · LOCALIDADE · ASSINATURA · TELEFONE</div>
+        <div class="tw-text-xs tw-text-slate-500 tw-mt-1">Excel (.xlsx, .xls) ou CSV — colunas suportadas: NOME · LOCALIDADE · TELEFONE · CONCELHO · PROGRAMA · ASSINATURA</div>
         <input type="file" id="im-file" class="tw-hidden" accept=".xlsx,.xls,.csv" multiple>
       </label>
       <div id="im-loading" class="tw-hidden tw-mt-4 tw-text-center tw-text-sm tw-text-slate-500">
@@ -376,12 +380,18 @@
         </div>
       </div>
 
-      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-items-center tw-justify-between tw-gap-3">
+      <div class="tw-px-5 tw-py-3 tw-border-t tw-border-slate-200 tw-bg-slate-50 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
         <button id="im-btn-back" class="tw-h-9 tw-px-3 tw-text-sm tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md">← Trocar ficheiros</button>
-        <label for="im-overwrite" class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-700 tw-cursor-pointer tw-select-none tw-mr-auto tw-ml-3" title="Quando ativo, registos com o mesmo (nome, telefone) já existentes serão atualizados em vez de ignorados.">
-          <input id="im-overwrite" type="checkbox" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
-          <span>Substituir duplicados (nome + telefone)</span>
-        </label>
+        <div class="tw-flex tw-flex-col sm:tw-flex-row tw-flex-wrap tw-items-start sm:tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mr-auto tw-ml-3">
+          <label for="im-update-by-phone" class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-700 tw-cursor-pointer tw-select-none" title="Quando ativo, registos com o mesmo TELEFONE são atualizados (mantendo o id), em vez de criar duplicados.">
+            <input id="im-update-by-phone" type="checkbox" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+            <span>Atualizar existentes pelo <strong>Telefone</strong></span>
+          </label>
+          <label for="im-overwrite" class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-700 tw-cursor-pointer tw-select-none" title="Quando ativo, registos com o mesmo (nome, telefone) já existentes serão atualizados em vez de ignorados.">
+            <input id="im-overwrite" type="checkbox" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-text-mpd-600 focus:tw-ring-mpd-500">
+            <span>Substituir duplicados (nome + telefone)</span>
+          </label>
+        </div>
         <button id="im-btn-start" class="tw-h-9 tw-px-4 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-inline-flex tw-items-center tw-gap-2">
           <i class="fa fa-play"></i> Iniciar importação
         </button>
@@ -421,6 +431,8 @@
     return Object.assign({
       nome: $('#nome').val(),
       localidade: $('#localidade').val(),
+      programa: $('#programa').val(),
+      concelho: $('#concelho').val(),
       telefone: $('#telefone').val(),
       is_contactado: $('#is_contactado').is(':checked'),
     }, extra || {});
@@ -431,6 +443,8 @@
     const f = currentFilters();
     if (f.nome)          chips.push({ k: 'nome',          label: 'Nome: '       + f.nome });
     if (f.localidade)    chips.push({ k: 'localidade',    label: 'Localidade: ' + f.localidade });
+    if (f.programa)      chips.push({ k: 'programa',      label: 'Programa: '   + f.programa });
+    if (f.concelho)      chips.push({ k: 'concelho',      label: 'Concelho: '   + f.concelho });
     if (f.telefone)      chips.push({ k: 'telefone',      label: 'Telefone: '   + f.telefone });
     if (f.is_contactado) chips.push({ k: 'is_contactado', label: 'Contactados' });
 
@@ -452,12 +466,12 @@
     }).fail(() => toast('Erro ao carregar resultados', 'error'));
   }
 
-  $(document).on('input', '#nome, #localidade, #telefone', function () { clearTimeout(debounce); debounce = setTimeout(() => { search(); }, 350); });
-  $(document).on('keydown', '#nome, #localidade, #telefone', function (e) { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounce); search(); } });
+  $(document).on('input', '#nome, #localidade, #programa, #concelho, #telefone', function () { clearTimeout(debounce); debounce = setTimeout(() => { search(); }, 350); });
+  $(document).on('keydown', '#nome, #localidade, #programa, #concelho, #telefone', function (e) { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounce); search(); } });
   $(document).on('change', '#is_contactado', () => search());
   $(document).on('click', '#btn-search', (e) => { e.preventDefault(); search(); });
   $(document).on('click', '#btn-clear', function () {
-    $('#nome,#localidade,#telefone').val('');
+    $('#nome,#localidade,#programa,#concelho,#telefone').val('');
     $('#is_contactado').prop('checked', false);
     search();
   });
@@ -698,6 +712,7 @@
     const fd = new FormData();
     uploadFiles.forEach(f => fd.append('arquivo_excel', f));
     fd.append('overwrite', $('#im-overwrite').is(':checked') ? '1' : '0');
+    fd.append('update_by_phone', $('#im-update-by-phone').is(':checked') ? '1' : '0');
     fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
 
     $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> A iniciar...');

@@ -22,6 +22,14 @@
         {{ form.telefone }}{{ form.telefone.errors }}
       </div>
       <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.concelho.id_for_label }}">{{ form.concelho.label }}</label>
+        {{ form.concelho }}{{ form.concelho.errors }}
+      </div>
+      <div class="lg:tw-col-span-3 ef-field">
+        <label for="{{ form.programa.id_for_label }}">{{ form.programa.label }}</label>
+        {{ form.programa }}{{ form.programa.errors }}
+      </div>
+      <div class="lg:tw-col-span-3 ef-field">
         <p class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-2 tw-mt-0">
           Estado
         </p>

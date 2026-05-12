@@ -7,6 +7,8 @@ class PotencialVotanteForm(forms.ModelForm):
     nome = forms.CharField(max_length=255, required=True, label="Nome Completo")
     localidade = forms.CharField(max_length=255, required=False, label="Localidade")
     telefone = forms.CharField(max_length=64, required=False, label="Telefone")
+    programa = forms.CharField(max_length=255, required=False, label="Programa")
+    concelho = forms.CharField(max_length=255, required=False, label="Concelho")
     assinatura = forms.BooleanField(required=False, label="Assinatura recolhida")
     is_contactado = forms.BooleanField(required=False, label="Contactado")
     observacao = forms.CharField(
@@ -17,7 +19,10 @@ class PotencialVotanteForm(forms.ModelForm):
 
     class Meta:
         model = PotencialVotante
-        fields = ('nome', 'localidade', 'telefone', 'assinatura', 'is_contactado', 'observacao')
+        fields = (
+            'nome', 'localidade', 'telefone', 'programa', 'concelho',
+            'assinatura', 'is_contactado', 'observacao',
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

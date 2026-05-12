@@ -31,14 +31,46 @@ FIELD_MAP = {
     'localidade':    ('localidade', 'str'),
     'local':         ('localidade', 'str'),
     'zona':          ('localidade', 'str'),
+    'concelho':      ('concelho', 'str'),
+    'concelhos':     ('concelho', 'str'),
+    'municipio':     ('concelho', 'str'),
+    'município':     ('concelho', 'str'),
+    'programa':      ('programa', 'str'),
+    'programas':     ('programa', 'str'),
+    'plano':         ('programa', 'str'),
     'assinatura':    ('assinatura', 'bool'),
     'is contactado': ('is_contactado', 'bool'),
     'contactado':    ('is_contactado', 'bool'),
     'contactados':   ('is_contactado', 'bool'),
     'telefone':      ('telefone', 'str'),
     'tel':           ('telefone', 'str'),
+    'tel.':          ('telefone', 'str'),
+    'telemovel':     ('telefone', 'str'),
+    'telemóvel':     ('telefone', 'str'),
+    'telm':          ('telefone', 'str'),
+    'telm.':         ('telefone', 'str'),
+    'celular':       ('telefone', 'str'),
+    'cel':           ('telefone', 'str'),
+    'cel.':          ('telefone', 'str'),
+    'movel':         ('telefone', 'str'),
+    'móvel':         ('telefone', 'str'),
+    'numero':        ('telefone', 'str'),
+    'número':        ('telefone', 'str'),
+    'n.':            ('telefone', 'str'),
+    'nº':            ('telefone', 'str'),
+    'no':            ('telefone', 'str'),
+    'no.':           ('telefone', 'str'),
+    'n telefone':    ('telefone', 'str'),
+    'n. telefone':   ('telefone', 'str'),
+    'nº telefone':   ('telefone', 'str'),
+    'no telefone':   ('telefone', 'str'),
+    'numero telefone': ('telefone', 'str'),
+    'número telefone': ('telefone', 'str'),
+    'phone':         ('telefone', 'str'),
+    'mobile':        ('telefone', 'str'),
     'contato':       ('telefone', 'str'),
     'contacto':      ('telefone', 'str'),
+    'contactos':     ('telefone', 'str'),
     'observacao':    ('observacao', 'str'),
     'observação':    ('observacao', 'str'),
     'observacoes':   ('observacao', 'str'),
@@ -82,7 +114,23 @@ def _coerce_value(value, kind):
     s = str(value).strip()
     if not s or s.lower() in ('nan', 'none', 'null'):
         return None
+    # pandas sometimes emits "912345678.0" for integer-valued numeric cells
+    # even when dtype=str is forced. Drop the trailing ".0" so phone numbers
+    # and similar identifiers keep their original form.
+    if s.endswith('.0') and s[:-2].lstrip('-').isdigit():
+        s = s[:-2]
     return s
+
+
+def _norm_phone(value):
+    """Normalize a phone number for key comparison.
+
+    Strips ALL whitespace so ``"912 345 678"`` and ``"912345678"`` compare
+    equal. Returns ``""`` when the input is empty/None.
+    """
+    if value is None:
+        return ''
+    return ''.join(str(value).split())
 
 
 def _row_to_kwargs(row, col_map):
@@ -93,6 +141,14 @@ def _row_to_kwargs(row, col_map):
         coerced = _coerce_value(row[col], kind)
         if coerced is None:
             continue
+        # Telefone often comes in with inconsistent spacing
+        # ("912 345 678" vs "912345678"). Strip ALL whitespace so the value
+        # is comparable as a key (used for update-by-telefone) and matches
+        # cleanly across files.
+        if field == 'telefone' and isinstance(coerced, str):
+            coerced = _norm_phone(coerced)
+            if not coerced:
+                continue
         # For bool fields we still want to record explicit False values, but
         # _coerce_value already returns False above. Skip only None.
         kwargs[field] = coerced
@@ -107,6 +163,10 @@ def _build_filters(request):
         filters['nome__icontains'] = nome
     if localidade := request.GET.get("localidade", ""):
         filters['localidade__icontains'] = localidade
+    if programa := request.GET.get("programa", ""):
+        filters['programa__icontains'] = programa
+    if concelho := request.GET.get("concelho", ""):
+        filters['concelho__icontains'] = concelho
     if telefone := request.GET.get("telefone", ""):
         filters['telefone__icontains'] = telefone
     if request.GET.get("assinatura", "false") == "true":
@@ -423,10 +483,17 @@ def exportExcel(request):
 # ──────────────────────────────────────────────────────────────────────
 
 def _read_excel_safe(file_obj):
+    """Read Excel/CSV preserving cell text.
+
+    We force dtype=str so phone numbers (often parsed as float by pandas,
+    e.g. ``912345678`` → ``912345678.0`` or scientific notation) keep their
+    original textual form. NaN cells become the literal string ``"nan"``;
+    ``_coerce_value`` already handles that case.
+    """
     name = getattr(file_obj, 'name', '') or ''
     if name.lower().endswith('.csv'):
-        return pd.read_csv(file_obj)
-    return pd.read_excel(file_obj)
+        return pd.read_csv(file_obj, dtype=str, keep_default_na=False)
+    return pd.read_excel(file_obj, dtype=str, keep_default_na=False)
 
 
 @login_required
@@ -447,6 +514,15 @@ def import_preview(request):
     required_fields = ['nome']
     missing = [f for f in required_fields if f not in mapped_fields]
     sample = df.head(20).fillna('').astype(str).to_dict(orient='records')
+
+    # Strip whitespace from phone-mapped columns so the preview shows the
+    # exact value that will be persisted (matches _row_to_kwargs behaviour).
+    phone_cols = [col for col, (field, _) in col_map.items() if field == 'telefone']
+    if phone_cols:
+        for row in sample:
+            for col in phone_cols:
+                if col in row and isinstance(row[col], str):
+                    row[col] = _norm_phone(row[col])
 
     return JsonResponse({
         'ok': True,
@@ -474,6 +550,7 @@ def import_start(request):
         return JsonResponse({'ok': False, 'error': 'Ficheiro obrigatório.'}, status=400)
 
     overwrite = request.POST.get('overwrite', '').strip().lower() in ('1', 'true', 'on', 'yes')
+    update_by_phone = request.POST.get('update_by_phone', '').strip().lower() in ('1', 'true', 'on', 'yes')
 
     jobs = []
     for f in files:
@@ -487,12 +564,12 @@ def import_start(request):
         threading.Thread(
             target=_run_import_job,
             args=(job.id,),
-            kwargs={'overwrite': overwrite},
+            kwargs={'overwrite': overwrite, 'update_by_phone': update_by_phone},
             daemon=True,
         ).start()
         jobs.append({'job_id': job.id, 'nome': f.name})
 
-    return JsonResponse({'ok': True, 'jobs': jobs, 'overwrite': overwrite})
+    return JsonResponse({'ok': True, 'jobs': jobs, 'overwrite': overwrite, 'update_by_phone': update_by_phone})
 
 
 @login_required
@@ -514,7 +591,7 @@ def import_status(request, job_id):
     })
 
 
-def _run_import_job(job_id, overwrite=False):
+def _run_import_job(job_id, overwrite=False, update_by_phone=False):
     from django.db import close_old_connections, transaction
 
     try:
@@ -548,12 +625,46 @@ def _run_import_job(job_id, overwrite=False):
             .exclude(telefone__isnull=True)
             .values_list('nome', 'telefone')
         )
+        # Set of telefone values currently in DB. Used by update_by_phone mode
+        # so we can decide INSERT vs UPDATE per row. The actual update is done
+        # via filter(telefone=tel).update(...) so the matching is done by the
+        # database, not by an id we cached. This keeps the rule simple:
+        #     KEY = telefone -> telefone
+        # If somehow several DB rows share the same phone (shouldn't happen
+        # after dedupe), they all stay in sync.
+        existing_phones = set()
+        # Fallback (nome, localidade) keys: only DB rows without a telefone
+        # are candidates. We deliberately exclude rows that DO have a phone
+        # so we never overwrite a different real person who happens to share
+        # nome+localidade.
+        existing_no_phone_keys = set()
+        if update_by_phone:
+            existing_phones = set(
+                _norm_phone(t)
+                for t in (PotencialVotante.objects
+                          .exclude(telefone__isnull=True)
+                          .exclude(telefone__exact='')
+                          .values_list('telefone', flat=True))
+                if _norm_phone(t)
+            )
+            from django.db.models import Q
+            existing_no_phone_keys = set(
+                PotencialVotante.objects
+                .filter(Q(telefone__isnull=True) | Q(telefone__exact=''))
+                .exclude(nome__isnull=True)
+                .exclude(nome__exact='')
+                .values_list('nome', 'localidade')
+            )
         seen_in_file = set()
+        seen_phone_in_file = set()
+        seen_no_phone_in_file = set()
 
         for chunk_start in range(0, total, chunk_size):
             chunk = df.iloc[chunk_start:chunk_start + chunk_size]
             inserts = []
-            updates = []
+            updates = []           # legacy (nome, telefone) overwrite
+            phone_updates = []     # telefone-keyed update list (telefone, kwargs)
+            no_phone_updates = []  # (nome, localidade)-keyed update list when row has no telefone
             for _, row in chunk.iterrows():
                 try:
                     kwargs = _row_to_kwargs(row, col_map)
@@ -563,6 +674,39 @@ def _run_import_job(job_id, overwrite=False):
 
                     nome = kwargs.get('nome')
                     telefone = kwargs.get('telefone')
+
+                    # ----- Branch 1: update-by-telefone mode -----
+                    if update_by_phone and telefone:
+                        if telefone in seen_phone_in_file:
+                            duplicates += 1
+                            continue
+                        seen_phone_in_file.add(telefone)
+                        if telefone in existing_phones:
+                            phone_updates.append((telefone, kwargs))
+                            continue
+                        # No existing PV with this phone -> fall through to insert.
+
+                    # ----- Branch 1b: update_by_phone ON but row has no
+                    # telefone -> fall back to (nome, localidade) key so we
+                    # don't keep duplicating phoneless rows on every import.
+                    if update_by_phone and not telefone:
+                        localidade = kwargs.get('localidade')
+                        np_key = (nome, localidade)
+                        if np_key in seen_no_phone_in_file:
+                            duplicates += 1
+                            continue
+                        seen_no_phone_in_file.add(np_key)
+                        if np_key in existing_no_phone_keys:
+                            no_phone_updates.append((nome, localidade, kwargs))
+                            continue
+                        # Not in DB yet: insert new and remember the key so
+                        # later rows in the same file with the same key are
+                        # treated as duplicates instead of inserting again.
+                        existing_no_phone_keys.add(np_key)
+                        inserts.append(PotencialVotante(**kwargs))
+                        continue
+
+                    # ----- Branch 2: legacy (nome, telefone) handling -----
                     has_key = nome is not None and telefone is not None
                     key = (nome, telefone) if has_key else None
 
@@ -589,6 +733,11 @@ def _run_import_job(job_id, overwrite=False):
                         try:
                             o.save()
                             created += 1
+                            # Track newly inserted phone so a later row in the
+                            # same file with the same phone updates it instead
+                            # of creating a duplicate.
+                            if update_by_phone and o.telefone:
+                                existing_phones.add(o.telefone)
                         except Exception:
                             errors += 1
 
@@ -602,6 +751,52 @@ def _run_import_job(job_id, overwrite=False):
                             n = PotencialVotante.objects.filter(
                                 nome=key[0], telefone=key[1],
                             ).update(**update_fields) if update_fields else 0
+                            if n:
+                                updated += n
+                        except Exception:
+                            errors += 1
+
+            if phone_updates:
+                with transaction.atomic():
+                    for telefone_key, kwargs in phone_updates:
+                        try:
+                            update_fields = dict(kwargs)
+                            # Telefone IS the key; never rewrite it.
+                            update_fields.pop('telefone', None)
+                            if not update_fields:
+                                continue
+                            # Match by telefone (the key). If multiple rows
+                            # share the same phone, all of them get the same
+                            # update — keeps "duplicates" in sync.
+                            n = PotencialVotante.objects.filter(
+                                telefone=telefone_key,
+                            ).update(**update_fields)
+                            if n:
+                                updated += n
+                        except Exception:
+                            errors += 1
+
+            if no_phone_updates:
+                from django.db.models import Q
+                with transaction.atomic():
+                    for nome_key, localidade_key, kwargs in no_phone_updates:
+                        try:
+                            update_fields = dict(kwargs)
+                            # Nome+localidade form the key here; don't rewrite
+                            # them. Telefone is empty by definition.
+                            update_fields.pop('nome', None)
+                            update_fields.pop('localidade', None)
+                            update_fields.pop('telefone', None)
+                            if not update_fields:
+                                continue
+                            qs = PotencialVotante.objects.filter(nome=nome_key).filter(
+                                Q(telefone__isnull=True) | Q(telefone__exact='')
+                            )
+                            if localidade_key is None:
+                                qs = qs.filter(Q(localidade__isnull=True) | Q(localidade__exact=''))
+                            else:
+                                qs = qs.filter(localidade=localidade_key)
+                            n = qs.update(**update_fields)
                             if n:
                                 updated += n
                         except Exception:

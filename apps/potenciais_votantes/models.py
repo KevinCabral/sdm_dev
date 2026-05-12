@@ -13,6 +13,10 @@ class PotencialVotante(models.Model):
     localidade = models.CharField(max_length=255, blank=True, null=True)
     telefone = models.CharField(max_length=64, blank=True, null=True)
 
+    # Optional contextual data (added later — see migration 0003).
+    programa = models.CharField(max_length=255, blank=True, null=True)
+    concelho = models.CharField(max_length=255, blank=True, null=True)
+
     # ASSINATURA in the source sheet is "did the contact sign?". Stored as a
     # boolean so it can drive filters/badges; True when the cell is non-empty
     # or contains an affirmative value.
