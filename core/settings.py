@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "apps.militante_match",
     "apps.potenciais_votantes",
     "apps.potenciais_militantes",
+    "apps.territorio",
 
     # Tooling Dynamic_DT
     'django_dyn_dt',             # <-- NEW: Dynamic_DT

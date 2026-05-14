@@ -119,3 +119,82 @@ class EleicaoImport(models.Model):
         if not self.total_linhas:
             return 0
         return min(100, round((self.processadas / self.total_linhas) * 100, 1))
+
+
+class CadernoEleitoral2026(models.Model):
+    """Caderno Eleitoral — Eleição dos Titulares de Assembleia Nacional 2026.
+
+    Mirrors the official PDF/CSV layout. The header metadata
+    (ILHA / CRE / POSTO / CONCELHO / MESA) is repeated on every row so each
+    record is self-contained and filterable.
+    """
+
+    # Header metadata
+    ilha = models.CharField(max_length=100, blank=True, default="")
+    cre = models.CharField(max_length=150, blank=True, default="")
+    posto = models.CharField(max_length=150, blank=True, default="")
+    concelho = models.CharField(max_length=150, blank=True, default="")
+    mesa = models.CharField(max_length=50, blank=True, default="")
+
+    # Per-voter columns
+    numero = models.IntegerField(blank=True, null=True)  # 1/384, stored as 1
+    nome = models.CharField(max_length=255)
+    filiacao = models.TextField(blank=True, default="")
+    nome_pai = models.CharField(max_length=255, blank=True, default="")
+    nome_mae = models.CharField(max_length=255, blank=True, default="")
+    data_nascimento = models.DateField(blank=True, null=True)
+    descarga = models.BooleanField(default=False)
+
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "caderno_eleitoral_2026"
+        ordering = ["mesa", "numero"]
+        indexes = [
+            models.Index(fields=["mesa"]),
+            models.Index(fields=["concelho"]),
+            models.Index(fields=["nome"]),
+        ]
+
+    def __str__(self):
+        return f"{self.numero or '?'} — {self.nome} ({self.mesa})"
+
+
+class CadernoEleitoral2026Import(models.Model):
+    """Tracks a CSV import of caderno eleitoral 2026 rows."""
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_ERROR = "error"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pendente"),
+        (STATUS_RUNNING, "Em curso"),
+        (STATUS_DONE, "Concluído"),
+        (STATUS_ERROR, "Erro"),
+    ]
+
+    arquivo = models.FileField(upload_to="caderno_2026_imports/", null=True, blank=True)
+    nome_original = models.CharField(max_length=255, blank=True, default="")
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    total_linhas = models.IntegerField(default=0)
+    processadas = models.IntegerField(default=0)
+    criadas = models.IntegerField(default=0)
+    duplicadas = models.IntegerField(default=0)
+    atualizadas = models.IntegerField(default=0)
+    erros = models.IntegerField(default=0)
+    mensagem = models.TextField(blank=True, default="")
+
+    criado_por = models.IntegerField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "caderno_eleitoral_2026_import"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.nome_original or 'import'} ({self.get_status_display()})"

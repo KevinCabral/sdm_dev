@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from apps.militantes.models import Militantes
 from .form import EleitoresForm
 from .models import EleicaoImport, Eleitores, Votacao
+from .models import CadernoEleitoral2026, CadernoEleitoral2026Import
 
 
 # ----------------------------------------------------------------------
@@ -781,3 +782,659 @@ def distribuicaoNrMesaVotacaoRegiao(request):
         .annotate(total_eleitores=Count('concelho'))
     )
     return JsonResponse(list(porRegiao), safe=False)
+
+
+# --------------------------------------------------------------------------- #
+# Caderno Eleitoral 2026 — CSV/XLSX import
+# Columns expected (case/accents flexible):
+#   ILHA, CRE, POSTO, CONCELHO, MESA  (header metadata; can also be supplied
+#                                      as defaults via the import form)
+#   Nº (or NUMERO), NOME, FILIAÇÃO, DATA NASC, DESCARGA
+# Date format: DD-MM-YYYY (e.g. 11-11-1996). DD/MM/YYYY also accepted.
+# --------------------------------------------------------------------------- #
+
+import io as _cad_io
+from datetime import datetime as _cad_datetime
+
+CADERNO_COLUMN_ALIASES = {
+    "ilha":             "ilha",
+    "cre":              "cre",
+    "cre de":           "cre",
+    "posto":            "posto",
+    "concelho":         "concelho",
+    "mesa":             "mesa",
+    "nr mesa":          "mesa",
+    "numero mesa":      "mesa",
+
+    "no":               "numero",
+    "nº":               "numero",
+    "n":                "numero",
+    "n.":               "numero",
+    "num":              "numero",
+    "numero":           "numero",
+    "número":           "numero",
+
+    "nome":             "nome",
+
+    "filiacao":         "filiacao",
+    "filiação":         "filiacao",
+    "pais":             "filiacao",
+    "país":             "filiacao",
+
+    "pai":              "nome_pai",
+    "nome pai":         "nome_pai",
+    "nome do pai":      "nome_pai",
+    "mae":              "nome_mae",
+    "mãe":              "nome_mae",
+    "nome mae":         "nome_mae",
+    "nome da mae":      "nome_mae",
+    "nome da mãe":      "nome_mae",
+
+    "data nasc":        "data_nascimento",
+    "data nasc.":       "data_nascimento",
+    "data nascimento":  "data_nascimento",
+    "data de nascimento": "data_nascimento",
+    "nascimento":       "data_nascimento",
+    "dn":               "data_nascimento",
+
+    "descarga":         "descarga",
+}
+
+
+def _cad_norm(s):
+    return ' '.join(str(s).strip().lower().replace('_', ' ').replace('-', ' ').split())
+
+
+def _cad_clean(value):
+    if value is None:
+        return ""
+    if isinstance(value, float) and pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if text.lower() == "nan":
+        return ""
+    if text.endswith(".0") and text[:-2].lstrip("-").isdigit():
+        text = text[:-2]
+    return text
+
+
+def _cad_parse_int(value):
+    text = _cad_clean(value)
+    if not text:
+        return None
+    # accepts "1/384" (take part before '/')
+    if "/" in text:
+        text = text.split("/", 1)[0].strip()
+    try:
+        return int(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def _cad_parse_bool(value):
+    s = _cad_clean(value).lower()
+    if not s:
+        return False
+    return s in ("true", "1", "sim", "yes", "y", "s", "x", "verdadeiro")
+
+
+def _cad_parse_date(value):
+    text = _cad_clean(value)
+    if not text:
+        return None
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d", "%Y/%m/%d", "%d.%m.%Y"):
+        try:
+            return _cad_datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _cad_load_dataframe(upload):
+    name = (upload.name or "").lower()
+    raw = upload.read()
+    upload.seek(0)
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        readers = [lambda b: pd.read_excel(_cad_io.BytesIO(b), dtype=str, keep_default_na=False)]
+    else:
+        # CSV — try common separators / encodings
+        def _read_csv(b):
+            for enc in ("utf-8-sig", "utf-8", "latin-1"):
+                try:
+                    text = b.decode(enc)
+                except Exception:
+                    continue
+                for sep in (",", ";", "\t", "|"):
+                    try:
+                        df = pd.read_csv(_cad_io.StringIO(text), sep=sep, dtype=str, keep_default_na=False)
+                    except Exception:
+                        continue
+                    if df.shape[1] >= 2:
+                        return df
+            return None
+        readers = [_read_csv, lambda b: pd.read_excel(_cad_io.BytesIO(b), dtype=str, keep_default_na=False)]
+    for reader in readers:
+        try:
+            df = reader(raw)
+            if df is not None and not df.empty:
+                return df
+        except Exception:
+            continue
+    return None
+
+
+def _cad_build_colmap(df_columns):
+    mapping = {}
+    for col in df_columns:
+        target = CADERNO_COLUMN_ALIASES.get(_cad_norm(col))
+        if target and target not in mapping.values():
+            mapping[col] = target
+    return mapping
+
+
+# ---- PDF support (Caderno Eleitoral 2026 official layout) ----
+
+import re as _cad_re
+
+_CAD_DATE_RE = _cad_re.compile(r"\b(\d{2}-\d{2}-\d{4})\b")
+_CAD_NUMBER_RE = _cad_re.compile(r"^(\d+)\s*/\s*(\d+)\b")
+_CAD_HEADER_RES = {
+    "ilha":     _cad_re.compile(r"ILHA\s*:\s*([A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ \-]+?)(?=\s{2,}|\s+POSTO|\s+CONCELHO|\s+CRE|\s+MESA|$)"),
+    "posto":    _cad_re.compile(r"POSTO\s*:\s*([A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ \-]+?)(?=\s{2,}|\s+ILHA|\s+CONCELHO|\s+CRE|\s+MESA|$)"),
+    "concelho": _cad_re.compile(r"CONCELHO\s*:\s*([A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ \-]+?)(?=\s{2,}|\s+POSTO|\s+ILHA|\s+CRE|\s+MESA|$)"),
+    "mesa":     _cad_re.compile(r"MESA\s*:\s*([A-Z0-9\-]+)"),
+    "cre":      _cad_re.compile(r"CRE\s+DE\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ \-]+?)(?=\s{2,}|$)"),
+}
+
+
+def _cad_extract_pdf_text_rows(text):
+    """Heuristic line-based parser used when extract_tables() fails or returns nothing."""
+    out = []
+    if not text:
+        return out
+    current = None
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        # Skip page headers/footers
+        upper = line.upper()
+        if any(tag in upper for tag in (
+            "REPÚBLICA DE CABO VERDE", "ELEIÇÃO DOS TITULARES", "CRE DE ",
+            "ILHA:", "CONCELHO:", "POSTO:", "MESA:", "NACIONAIS",
+            "Nº NOME FILIAÇÃO", "ÚLTIMA ACTUALIZAÇÃO", "PAGE ",
+        )):
+            # Still allow a row that begins with N/N — handled below
+            mnum_inline = _CAD_NUMBER_RE.match(line)
+            if not mnum_inline:
+                continue
+        mnum = _CAD_NUMBER_RE.match(line)
+        if mnum:
+            if current and current.get("nome"):
+                out.append(current)
+            rest = line[mnum.end():].strip()
+            mdate = _CAD_DATE_RE.search(rest)
+            data_nasc = None
+            if mdate:
+                data_nasc = _cad_parse_date(mdate.group(1))
+                rest = (rest[:mdate.start()] + rest[mdate.end():]).strip()
+            current = {
+                "numero": int(mnum.group(1)),
+                "nome": rest,
+                "filiacao": "",
+                "data_nascimento": data_nasc,
+            }
+            continue
+        if current is not None:
+            mdate = _CAD_DATE_RE.search(line)
+            if mdate and not current.get("data_nascimento"):
+                current["data_nascimento"] = _cad_parse_date(mdate.group(1))
+                line = (line[:mdate.start()] + line[mdate.end():]).strip()
+                if not line:
+                    continue
+            if current.get("filiacao"):
+                current["filiacao"] += " " + line
+            else:
+                current["filiacao"] = line
+    if current and current.get("nome"):
+        out.append(current)
+    return out
+
+
+def _cad_extract_pdf_rows(raw_bytes, defaults):
+    """Parse the official Caderno Eleitoral 2026 PDF.
+
+    Strategy: use the visible horizontal rules in the table to find the
+    *vertical band* of each record, then crop each of the 5 column areas
+    and extract their text independently. This avoids issues with
+    pdfplumber's text reading order (which on this PDF returns text
+    column-by-column instead of row-by-row).
+
+    Per record:
+        Nº | NOME | FILIAÇÃO (line 1=pai, line 2=mae) | DATA NASC. | DESCARGA
+    """
+    import pdfplumber
+
+    rows = []
+    page_meta = {k: v for k, v in (defaults or {}).items() if v}
+
+    with pdfplumber.open(_cad_io.BytesIO(raw_bytes)) as pdf:
+        for page in pdf.pages:
+            try:
+                page_text = page.extract_text() or ""
+            except Exception:
+                page_text = ""
+            for field, regex in _CAD_HEADER_RES.items():
+                if not page_meta.get(field):
+                    m = regex.search(page_text)
+                    if m:
+                        page_meta[field] = m.group(1).strip()
+
+            try:
+                words = page.extract_words(
+                    keep_blank_chars=False,
+                    use_text_flow=False,
+                    extra_attrs=["x0", "x1", "top", "bottom"],
+                ) or []
+            except Exception:
+                words = []
+            if not words:
+                continue
+
+            col_x = _cad_find_columns(words)
+            if not col_x:
+                for r in _cad_extract_pdf_text_rows(page_text):
+                    rows.append(_cad_row_with_meta(r, page_meta))
+                continue
+
+            # ---- Detect row boundaries from horizontal rules ----
+            try:
+                h_lines = [ln for ln in (page.horizontal_edges or [])
+                           if ln.get("top") is not None]
+            except Exception:
+                h_lines = []
+            # Fall back to lines attribute when edges is empty.
+            if not h_lines:
+                try:
+                    h_lines = [ln for ln in (page.lines or [])
+                               if abs((ln.get("y1") or 0) - (ln.get("y0") or 0)) < 0.5]
+                except Exception:
+                    h_lines = []
+
+            row_ys = sorted({round(ln["top"], 1) for ln in h_lines
+                             if ln["top"] > col_x["header_bottom"] + 1})
+
+            page_rows = []
+            if len(row_ys) >= 2:
+                # Build row bands from consecutive horizontal lines.
+                bands = []
+                for i in range(len(row_ys) - 1):
+                    top = row_ys[i]
+                    bottom = row_ys[i + 1]
+                    if bottom - top > 8:  # ignore tiny gaps
+                        bands.append((top, bottom))
+
+                for top, bottom in bands:
+                    band_words = [w for w in words
+                                  if w["top"] >= top - 1 and w["bottom"] <= bottom + 1]
+                    if not band_words:
+                        continue
+                    cells = _cad_assign_columns(
+                        sorted(band_words, key=lambda w: w["x0"]), col_x
+                    )
+                    # Filter out the header band (which has the column titles).
+                    upper_join = " ".join(cells.values()).upper()
+                    if "FILIAÇÃO" in upper_join or "FILIACAO" in upper_join:
+                        continue
+
+                    num_cell = (cells.get("numero") or "").strip()
+                    mnum = _CAD_NUMBER_RE.match(num_cell.replace("\n", " "))
+                    if not mnum and not (cells.get("nome") or "").strip():
+                        continue
+
+                    # Build pai/mae from the FILIAÇÃO column words by y-order.
+                    fil_words = [w for w in band_words
+                                 if col_x["filiacao"][0] <= w["x0"] < col_x["filiacao"][1]]
+                    fil_words.sort(key=lambda w: (round(w["top"], 1), w["x0"]))
+                    fil_lines_words = []
+                    cur_top = None
+                    cur_line = []
+                    for w in fil_words:
+                        if cur_top is None or abs(w["top"] - cur_top) > 4.0:
+                            if cur_line:
+                                fil_lines_words.append(cur_line)
+                            cur_line = [w["text"]]
+                            cur_top = w["top"]
+                        else:
+                            cur_line.append(w["text"])
+                    if cur_line:
+                        fil_lines_words.append(cur_line)
+                    fil_lines = [" ".join(parts).strip() for parts in fil_lines_words if parts]
+                    fil_lines = [ln for ln in fil_lines if ln]
+
+                    # The mother's name often wraps to a 3rd/4th line — group
+                    # consecutive lines into pai (first 1-2 lines) vs mae (rest).
+                    nome_pai = ""
+                    nome_mae = ""
+                    if len(fil_lines) == 1:
+                        # Some records show only the mother (e.g. row 5).
+                        # Heuristic: if there's only one line, treat as mother.
+                        nome_mae = fil_lines[0]
+                    elif len(fil_lines) >= 2:
+                        # Pai is line 1 (+ maybe continuation if no MARIA/ANA/etc.
+                        # detected). Simplest: split by half — first half = pai.
+                        # Best heuristic: line 1 is pai (with optional continuation
+                        # if it looks like the same name continues), and the rest
+                        # is mãe. Father names rarely span 2 lines unless very
+                        # long; we keep it simple — first line = pai, rest = mãe.
+                        nome_pai = fil_lines[0]
+                        nome_mae = " ".join(fil_lines[1:])
+
+                    descarga_text = (cells.get("descarga") or "").strip()
+                    record = {
+                        "numero": int(mnum.group(1)) if mnum else None,
+                        "nome": (cells.get("nome") or "").strip(),
+                        "filiacao": " ".join(fil_lines),
+                        "nome_pai": nome_pai,
+                        "nome_mae": nome_mae,
+                        "data_nascimento": _cad_parse_date(
+                            (cells.get("data_nascimento") or "").strip().replace("\n", " ")
+                        ),
+                        "descarga": bool(
+                            descarga_text and descarga_text not in ("_", "-", "—", "_______")
+                        ),
+                    }
+                    if record["nome"] or record["numero"]:
+                        page_rows.append(_cad_row_with_meta(record, page_meta))
+
+            if page_rows:
+                rows.extend(page_rows)
+            else:
+                # Fallback: legacy text-line parser.
+                for r in _cad_extract_pdf_text_rows(page_text):
+                    rows.append(_cad_row_with_meta(r, page_meta))
+
+    return rows
+
+
+def _cad_row_with_meta(r, meta):
+    return {
+        "ilha": meta.get("ilha", ""),
+        "cre": meta.get("cre", ""),
+        "posto": meta.get("posto", ""),
+        "concelho": meta.get("concelho", ""),
+        "mesa": meta.get("mesa", ""),
+        "numero": r.get("numero"),
+        "nome": (r.get("nome") or "").strip(),
+        "filiacao": (r.get("filiacao") or "").strip(),
+        "nome_pai": (r.get("nome_pai") or "").strip(),
+        "nome_mae": (r.get("nome_mae") or "").strip(),
+        "data_nascimento": r.get("data_nascimento"),
+        "descarga": bool(r.get("descarga", False)),
+    }
+
+
+def _cad_find_columns(words):
+    """Find x ranges for each column based on the header row.
+
+    Returns a dict like {"numero":(x0,x1), "nome":(x0,x1), ...,
+                         "header_bottom": float}
+    or None when header words can't be located.
+    """
+    # Build a quick index by lowercased text.
+    targets = {
+        "no":       "numero",  # "Nº" → after stripping non-letters becomes "n"
+        "n":        "numero",
+        "nome":     "nome",
+        "filiacao": "filiacao",
+        "filiação": "filiacao",
+        "data":     "data_nascimento",  # paired with "nasc."
+        "descarga": "descarga",
+    }
+    found = {}  # field -> word
+    for w in words:
+        token = (w.get("text") or "").strip().lower().rstrip(".:")
+        if token in targets:
+            field = targets[token]
+            # First occurrence wins (top-most)
+            if field not in found:
+                found[field] = w
+
+    if "nome" not in found or "filiacao" not in found:
+        return None
+
+    # Header words like "FILIAÇÃO" and "DATA NASC." are centered above their
+    # column, while the data underneath is left-aligned and starts well to the
+    # left of the header word. Using the header word's x0 as the left bound
+    # would push the first data words into the previous column. Use the
+    # header word *centers* and split columns at the midpoints between
+    # consecutive centers so each data word lands in the correct bucket.
+    ordered = []
+    for field in ("numero", "nome", "filiacao", "data_nascimento", "descarga"):
+        if field in found:
+            w = found[field]
+            center = (w["x0"] + w["x1"]) / 2.0
+            ordered.append((field, center))
+    if len(ordered) < 3:
+        return None
+    ordered.sort(key=lambda t: t[1])
+
+    bounds = {}
+    for i, (field, _center) in enumerate(ordered):
+        if i == 0:
+            lo = float("-inf")
+        else:
+            lo = (ordered[i - 1][1] + ordered[i][1]) / 2.0
+        if i + 1 < len(ordered):
+            hi = (ordered[i][1] + ordered[i + 1][1]) / 2.0
+        else:
+            hi = float("inf")
+        bounds[field] = (lo, hi)
+
+    # Header bottom = max bottom of header words (so we ignore the header row).
+    header_bottom = max(found[f]["bottom"] for f in found)
+    bounds["header_bottom"] = header_bottom
+    return bounds
+
+
+def _cad_assign_columns(line_words, col_x):
+    """Group words on a single line into column buckets by x0."""
+    buckets = {}
+    fields = [f for f in ("numero", "nome", "filiacao", "data_nascimento", "descarga") if f in col_x]
+    for w in line_words:
+        x0 = w["x0"]
+        chosen = None
+        for field in fields:
+            lo, hi = col_x[field]
+            if lo <= x0 < hi:
+                chosen = field
+                break
+        if chosen is None:
+            continue
+        buckets.setdefault(chosen, []).append(w["text"])
+    return {k: " ".join(v) for k, v in buckets.items()}
+
+
+
+def _cad_row_to_kwargs(row, colmap, defaults):
+    kw = dict(defaults)  # ilha/cre/posto/concelho/mesa fallbacks
+    for col, target in colmap.items():
+        raw = row.get(col)
+        if target == "numero":
+            v = _cad_parse_int(raw)
+            if v is not None:
+                kw[target] = v
+        elif target == "data_nascimento":
+            v = _cad_parse_date(raw)
+            if v is not None:
+                kw[target] = v
+        elif target == "descarga":
+            kw[target] = _cad_parse_bool(raw)
+        else:
+            v = _cad_clean(raw)
+            if v:
+                kw[target] = v
+    return kw
+
+
+@login_required
+def caderno_2026_import_preview(request):
+    if request.method != "POST" or "arquivo" not in request.FILES:
+        return JsonResponse({"message": "Selecione um ficheiro para pré-visualizar"}, status=400)
+
+    upload = request.FILES["arquivo"]
+    defaults = {
+        "ilha":     (request.POST.get("ilha") or "").strip(),
+        "cre":      (request.POST.get("cre") or "").strip(),
+        "posto":    (request.POST.get("posto") or "").strip(),
+        "concelho": (request.POST.get("concelho") or "").strip(),
+        "mesa":     (request.POST.get("mesa") or "").strip(),
+    }
+    defaults = {k: v for k, v in defaults.items() if v}
+
+    rows, total_rows, err = _cad_collect_rows(upload, defaults)
+    if err:
+        return JsonResponse({"message": err}, status=400)
+
+    valid = sum(1 for r in rows if r.get("nome"))
+    skipped = total_rows - valid
+    preview = []
+    for r in rows[:10]:
+        preview.append({
+            "numero": r.get("numero"),
+            "nome": r.get("nome", ""),
+            "filiacao": r.get("filiacao", ""),
+            "nome_pai": r.get("nome_pai", ""),
+            "nome_mae": r.get("nome_mae", ""),
+            "data_nascimento": r["data_nascimento"].isoformat() if r.get("data_nascimento") else "",
+            "descarga": r.get("descarga", False),
+            "ilha": r.get("ilha", ""),
+            "cre": r.get("cre", ""),
+            "posto": r.get("posto", ""),
+            "concelho": r.get("concelho", ""),
+            "mesa": r.get("mesa", ""),
+        })
+
+    return JsonResponse({
+        "filename": upload.name,
+        "total_rows": total_rows,
+        "valid": valid,
+        "skipped": skipped,
+        "preview": preview,
+    })
+
+
+@login_required
+def caderno_2026_import(request):
+    if request.method != "POST" or "arquivo" not in request.FILES:
+        messages.error(request, "Selecione um ficheiro para carregar")
+        return redirect("eleitores.index")
+
+    upload = request.FILES["arquivo"]
+    defaults = {
+        "ilha":     (request.POST.get("ilha") or "").strip(),
+        "cre":      (request.POST.get("cre") or "").strip(),
+        "posto":    (request.POST.get("posto") or "").strip(),
+        "concelho": (request.POST.get("concelho") or "").strip(),
+        "mesa":     (request.POST.get("mesa") or "").strip(),
+    }
+    defaults = {k: v for k, v in defaults.items() if v}
+    update_existing = (request.POST.get("update_existing") or "").lower() in ("1", "true", "on", "yes")
+
+    rows, total_rows, err = _cad_collect_rows(upload, defaults)
+    if err:
+        messages.error(request, err)
+        return redirect("eleitores.index")
+
+    job = CadernoEleitoral2026Import.objects.create(
+        nome_original=upload.name,
+        status=CadernoEleitoral2026Import.STATUS_RUNNING,
+        total_linhas=total_rows,
+    )
+
+    criadas = 0
+    atualizadas = 0
+    duplicadas = 0
+    erros = 0
+    processadas = 0
+    objs = []
+
+    for kw in rows:
+        processadas += 1
+        try:
+            if not kw.get("nome"):
+                erros += 1
+                continue
+            mesa_key = kw.get("mesa") or ""
+            numero_key = kw.get("numero")
+            existing = None
+            if mesa_key and numero_key is not None:
+                existing = CadernoEleitoral2026.objects.filter(
+                    mesa=mesa_key, numero=numero_key
+                ).first()
+            if existing:
+                if update_existing:
+                    for f, v in kw.items():
+                        setattr(existing, f, v)
+                    existing.ativo = True
+                    existing.save()
+                    atualizadas += 1
+                else:
+                    duplicadas += 1
+            else:
+                objs.append(CadernoEleitoral2026(**kw))
+                criadas += 1
+                if len(objs) >= 500:
+                    CadernoEleitoral2026.objects.bulk_create(objs)
+                    objs = []
+        except Exception:
+            erros += 1
+            continue
+
+    if objs:
+        CadernoEleitoral2026.objects.bulk_create(objs)
+
+    job.processadas = processadas
+    job.criadas = criadas
+    job.atualizadas = atualizadas
+    job.duplicadas = duplicadas
+    job.erros = erros
+    job.status = CadernoEleitoral2026Import.STATUS_DONE
+    job.mensagem = (
+        f"Criadas: {criadas} · Atualizadas: {atualizadas} · "
+        f"Duplicadas: {duplicadas} · Erros: {erros}"
+    )
+    job.save()
+
+    messages.success(
+        request,
+        f"Caderno 2026 importado. Criadas: {criadas}, Atualizadas: {atualizadas}, "
+        f"Duplicadas: {duplicadas}, Erros: {erros} (de {processadas} linhas).",
+    )
+    return redirect("eleitores.index")
+
+
+def _cad_collect_rows(upload, defaults):
+    """Read upload (CSV/XLS/XLSX/PDF) and return (rows, total_rows, error_msg)."""
+    name = (upload.name or "").lower()
+    if name.endswith(".pdf"):
+        try:
+            raw = upload.read()
+            upload.seek(0)
+            rows = _cad_extract_pdf_rows(raw, defaults)
+        except Exception as exc:
+            return [], 0, f"Erro ao ler PDF: {exc}"
+        return rows, len(rows), None
+
+    df = _cad_load_dataframe(upload)
+    if df is None or df.empty:
+        return [], 0, "Não foi possível ler o ficheiro. Use CSV, XLS, XLSX ou PDF."
+    colmap = _cad_build_colmap(df.columns)
+    if "nome" not in colmap.values():
+        return [], 0, ("Coluna NOME não encontrada. Cabeçalhos esperados: Nº, NOME, "
+                       "FILIAÇÃO, DATA NASC, DESCARGA, ILHA, CRE, POSTO, CONCELHO, MESA")
+    rows = []
+    for _, row in df.iterrows():
+        rows.append(_cad_row_to_kwargs(row, colmap, defaults))
+    return rows, int(df.shape[0]), None
+

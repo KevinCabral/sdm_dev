@@ -145,6 +145,18 @@
         <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Contactado</div><div id="vm-is_contactado" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
         <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-3 md:tw-col-span-2"><div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide">Observação</div><div id="vm-observacao" class="tw-text-sm tw-text-slate-800 tw-mt-1 tw-whitespace-pre-line"></div></div>
       </div>
+
+      {# Militante details (shown only when a militante is matched) #}
+      <div id="vm-militante-section" class="tw-hidden">
+        <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-2">Dados do Militante</div>
+        <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+          <div class="tw-bg-emerald-50/40 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-3 md:tw-col-span-2"><div class="tw-text-[11px] tw-font-semibold tw-text-emerald-700 tw-uppercase tw-tracking-wide">Nome Completo</div><div id="vm-mil-nome" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+          <div class="tw-bg-emerald-50/40 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-emerald-700 tw-uppercase tw-tracking-wide">Nome do Pai</div><div id="vm-mil-pai" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+          <div class="tw-bg-emerald-50/40 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-emerald-700 tw-uppercase tw-tracking-wide">Nome da Mãe</div><div id="vm-mil-mae" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+          <div class="tw-bg-emerald-50/40 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-3"><div class="tw-text-[11px] tw-font-semibold tw-text-emerald-700 tw-uppercase tw-tracking-wide">Data de Nascimento</div><div id="vm-mil-dt-nascimento" class="tw-text-sm tw-text-slate-800 tw-mt-1"></div></div>
+        </div>
+      </div>
+
       <div>
         <div class="tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wide tw-mb-2">Estado</div>
         <div id="vm-badges" class="tw-flex tw-flex-wrap tw-gap-2"></div>
@@ -506,6 +518,12 @@
       $('#vm-is_contactado').text(data.is_contactado ? 'Sim' : 'Não');
       $('#vm-observacao').text(modalValue(data.observacao));
       $('#vm-edit-link').attr('href', '/potenciais-votantes/update/' + data.id);
+      const mil = data.militante || {};
+      $('#vm-mil-nome').text(modalValue(mil.nome_completo));
+      $('#vm-mil-pai').text(modalValue(mil.nm_pai));
+      $('#vm-mil-mae').text(modalValue(mil.nm_mae));
+      $('#vm-mil-dt-nascimento').text(modalValue(mil.dt_nascimento));
+      $('#vm-militante-section').removeClass('tw-hidden');
       const badges = [];
       if (data.is_contactado) badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-sky-50 tw-text-sky-700 tw-border tw-border-sky-200">Contactado</span>');
       else badges.push('<span class="tw-inline-flex tw-items-center tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200">Não contactado</span>');

@@ -147,20 +147,28 @@
   <form id="filters" onsubmit="return false"
         class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
     <div class="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-w-full">
-      <div class="tw-relative tw-flex-1 tw-min-w-0">
+      <div class="tw-relative tw-w-[200px] tw-shrink-0">
         <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
-        <input id="nome" type="text" placeholder="Pesquisar por utilizador..." autocomplete="off"
+        <input id="nome" type="text" placeholder="Utilizador..." autocomplete="off"
                class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
       </div>
 
       <input id="nr_mesa" type="text" placeholder="Nº Mesa"
-             class="tw-w-32 tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
+             class="tw-w-[120px] tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition tw-shrink-0">
 
-      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+      <select id="filter-circulo" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Círculo</option>
+      </select>
+      <select id="filter-concelho" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Concelho</option>
+      </select>
+      <select id="filter-zona" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Zona</option>
+      </select>
 
       <button id="btn-search" type="submit"
-              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
-        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span class="tw-hidden lg:tw-inline">Pesquisar</span>
       </button>
 
       <button id="btn-clear" type="button" title="Limpar filtros"
@@ -407,7 +415,10 @@
   function currentFilters(extra) {
     return Object.assign({
       nome: $('#nome').val(),
-      nr_mesa: $('#nr_mesa').val()
+      nr_mesa: $('#nr_mesa').val(),
+      circulo: $('#filter-circulo').val() || '',
+      concelho: $('#filter-concelho').val() || '',
+      zona: $('#filter-zona').val() || ''
     }, extra || {});
   }
 
@@ -566,7 +577,65 @@
         cache: true
       }
     });
+
+    initTerritorioFilters();
   });
+
+  function setSingleOption(sel, id, label) {
+    var $el = $(sel);
+    $el.empty();
+    if (id) {
+      $el.append(new Option(label || ('#' + id), id, true, true));
+    } else {
+      var ph = $el.data('placeholder') || ($el.find('option:first').text() || '');
+      $el.append(new Option(ph, '', true, true));
+    }
+    $el.trigger('change');
+  }
+
+  function initTerritorioFilters() {
+    if (!$.fn.select2) return;
+    function ajaxOpts(urlBase, parentSelector, parentParam) {
+      return {
+        ajax: {
+          url: urlBase,
+          dataType: 'json',
+          delay: 200,
+          data: function (params) {
+            var d = { q: params.term || '' };
+            if (parentSelector) {
+              var pid = $(parentSelector).val();
+              if (pid) d[parentParam] = pid;
+            }
+            return d;
+          },
+          processResults: function (data) {
+            return { results: (data.results || []).map(function (r) { return { id: r.id, text: r.text }; }) };
+          }
+        },
+        minimumInputLength: 0,
+        allowClear: true,
+        width: '100%'
+      };
+    }
+    $('#filter-circulo').select2($.extend({ placeholder: 'Círculo' },
+      ajaxOpts('/territorio/circulos/search')));
+    $('#filter-concelho').select2($.extend({ placeholder: 'Concelho' },
+      ajaxOpts('/territorio/concelhos/search', '#filter-circulo', 'circulo')));
+    $('#filter-zona').select2($.extend({ placeholder: 'Zona' },
+      ajaxOpts('/territorio/zonas/search', '#filter-concelho', 'concelho')));
+
+    $('#filter-circulo').on('change', function () {
+      setSingleOption('#filter-concelho', '', '');
+      setSingleOption('#filter-zona', '', '');
+      search();
+    });
+    $('#filter-concelho').on('change', function () {
+      setSingleOption('#filter-zona', '', '');
+      search();
+    });
+    $('#filter-zona').on('change', function () { search(); });
+  }
 
   $(document).ready(function () {
     $('#add-form').submit(function (event) {
@@ -646,6 +715,9 @@
 
   $(document).on('click', '#btn-clear', function () {
     $('#nome,#nr_mesa').val('');
+    setSingleOption('#filter-circulo', '', '');
+    setSingleOption('#filter-concelho', '', '');
+    setSingleOption('#filter-zona', '', '');
     search();
   });
 

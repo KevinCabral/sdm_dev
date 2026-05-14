@@ -56,12 +56,23 @@ def index(request):
     """
     nome = request.GET.get("nome", "").strip()
     nr_mesa = request.GET.get("nr_mesa", "").strip()
+    circulo = request.GET.get("circulo", "").strip()
+    concelho = request.GET.get("concelho", "").strip()
+    zona = request.GET.get("zona", "").strip()
 
-    qs = UserMesa.objects.select_related("user", "mesa")
+    qs = UserMesa.objects.select_related(
+        "user", "mesa", "mesa__concelho", "mesa__concelho__circulo", "mesa__zona",
+    )
     if nome:
         qs = qs.filter(user__username__icontains=nome)
     if nr_mesa:
         qs = qs.filter(mesa__nr_mesa__icontains=nr_mesa)
+    if circulo:
+        qs = qs.filter(mesa__concelho__circulo_id=circulo)
+    if concelho:
+        qs = qs.filter(mesa__concelho_id=concelho)
+    if zona:
+        qs = qs.filter(mesa__zona_id=zona)
 
     # Group in Python to keep the query simple. A user_id of ``None``
     # should not happen (user is non-null) but is guarded for safety.
@@ -216,35 +227,46 @@ def get(request):
 
 @login_required
 def exportExcel(request):
-    nome = request.GET.get("nome", "")
-    nr_mesa = request.GET.get("nr_mesa", "")
-    filtro = {}
-    
+    nome = request.GET.get("nome", "").strip()
+    nr_mesa = request.GET.get("nr_mesa", "").strip()
+    circulo = request.GET.get("circulo", "").strip()
+    concelho = request.GET.get("concelho", "").strip()
+    zona = request.GET.get("zona", "").strip()
+
+    qs = UserMesa.objects.select_related(
+        "user", "mesa", "mesa__concelho", "mesa__concelho__circulo", "mesa__zona",
+    )
     if nome:
-        filtro['user__username__icontains'] = nome
-
+        qs = qs.filter(user__username__icontains=nome)
     if nr_mesa:
-        filtro['mesa__nr_mesa'] = nr_mesa
+        qs = qs.filter(mesa__nr_mesa__icontains=nr_mesa)
+    if circulo:
+        qs = qs.filter(mesa__concelho__circulo_id=circulo)
+    if concelho:
+        qs = qs.filter(mesa__concelho_id=concelho)
+    if zona:
+        qs = qs.filter(mesa__zona_id=zona)
 
-    mesas = UserMesa.objects.filter(**filtro).all()
+    qs = qs.order_by("user__username", "mesa__nr_mesa")
+
     response = HttpResponse(
         content_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="utilizador_mesa.csv"'},
     )
-
     writer = csv.writer(response)
-    if len(mesas) > 0:
-        keys = list(model_to_dict(mesas[0]).keys())
-        header = []
-        keys.append("Username")
-        for k in keys: 
-            text = k.replace("_", " ")
-            header.append(text)
-        writer.writerow(header)
-        for i in mesas:
-            data = list(model_to_dict(i).values())
-            data.append(i.user.username)
-            writer.writerow(data)
+    writer.writerow(["Username", "Mesa", "Zona", "Concelho", "Circulo", "Password"])
+    for um in qs:
+        username = um.user.username if um.user_id else ""
+        mesa_nr = um.mesa.nr_mesa if um.mesa_id else ""
+        zona_nm = um.mesa.zona.nome if (um.mesa_id and um.mesa.zona_id) else ""
+        concelho_nm = um.mesa.concelho.nome if (um.mesa_id and um.mesa.concelho_id) else ""
+        circulo_nm = (
+            um.mesa.concelho.circulo.nome
+            if (um.mesa_id and um.mesa.concelho_id and um.mesa.concelho.circulo_id)
+            else ""
+        )
+        password = f"{username}2026" if username else ""
+        writer.writerow([username, mesa_nr, zona_nm, concelho_nm, circulo_nm, password])
     return response
 
 
@@ -455,8 +477,19 @@ def indexMesa(request):
     nr_mesa = request.GET.get("nr_mesa", "")
     if nr_mesa:
         filtros['nr_mesa__icontains'] = nr_mesa
+    circulo = request.GET.get("circulo", "")
+    if circulo:
+        filtros['concelho__circulo_id'] = circulo
+    concelho = request.GET.get("concelho", "")
+    if concelho:
+        filtros['concelho_id'] = concelho
+    zona = request.GET.get("zona", "")
+    if zona:
+        filtros['zona_id'] = zona
 
-    mesa = Mesa.objects.filter(**filtros)
+    mesa = Mesa.objects.filter(**filtros).select_related(
+        "concelho", "concelho__circulo", "zona",
+    )
     paginator = Paginator(mesa, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -475,7 +508,13 @@ def createOrUpdateMesa(request):
         else:
             form = MesaForm(request.POST)
         if form.is_valid():
-            userMesa = form.save()
+            userMesa = form.save(commit=False)
+            # Territorial FKs (sent as plain integers via Select2 hidden inputs)
+            concelho_id = (request.POST.get("concelho") or "").strip()
+            zona_id = (request.POST.get("zona") or "").strip()
+            userMesa.concelho_id = int(concelho_id) if concelho_id.isdigit() else None
+            userMesa.zona_id = int(zona_id) if zona_id.isdigit() else None
+            userMesa.save()
             if id != "":
                 messages.success(request, f'Mesa Atualizado')
             else:
@@ -530,13 +569,25 @@ def getMesa(request):
     if id == "":
         return JsonResponse({})
 
-    mesa = Mesa.objects.get(pk=id)
-    
-    if not(mesa):
+    mesa = Mesa.objects.select_related(
+        "concelho", "concelho__circulo", "zona",
+    ).filter(pk=id).first()
+
+    if not mesa:
         messages.error(request, f'Erro na visualização de Mesa')
-        data = {}
-    else:
-        data = model_to_dict(mesa)
+        return JsonResponse({})
+
+    data = {
+        'id': mesa.id,
+        'nr_mesa': mesa.nr_mesa,
+        'status': mesa.status,
+        'concelho_id': mesa.concelho_id,
+        'concelho_nome': mesa.concelho.nome if mesa.concelho else None,
+        'zona_id': mesa.zona_id,
+        'zona_nome': mesa.zona.nome if mesa.zona else None,
+        'circulo_id': mesa.concelho.circulo_id if mesa.concelho and mesa.concelho.circulo_id else None,
+        'circulo_nome': mesa.concelho.circulo.nome if mesa.concelho and mesa.concelho.circulo else None,
+    }
     return JsonResponse(data)
 
 @login_required

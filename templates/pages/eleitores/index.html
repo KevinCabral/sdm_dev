@@ -141,6 +141,12 @@
         <i class="fa fa-download tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Exportar</span>
       </button>
 
+      {# Caderno Eleitoral 2026 — import #}
+      <button id="importar-caderno-2026"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-emerald-700 hover:tw-text-emerald-800 hover:tw-bg-emerald-50 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
+        <i class="fa fa-file-import tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Caderno 2026</span>
+      </button>
+
       {# primary — only one strong color on page #}
       <a href="{% url 'eleitores.create' %}"
          class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-3.5 tw-bg-mpd-600 hover:tw-bg-mpd-700 tw-text-white tw-rounded-md tw-text-sm tw-font-semibold tw-transition tw-shadow-sm">
@@ -679,5 +685,169 @@
   }
 
   $(function () { renderChips(); });
+</script>
+
+{# ── Caderno Eleitoral 2026 — Import Modal ────────────────────────── #}
+<div id="cad26-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-3xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-file-import tw-text-xs"></i>
+        </span>
+        <span>Importar Caderno Eleitoral 2026</span>
+      </h2>
+      <button type="button" id="cad26-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'eleitores.caderno_2026_import' %}" method="post" id="cad26-form" enctype="multipart/form-data" class="tw-p-5 tw-space-y-4">
+      {% csrf_token %}
+
+      <div class="tw-text-xs tw-text-slate-600 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-p-3">
+        Carregue o ficheiro <strong>PDF</strong> oficial do Caderno Eleitoral 2026, ou um <strong>CSV / XLS / XLSX</strong> com as colunas:
+        <code>Nº</code>, <code>NOME</code>, <code>FILIAÇÃO</code>, <code>DATA NASC</code>, <code>DESCARGA</code>.
+        Para PDF, os campos <code>ILHA</code>, <code>CRE</code>, <code>POSTO</code>, <code>CONCELHO</code> e <code>MESA</code>
+        são lidos automaticamente do cabeçalho de cada página (pode também forçá-los em baixo).
+      </div>
+
+      <div class="form-group">
+        <label class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600 tw-uppercase tw-tracking-wide tw-mb-1">Ficheiro <span class="tw-text-rose-500">*</span></label>
+        <input type="file" id="cad26-file" name="arquivo" accept=".csv,.xls,.xlsx,.pdf"
+               class="tw-block tw-w-full tw-text-sm tw-text-slate-700 file:tw-mr-3 file:tw-py-2 file:tw-px-3 file:tw-rounded-md file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-emerald-50 file:tw-text-emerald-700 hover:file:tw-bg-emerald-100">
+      </div>
+
+      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-5 tw-gap-2">
+        <input name="ilha" placeholder="ILHA (ex: SANTIAGO)" class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+        <input name="cre" placeholder="CRE (ex: PRAIA)" class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+        <input name="posto" placeholder="POSTO (ex: PAIOL)" class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+        <input name="concelho" placeholder="CONCELHO (ex: PRAIA)" class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+        <input name="mesa" placeholder="MESA (ex: PR-AU-01)" class="tw-h-9 tw-px-3 tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-md tw-text-sm">
+      </div>
+
+      <label class="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-slate-700">
+        <input type="checkbox" name="update_existing" value="1">
+        Atualizar registos existentes (chave <code>MESA + Nº</code>)
+      </label>
+
+      <div id="cad26-preview" class="tw-hidden tw-border tw-border-slate-200 tw-rounded-md tw-overflow-hidden">
+        <div class="tw-px-3 tw-py-2 tw-bg-slate-50 tw-border-b tw-border-slate-200 tw-text-xs tw-text-slate-700" id="cad26-summary"></div>
+        <div class="tw-overflow-x-auto tw-max-h-72">
+          <table class="tw-min-w-full tw-text-xs">
+            <thead class="tw-bg-slate-50 tw-text-slate-500">
+              <tr>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Nº</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Nome</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Nome do Pai</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Nome da Mãe</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Data Nasc.</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Mesa</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Concelho</th>
+                <th class="tw-px-2 tw-py-1.5 tw-text-left">Posto</th>
+              </tr>
+            </thead>
+            <tbody id="cad26-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-3 tw-border-t tw-border-slate-100">
+        <button type="button" id="cad26-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="cad26-preview-btn" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-eye tw-text-xs"></i><span>Pré-visualizar</span>
+        </button>
+        <button type="submit" id="cad26-submit" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-emerald-600 hover:tw-bg-emerald-700 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-upload tw-text-xs"></i><span>Importar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    function showCad26() {
+      $('#cad26-modal').removeClass('tw-hidden').addClass('tw-flex');
+      document.body.style.overflow = 'hidden';
+    }
+    function hideCad26() {
+      $('#cad26-modal').addClass('tw-hidden').removeClass('tw-flex');
+      document.body.style.overflow = '';
+    }
+    function resetCad26() {
+      $('#cad26-form')[0].reset();
+      $('#cad26-preview').addClass('tw-hidden');
+      $('#cad26-preview-body').empty();
+      $('#cad26-summary').empty();
+    }
+    function csrf() {
+      var name = 'csrftoken';
+      var cookies = (document.cookie || '').split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.substring(0, name.length + 1) === name + '=') {
+          return decodeURIComponent(c.substring(name.length + 1));
+        }
+      }
+      return '';
+    }
+
+    $(document).on('click', '#importar-caderno-2026', function () { resetCad26(); showCad26(); });
+    $(document).on('click', '#cad26-close,#cad26-cancel', hideCad26);
+    $(document).on('click', '#cad26-modal', function (e) { if (e.target === this) hideCad26(); });
+    $(document).on('keydown', function (e) {
+      if (e.key === 'Escape' && !$('#cad26-modal').hasClass('tw-hidden')) hideCad26();
+    });
+
+    $(document).on('click', '#cad26-preview-btn', function () {
+      var file = $('#cad26-file')[0].files[0];
+      if (!file) {
+        alert('Escolha um ficheiro');
+        return;
+      }
+      var btn = $(this);
+      var original = btn.html();
+      btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i><span>A analisar...</span>');
+
+      var fd = new FormData($('#cad26-form')[0]);
+      fd.set('arquivo', file);
+      fd.append('csrfmiddlewaretoken', csrf());
+
+      $.ajax({
+        url: "{% url 'eleitores.caderno_2026_import_preview' %}",
+        type: 'POST',
+        data: fd,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+          $('#cad26-summary').text(
+            'Linhas: ' + res.total_rows + ' · válidas: ' + res.valid + ' · ignoradas: ' + res.skipped
+          );
+          var $body = $('#cad26-preview-body').empty();
+          (res.preview || []).forEach(function (r) {
+            $body.append(
+              '<tr class="tw-border-t tw-border-slate-100">' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700 tw-font-medium">' + (r.numero ?? '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + (r.nome || '') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-600">' + (r.nome_pai || '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-600">' + (r.nome_mae || '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-600">' + (r.data_nascimento || '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + (r.mesa || '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + (r.concelho || '—') + '</td>' +
+              '<td class="tw-px-2 tw-py-1.5 tw-text-slate-700">' + (r.posto || '—') + '</td>' +
+              '</tr>'
+            );
+          });
+          $('#cad26-preview').removeClass('tw-hidden');
+        },
+        error: function (xhr) {
+          var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Erro ao analisar ficheiro';
+          alert(msg);
+        },
+        complete: function () { btn.prop('disabled', false).html(original); }
+      });
+    });
+  })();
 </script>
 {% endblock %}

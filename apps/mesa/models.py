@@ -1,10 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from apps.territorio.models import Concelho, Zona
+
 
 class Mesa(models.Model):
     nr_mesa = models.CharField(max_length=150, null=False, blank=False)
     status = models.BigIntegerField(blank=True, null=True, default="1")
+    concelho = models.ForeignKey(
+        Concelho, on_delete=models.PROTECT, blank=True, null=True,
+        related_name="mesas",
+    )
+    zona = models.ForeignKey(
+        Zona, on_delete=models.PROTECT, blank=True, null=True,
+        related_name="mesas",
+    )
     updatedAt = models.DateTimeField(auto_now=True, auto_now_add=False, null=True)
     createdAt = models.DateTimeField(auto_now=True, auto_now_add=False,null=True)
     

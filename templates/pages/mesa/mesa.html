@@ -78,8 +78,29 @@
     .modal .invalid {
       border-color: #dc2626 !important;
     }
+    /* Select2 alignment with our compact filter inputs */
+    .select2-container--default .select2-selection--single {
+      height: 36px !important;
+      border: 1px solid transparent !important;
+      background: #f8fafc !important;
+      border-radius: 6px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 34px !important;
+      padding-left: 10px !important;
+      color: #334155;
+      font-size: 14px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 34px !important;
+    }
   </style>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock extrahead %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock extra_js %}
 
 {% block content %}
 <div id="toast-container"></div>
@@ -96,9 +117,14 @@
     </div>
     <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
       <input type="file" id="arquivo_mesa" class="tw-hidden" accept=".csv,.xls,.xlsx" />
+      <input type="file" id="arquivo_territorio" class="tw-hidden" accept=".csv" />
       <button id="upload"
-              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition">
-        <i class="fa fa-upload tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Carregar</span>
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition" title="Importar lista de mesas (CSV/Excel)">
+        <i class="fa fa-upload tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Carregar mesas</span>
+      </button>
+      <button id="upload-territorio"
+              class="tw-inline-flex tw-items-center tw-gap-2 tw-h-9 tw-px-2.5 tw-text-slate-600 hover:tw-text-slate-900 hover:tw-bg-slate-100 tw-rounded-md tw-text-sm tw-font-normal tw-transition" title="Importar territorio.csv (Círculos · Concelhos · Zonas)">
+        <i class="fa fa-globe tw-text-xs"></i><span class="tw-hidden sm:tw-inline">Carregar território</span>
       </button>
 
       <button id="exportar"
@@ -116,17 +142,25 @@
   <form id="filters" onsubmit="return false"
         class="tw-bg-white tw-border tw-border-slate-200/80 tw-rounded-lg tw-px-3 tw-py-2.5 tw-shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
     <div class="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-w-full">
-      <div class="tw-relative tw-flex-1 tw-min-w-0">
+      <div class="tw-relative tw-w-[180px] tw-shrink-0">
         <i class="fa fa-search tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 tw-text-xs"></i>
-        <input id="nr_mesa" type="text" placeholder="Pesquisar Nº Mesa..." autocomplete="off"
+        <input id="nr_mesa" type="text" placeholder="Nº Mesa..." autocomplete="off"
                class="tw-w-full tw-h-9 tw-pl-9 tw-pr-3 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-bg-white focus:tw-ring-2 focus:tw-ring-mpd-500/15 focus:tw-border-mpd-500 tw-transition">
       </div>
 
-      <div class="tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-1 tw-shrink-0"></div>
+      <select id="filter-circulo" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Círculo</option>
+      </select>
+      <select id="filter-concelho" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Concelho</option>
+      </select>
+      <select id="filter-zona" class="tw-h-9 tw-flex-1 tw-min-w-0 tw-px-2 tw-bg-slate-50 tw-border tw-border-transparent tw-rounded-md tw-text-sm">
+        <option value="">Zona</option>
+      </select>
 
       <button id="btn-search" type="submit"
-              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3.5 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
-        <i class="fa fa-search tw-text-xs"></i><span>Pesquisar</span>
+              class="tw-h-9 tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-bg-white tw-border tw-border-slate-200 tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-border-slate-300 tw-px-3 tw-rounded-md tw-text-sm tw-font-medium tw-transition tw-shrink-0">
+        <i class="fa fa-search tw-text-xs"></i><span class="tw-hidden lg:tw-inline">Pesquisar</span>
       </button>
 
       <button id="btn-clear" type="button" title="Limpar filtros"
@@ -162,6 +196,9 @@
               <input type="checkbox" id="select-all-mesas" class="tw-h-4 tw-w-4">
             </th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Número de Mesa</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Círculo</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Concelho</th>
+            <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Zona</th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Criado em</th>
             <th class="tw-px-4 tw-py-3 tw-text-[11px] tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500 tw-text-center">Ação</th>
           </tr>
@@ -173,6 +210,9 @@
                 <input type="checkbox" class="mesa-select tw-h-4 tw-w-4" value="{{ mesa.id }}">
               </td>
               <td class="tw-px-4 tw-py-3 tw-text-slate-700">{{ mesa.nr_mesa }}</td>
+              <td class="tw-px-4 tw-py-3 tw-text-slate-600">{% if mesa.concelho and mesa.concelho.circulo %}{{ mesa.concelho.circulo.nome }}{% else %}<span class="tw-text-slate-300">—</span>{% endif %}</td>
+              <td class="tw-px-4 tw-py-3 tw-text-slate-600">{% if mesa.concelho %}{{ mesa.concelho.nome }}{% else %}<span class="tw-text-slate-300">—</span>{% endif %}</td>
+              <td class="tw-px-4 tw-py-3 tw-text-slate-600">{% if mesa.zona %}{{ mesa.zona.nome }}{% else %}<span class="tw-text-slate-300">—</span>{% endif %}</td>
               <td class="tw-px-4 tw-py-3 tw-text-slate-600">{{ mesa.createdAt }}</td>
               <td class="tw-px-4 tw-py-3">
                 <div class="tw-flex tw-items-center tw-justify-center tw-gap-1.5">
@@ -190,7 +230,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="tw-py-10 tw-text-center tw-text-slate-400">Sem registos</td>
+              <td colspan="7" class="tw-py-10 tw-text-center tw-text-slate-400">Sem registos</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -227,6 +267,18 @@
                 <label style="font-weight: 700;color: black;">Numero de Mesa:</label>
                 <span id="id_nr_mesa_view"></span>
               </div>
+              <div class="col-md-6">
+                <label style="font-weight: 700;color: black;">Círculo:</label>
+                <span id="id_circulo_view"></span>
+              </div>
+              <div class="col-md-6">
+                <label style="font-weight: 700;color: black;">Concelho:</label>
+                <span id="id_concelho_view"></span>
+              </div>
+              <div class="col-md-6">
+                <label style="font-weight: 700;color: black;">Zona:</label>
+                <span id="id_zona_view"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -254,6 +306,24 @@
                 {{ form.nr_mesa }}
                 {{ form.nr_mesa.errors }}
                 <span class="errors"></span>
+              </div>
+              <div class="form-group">
+                <label for="id_circulo_modal">Círculo</label>
+                <select id="id_circulo_modal" name="circulo_filter" class="form-control" style="width:100%">
+                  <option value="">— Selecionar Círculo —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="id_concelho_modal">Concelho</label>
+                <select id="id_concelho_modal" name="concelho" class="form-control" style="width:100%">
+                  <option value="">— Selecionar Concelho —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="id_zona_modal">Zona</label>
+                <select id="id_zona_modal" name="zona" class="form-control" style="width:100%">
+                  <option value="">— Selecionar Zona —</option>
+                </select>
               </div>
               <input type="hidden" id="id" name="id">
             </div>
@@ -330,8 +400,94 @@
   </div>
 </div>
 
+<div id="territorio-upload-modal" class="tw-fixed tw-inset-0 tw-z-[1050] tw-hidden tw-items-center tw-justify-center tw-p-4" style="background: rgba(15,23,42,.55);">
+  <div class="tw-bg-white tw-rounded-xl tw-shadow-2xl tw-w-full tw-max-w-3xl tw-overflow-hidden">
+    <div class="tw-flex tw-items-center tw-justify-between tw-px-5 tw-py-3.5 tw-border-b tw-border-slate-100 tw-bg-slate-50">
+      <h2 class="tw-text-base tw-font-semibold tw-text-slate-900 tw-m-0 tw-flex tw-items-center tw-gap-2">
+        <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-emerald-50 tw-text-emerald-600 tw-flex tw-items-center tw-justify-center">
+          <i class="fa fa-globe tw-text-xs"></i>
+        </span>
+        <span>Importar Território</span>
+      </h2>
+      <button type="button" id="territorio-close" class="tw-w-8 tw-h-8 tw-rounded-md tw-text-slate-400 hover:tw-bg-slate-200 hover:tw-text-slate-700 tw-transition" aria-label="Fechar">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tw-p-5 tw-space-y-4">
+      <div class="tw-text-sm tw-text-slate-600">
+        Ficheiro: <span id="territorio-filename" class="tw-font-medium tw-text-slate-800">-</span>
+      </div>
+
+      <div>
+        <div class="tw-text-xs tw-uppercase tw-tracking-wide tw-text-slate-500 tw-font-semibold tw-mb-1.5">Modo em conflito</div>
+        <div class="tw-flex tw-flex-wrap tw-gap-3 tw-text-sm tw-text-slate-700">
+          <label class="tw-inline-flex tw-items-center tw-gap-1.5">
+            <input type="radio" name="territorio_mode" value="skip"> Ignorar existentes
+          </label>
+          <label class="tw-inline-flex tw-items-center tw-gap-1.5">
+            <input type="radio" name="territorio_mode" value="update" checked> Atualizar (preserva existentes)
+          </label>
+          <label class="tw-inline-flex tw-items-center tw-gap-1.5">
+            <input type="radio" name="territorio_mode" value="overwrite"> Sobrescrever campos
+          </label>
+        </div>
+      </div>
+
+      <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-2">
+        <div class="tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-emerald-700">Círculos</div>
+          <div class="tw-text-xs tw-text-emerald-900 tw-mt-0.5"><span id="terr-cir-create">0</span> novos · <span id="terr-cir-update">0</span> alt. · <span id="terr-cir-skip">0</span> iguais</div>
+        </div>
+        <div class="tw-bg-sky-50 tw-border tw-border-sky-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-sky-700">Concelhos</div>
+          <div class="tw-text-xs tw-text-sky-900 tw-mt-0.5"><span id="terr-con-create">0</span> novos · <span id="terr-con-update">0</span> alt. · <span id="terr-con-skip">0</span> iguais</div>
+        </div>
+        <div class="tw-bg-amber-50 tw-border tw-border-amber-100 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-amber-700">Zonas</div>
+          <div class="tw-text-xs tw-text-amber-900 tw-mt-0.5"><span id="terr-zon-create">0</span> novas · <span id="terr-zon-update">0</span> alt. · <span id="terr-zon-skip">0</span> iguais</div>
+        </div>
+        <div class="tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg tw-p-2.5">
+          <div class="tw-text-[11px] tw-uppercase tw-tracking-wide tw-text-slate-600">Mesas</div>
+          <div class="tw-text-xs tw-text-slate-800 tw-mt-0.5"><span id="terr-mes-create">0</span> novas · <span id="terr-mes-update">0</span> alt. · <span id="terr-mes-skip">0</span> iguais</div>
+        </div>
+      </div>
+
+      <div id="terr-errors-wrap" class="tw-hidden tw-bg-red-50 tw-border tw-border-red-100 tw-rounded-lg tw-p-3">
+        <div class="tw-text-xs tw-font-semibold tw-text-red-700 tw-uppercase tw-tracking-wide tw-mb-1">Erros</div>
+        <ul id="terr-errors" class="tw-text-xs tw-text-red-700 tw-list-disc tw-list-inside tw-space-y-0.5"></ul>
+      </div>
+
+      <div class="tw-border tw-border-slate-200 tw-rounded-lg tw-overflow-hidden">
+        <table class="tw-min-w-full tw-text-xs tw-text-left">
+          <thead class="tw-bg-slate-50">
+            <tr>
+              <th class="tw-px-3 tw-py-2 tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Tipo</th>
+              <th class="tw-px-3 tw-py-2 tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Nome</th>
+              <th class="tw-px-3 tw-py-2 tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Pai</th>
+              <th class="tw-px-3 tw-py-2 tw-font-medium tw-uppercase tw-tracking-wide tw-text-slate-500">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="terr-sample-rows">
+            <tr><td colspan="4" class="tw-px-3 tw-py-4 tw-text-slate-400">Sem dados</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-pt-2 tw-border-t tw-border-slate-100">
+        <button type="button" id="territorio-cancel" class="tw-h-10 tw-px-4 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-white tw-border tw-border-slate-200 tw-text-slate-600 hover:tw-bg-slate-50 tw-transition">Cancelar</button>
+        <button type="button" id="territorio-confirm" class="tw-h-10 tw-px-5 tw-rounded-lg tw-text-sm tw-font-semibold tw-bg-mpd-500 hover:tw-bg-mpd-600 tw-text-white tw-shadow-sm tw-transition tw-inline-flex tw-items-center tw-gap-2">
+          <i class="fa fa-check tw-text-xs"></i><span>Confirmar Importação</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   var pendingUploadFile = null;
+  var pendingTerritorioFile = null;
+
 
   function getCookie(name) {
     var cookieValue = null;
@@ -406,6 +562,12 @@
     var data = {};
     var nrMesa = $('#nr_mesa').val();
     if (nrMesa) data.nr_mesa = nrMesa;
+    var cir = $('#filter-circulo').val();
+    var con = $('#filter-concelho').val();
+    var zon = $('#filter-zona').val();
+    if (cir) data.circulo = cir;
+    if (con) data.concelho = con;
+    if (zon) data.zona = zon;
     if (page) data.page = page;
 
     $('.content-data').html(
@@ -435,6 +597,10 @@
       $('#create-modal').find('#id_nr_mesa').val(data.nr_mesa).trigger('change');
       $('#create-modal').find('#id').val(id);
       $('#create-modal').find('#save').text('Atualizar');
+      // Pre-fill territorial selects
+      setSingleOption('#id_circulo_modal', data.circulo_id, data.circulo_nome);
+      setSingleOption('#id_concelho_modal', data.concelho_id, data.concelho_nome);
+      setSingleOption('#id_zona_modal', data.zona_id, data.zona_nome);
       $('#create-modal').modal('show');
     });
   });
@@ -454,6 +620,9 @@
     var id = $(this).attr('id-mesa');
     $.get("{% url 'mesa.view_mesa' %}", { id: id }, function (data) {
       $('#view-modal').find('#id_nr_mesa_view').text(data.nr_mesa);
+      $('#view-modal').find('#id_circulo_view').text(data.circulo_nome || '—');
+      $('#view-modal').find('#id_concelho_view').text(data.concelho_nome || '—');
+      $('#view-modal').find('#id_zona_view').text(data.zona_nome || '—');
       $('#view-modal').modal('show');
     });
   });
@@ -461,8 +630,10 @@
   $(document).on('click', '#criar', function () {
     $('#create-modal').find('#hearder').text('Criar Mesa');
     $('#create-modal').find('#id').val('');
-    $('#create-modal').find('input,select,file').val('');
-    $('#create-modal').find('input,select,file').trigger('change');
+    $('#create-modal').find('input[type="text"],input[type="number"]').val('');
+    setSingleOption('#id_circulo_modal', '', '');
+    setSingleOption('#id_concelho_modal', '', '');
+    setSingleOption('#id_zona_modal', '', '');
     $('#create-modal').find('#save').text('Criar');
     $('#create-modal').modal('show');
   });
@@ -591,6 +762,9 @@
 
   $(document).on('click', '#btn-clear', function () {
     $('#nr_mesa').val('');
+    setSingleOption('#filter-circulo', '', '');
+    setSingleOption('#filter-concelho', '', '');
+    setSingleOption('#filter-zona', '', '');
     search();
   });
 
@@ -733,6 +907,244 @@
 
   $(function () {
     syncBulkSelectionUi();
+    initTerritorioSelects();
+  });
+
+  // ============== Territorial Select2 + Filters ==============
+
+  function setSingleOption($selector, id, label) {
+    var $el = $($selector);
+    $el.empty();
+    if (id) {
+      $el.append(new Option(label || ('#' + id), id, true, true));
+    } else {
+      var placeholder = $el.data('placeholder') || $el.find('option:first').text() || '';
+      $el.append(new Option(placeholder, '', true, true));
+    }
+    $el.trigger('change');
+  }
+
+  function initTerritorioSelects() {
+    if (typeof $.fn.select2 !== 'function') return;
+
+    function ajaxOpts(urlBase, parentSelector, parentParam) {
+      return {
+        ajax: {
+          url: urlBase,
+          dataType: 'json',
+          delay: 200,
+          data: function (params) {
+            var d = { q: params.term || '' };
+            if (parentSelector) {
+              var pid = $(parentSelector).val();
+              if (pid) d[parentParam] = pid;
+            }
+            return d;
+          },
+          processResults: function (data) {
+            return { results: (data.results || []).map(function (r) { return { id: r.id, text: r.text }; }) };
+          }
+        },
+        minimumInputLength: 0,
+        allowClear: true,
+        width: '100%'
+      };
+    }
+
+    // Filters
+    $('#filter-circulo').select2($.extend({ placeholder: 'Círculo' },
+      ajaxOpts('/territorio/circulos/search')));
+    $('#filter-concelho').select2($.extend({ placeholder: 'Concelho' },
+      ajaxOpts('/territorio/concelhos/search', '#filter-circulo', 'circulo')));
+    $('#filter-zona').select2($.extend({ placeholder: 'Zona' },
+      ajaxOpts('/territorio/zonas/search', '#filter-concelho', 'concelho')));
+
+    // Modal cascaded
+    $('#id_circulo_modal').select2($.extend({ placeholder: '— Selecionar Círculo —' },
+      ajaxOpts('/territorio/circulos/search')));
+    $('#id_concelho_modal').select2($.extend({ placeholder: '— Selecionar Concelho —' },
+      ajaxOpts('/territorio/concelhos/search', '#id_circulo_modal', 'circulo')));
+    $('#id_zona_modal').select2($.extend({ placeholder: '— Selecionar Zona —' },
+      ajaxOpts('/territorio/zonas/search', '#id_concelho_modal', 'concelho')));
+
+    // Cascading: clear children when parent changes
+    $('#filter-circulo').on('change', function () {
+      setSingleOption('#filter-concelho', '', '');
+      setSingleOption('#filter-zona', '', '');
+      search();
+    });
+    $('#filter-concelho').on('change', function () {
+      setSingleOption('#filter-zona', '', '');
+      search();
+    });
+    $('#filter-zona').on('change', function () { search(); });
+
+    $('#id_circulo_modal').on('change', function () {
+      setSingleOption('#id_concelho_modal', '', '');
+      setSingleOption('#id_zona_modal', '', '');
+    });
+    $('#id_concelho_modal').on('change', function () {
+      setSingleOption('#id_zona_modal', '', '');
+    });
+  }
+
+  // ============== Territorio Import Modal ==============
+
+  function showTerritorioModal() {
+    $('#territorio-upload-modal').removeClass('tw-hidden').addClass('tw-flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function hideTerritorioModal() {
+    $('#territorio-upload-modal').addClass('tw-hidden').removeClass('tw-flex');
+    document.body.style.overflow = '';
+  }
+
+  $(document).on('click', '#upload-territorio', function () {
+    $('#arquivo_territorio').val('');
+    $('#arquivo_territorio').click();
+  });
+
+  $(document).on('change', '#arquivo_territorio', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    pendingTerritorioFile = file;
+    requestTerritorioPreview();
+  });
+
+  $(document).on('change', 'input[name="territorio_mode"]', function () {
+    if (pendingTerritorioFile) requestTerritorioPreview();
+  });
+
+  function requestTerritorioPreview() {
+    var mode = $('input[name="territorio_mode"]:checked').val() || 'update';
+    var fd = new FormData();
+    fd.append('arquivo', pendingTerritorioFile);
+    fd.append('mode', mode);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    var $btn = $('#upload-territorio');
+    var orig = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin tw-text-xs"></i><span class="tw-hidden sm:tw-inline">A analisar...</span>');
+
+    $.ajax({
+      url: '/territorio/import/preview',
+      type: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      success: function (data) {
+        $('#territorio-filename').text(pendingTerritorioFile.name);
+        var s = data.summary || data;
+        $('#terr-cir-create').text((s.circulos && s.circulos.create) || 0);
+        $('#terr-cir-update').text((s.circulos && s.circulos.update) || 0);
+        $('#terr-cir-skip').text((s.circulos && s.circulos.skip) || 0);
+        $('#terr-con-create').text((s.concelhos && s.concelhos.create) || 0);
+        $('#terr-con-update').text((s.concelhos && s.concelhos.update) || 0);
+        $('#terr-con-skip').text((s.concelhos && s.concelhos.skip) || 0);
+        $('#terr-zon-create').text((s.zonas && s.zonas.create) || 0);
+        $('#terr-zon-update').text((s.zonas && s.zonas.update) || 0);
+        $('#terr-zon-skip').text((s.zonas && s.zonas.skip) || 0);
+        $('#terr-mes-create').text((s.mesas && s.mesas.create) || 0);
+        $('#terr-mes-update').text((s.mesas && s.mesas.update) || 0);
+        $('#terr-mes-skip').text((s.mesas && s.mesas.skip) || 0);
+
+        // Errors
+        var errs = data.errors || s.errors || [];
+        if (errs.length) {
+          var $ul = $('#terr-errors').empty();
+          errs.forEach(function (e) { $ul.append('<li>' + (typeof e === 'string' ? e : (e.message || JSON.stringify(e))) + '</li>'); });
+          $('#terr-errors-wrap').removeClass('tw-hidden');
+        } else {
+          $('#terr-errors-wrap').addClass('tw-hidden');
+        }
+
+        // Sample rows
+        var samples = [];
+        ['circulos', 'concelhos', 'zonas'].forEach(function (k) {
+          var rows = (s[k] && s[k].sample) || [];
+          rows.forEach(function (r) {
+            samples.push({
+              tipo: k.slice(0, -1),
+              nome: r.nome || r.name || '',
+              pai: r.parent || r.circulo || r.concelho || '',
+              acao: r.action || r.acao || ''
+            });
+          });
+        });
+        var html = '';
+        if (!samples.length) {
+          html = '<tr><td colspan="4" class="tw-px-3 tw-py-4 tw-text-slate-400">Sem alterações</td></tr>';
+        } else {
+          samples.forEach(function (r) {
+            html += '<tr class="tw-border-t tw-border-slate-100">' +
+              '<td class="tw-px-3 tw-py-2 tw-text-slate-500">' + r.tipo + '</td>' +
+              '<td class="tw-px-3 tw-py-2 tw-text-slate-700">' + r.nome + '</td>' +
+              '<td class="tw-px-3 tw-py-2 tw-text-slate-500">' + r.pai + '</td>' +
+              '<td class="tw-px-3 tw-py-2 tw-text-slate-600">' + r.acao + '</td>' +
+            '</tr>';
+          });
+        }
+        $('#terr-sample-rows').html(html);
+
+        showTerritorioModal();
+      },
+      error: function (xhr) {
+        var msg = 'Erro ao analisar ficheiro';
+        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+        toast(msg, 'error');
+        pendingTerritorioFile = null;
+      },
+      complete: function () {
+        $btn.prop('disabled', false).html(orig);
+      }
+    });
+  }
+
+  $(document).on('click', '#territorio-close,#territorio-cancel', function () {
+    hideTerritorioModal();
+    pendingTerritorioFile = null;
+  });
+  $(document).on('click', '#territorio-upload-modal', function (e) {
+    if (e.target === this) { hideTerritorioModal(); pendingTerritorioFile = null; }
+  });
+
+  $(document).on('click', '#territorio-confirm', function () {
+    if (!pendingTerritorioFile) {
+      toast('Selecione um ficheiro', 'error');
+      hideTerritorioModal();
+      return;
+    }
+    var mode = $('input[name="territorio_mode"]:checked').val() || 'update';
+    var fd = new FormData();
+    fd.append('arquivo', pendingTerritorioFile);
+    fd.append('mode', mode);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    var $btn = $('#territorio-confirm');
+    var orig = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin tw-text-xs"></i><span>A importar...</span>');
+
+    $.ajax({
+      url: '/territorio/import/execute',
+      type: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      success: function () {
+        toast('Território importado com sucesso', 'success');
+        hideTerritorioModal();
+        pendingTerritorioFile = null;
+        search();
+      },
+      error: function (xhr) {
+        var msg = 'Erro ao importar território';
+        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+        toast(msg, 'error');
+      },
+      complete: function () {
+        $btn.prop('disabled', false).html(orig);
+      }
+    });
   });
 </script>
 {% endblock %}

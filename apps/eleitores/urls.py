@@ -22,13 +22,8 @@ urlpatterns = [
     path("/distribuicao-regiao-votacao", views.distribuicaoNrMesaVotacaoRegiao, name="eleitores.distribuicaoNrMesaVotacaoRegiao"),
     path("/top-mesas-comparecimento", views.topMesasComparecimento, name="eleitores.topMesasComparecimento"),
     path("/votacao-horaria", views.votacaoHoraria, name="eleitores.votacaoHoraria"),
-    
 
-    
-    
+    # Caderno Eleitoral 2026
+    path("/caderno-2026/import/preview", views.caderno_2026_import_preview, name="eleitores.caderno_2026_import_preview"),
+    path("/caderno-2026/import", views.caderno_2026_import, name="eleitores.caderno_2026_import"),
 ]
-
-
-
-
-

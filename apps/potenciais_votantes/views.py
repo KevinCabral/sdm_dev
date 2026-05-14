@@ -265,6 +265,7 @@ def view(request, id):
 @login_required
 def detail_json(request, id):
     obj = get_object_or_404(PotencialVotante, pk=id)
+    militante = Militantes.objects.filter(potencial_votante_id=obj.pk).first()
     return JsonResponse({
         'id': obj.id,
         'nome': obj.nome,
@@ -274,6 +275,12 @@ def detail_json(request, id):
         'is_contactado': bool(obj.is_contactado),
         'observacao': obj.observacao,
         'criado_em': obj.criado_em.isoformat() if obj.criado_em else None,
+        'militante': {
+            'nome_completo': militante.nome_completo if militante else None,
+            'nm_pai': militante.nm_pai if militante else None,
+            'nm_mae': militante.nm_mae if militante else None,
+            'dt_nascimento': militante.dt_nascimento.isoformat() if militante and militante.dt_nascimento else None,
+        } if militante else None,
     })
 
 

@@ -68,3 +68,4 @@ wadllib==1.3.6
 wheel==0.42.0
 zope.interface==6.1
 django-anymail==10.3
+pdfplumber
