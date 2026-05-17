@@ -1359,6 +1359,26 @@ def caderno_2026_import(request):
     processadas = 0
     objs = []
 
+    # Eleitores mirror counters
+    el_criadas = 0
+    el_atualizadas = 0
+    el_duplicadas = 0
+    el_erros = 0
+    el_objs = []
+
+    def _eleitores_kwargs(kw):
+        """Map a CadernoEleitoral2026 kwargs dict to Eleitores fields."""
+        return {
+            "nome": kw.get("nome") or None,
+            "filiacao": kw.get("filiacao") or None,
+            "data_nascimento": kw.get("data_nascimento"),
+            "concelho": kw.get("concelho") or None,
+            "zona": kw.get("posto") or None,
+            "nr_mesa": kw.get("mesa") or None,
+            "nr_eleitor": kw.get("numero"),
+            "descarga": bool(kw.get("descarga")),
+        }
+
     for kw in rows:
         processadas += 1
         try:
@@ -1391,8 +1411,36 @@ def caderno_2026_import(request):
             erros += 1
             continue
 
+        # Mirror into legacy Eleitores table
+        try:
+            el_kw = _eleitores_kwargs(kw)
+            el_existing = None
+            if el_kw["nr_mesa"] and el_kw["nr_eleitor"] is not None:
+                el_existing = Eleitores.objects.filter(
+                    nr_mesa=el_kw["nr_mesa"], nr_eleitor=el_kw["nr_eleitor"]
+                ).first()
+            if el_existing:
+                if update_existing:
+                    for f, v in el_kw.items():
+                        setattr(el_existing, f, v)
+                    el_existing.save()
+                    el_atualizadas += 1
+                else:
+                    el_duplicadas += 1
+            else:
+                el_objs.append(Eleitores(**el_kw))
+                el_criadas += 1
+                if len(el_objs) >= 500:
+                    Eleitores.objects.bulk_create(el_objs)
+                    el_objs = []
+        except Exception:
+            el_erros += 1
+            continue
+
     if objs:
         CadernoEleitoral2026.objects.bulk_create(objs)
+    if el_objs:
+        Eleitores.objects.bulk_create(el_objs)
 
     job.processadas = processadas
     job.criadas = criadas
@@ -1401,15 +1449,19 @@ def caderno_2026_import(request):
     job.erros = erros
     job.status = CadernoEleitoral2026Import.STATUS_DONE
     job.mensagem = (
-        f"Criadas: {criadas} · Atualizadas: {atualizadas} · "
-        f"Duplicadas: {duplicadas} · Erros: {erros}"
+        f"Caderno → Criadas: {criadas} · Atualizadas: {atualizadas} · "
+        f"Duplicadas: {duplicadas} · Erros: {erros} | "
+        f"Eleitores → Criadas: {el_criadas} · Atualizadas: {el_atualizadas} · "
+        f"Duplicadas: {el_duplicadas} · Erros: {el_erros}"
     )
     job.save()
 
     messages.success(
         request,
-        f"Caderno 2026 importado. Criadas: {criadas}, Atualizadas: {atualizadas}, "
-        f"Duplicadas: {duplicadas}, Erros: {erros} (de {processadas} linhas).",
+        f"Caderno 2026 importado. Caderno: criadas {criadas}, atualizadas {atualizadas}, "
+        f"duplicadas {duplicadas}, erros {erros}. "
+        f"Eleitores: criadas {el_criadas}, atualizadas {el_atualizadas}, "
+        f"duplicadas {el_duplicadas}, erros {el_erros} (de {processadas} linhas).",
     )
     return redirect("eleitores.index")
 
